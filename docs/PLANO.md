@@ -1,4 +1,4 @@
-# Plano — Player de Música Multiplataforma (nome a definir)
+# Plano — BKplayer 🎵 (player de música multiplataforma)
 
 ## Contexto
 

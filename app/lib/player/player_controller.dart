@@ -159,6 +159,7 @@ class PlayerController extends Notifier<PlayerState> {
           prev?.replayGainPreampDb != next.replayGainPreampDb ||
           prev?.automixEnabled != next.automixEnabled ||
           prev?.automixRespectAlbums != next.automixRespectAlbums) {
+        if (prev?.automixEnabled != next.automixEnabled) state = state.copyWith(clearPlanned: true);
         _scheduledKey = null;
         _scheduleNext();
       }
@@ -166,7 +167,9 @@ class PlayerController extends Notifier<PlayerState> {
     ref.listen(sessionProvider, (_, next) {
       if (next.value != null && !_restored) {
         _restored = true;
-        _restore();
+        // Depois do build: com o login já pronto, isto dispara durante o
+        // build, quando o estado ainda não existe (a restauração falhava calada).
+        Future.microtask(_restore);
       }
     }, fireImmediately: true);
     ref.onDispose(() {
@@ -523,7 +526,16 @@ class PlayerController extends Notifier<PlayerState> {
     if (src == null) return;
     _resumeAt = null;
     _persistSoon();
-    state = state.copyWith(index: i, position: start, duration: item.song.duration ?? Duration.zero, buffered: 0);
+    // Trocou na mão: a mixagem em andamento e a planejada deixam de valer.
+    _mixTimer?.cancel();
+    state = state.copyWith(
+      index: i,
+      position: start,
+      duration: item.song.duration ?? Duration.zero,
+      buffered: 0,
+      clearMix: true,
+      clearPlanned: true,
+    );
     _scheduledKey = null;
     engine.playerPlay(track: src, startMs: start.inMilliseconds);
     _scheduleNext();

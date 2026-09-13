@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Player de Música'**
+  /// **'BKplayer 🎵'**
   String get appTitle;
 
   /// No description provided for @about.
@@ -1554,6 +1554,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'simples'**
   String get mixSimple;
+
+  /// No description provided for @automixOffTap.
+  ///
+  /// In pt, this message translates to:
+  /// **'AutoMix desligado — clique para ligar'**
+  String get automixOffTap;
+
+  /// No description provided for @automixOnTap.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clique para desligar o AutoMix'**
+  String get automixOnTap;
+
+  /// No description provided for @automixOnWaiting.
+  ///
+  /// In pt, this message translates to:
+  /// **'AutoMix ligado — analisando a próxima música'**
+  String get automixOnWaiting;
+
+  /// No description provided for @filterSongs.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtrar por música, artista ou álbum'**
+  String get filterSongs;
 }
 
 class _AppLocalizationsDelegate

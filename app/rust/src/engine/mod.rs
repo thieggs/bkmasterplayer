@@ -10,6 +10,8 @@ pub mod mixer;
 pub mod output;
 pub mod resample;
 
+#[cfg(target_os = "linux")]
+mod bluetooth;
 #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
 mod desktop;
 
@@ -324,10 +326,8 @@ impl Inner {
         let src = req.clone().map(|r| self.make_deck(r, 0, handoff));
         self.send(MixerCmd::SetNext(src, kind));
         if let (Some(next), true) = (req, transition.is_automix()) {
-            if let Some(cur) = self.current_request() {
-                self.request_analysis(&cur, 0);
-            }
-            self.request_analysis(&next, 0);
+            let pair: Vec<TrackRequest> = self.current_request().into_iter().chain([next]).collect();
+            self.request_urgent(&pair);
             self.try_plan();
         }
     }
@@ -339,14 +339,15 @@ impl Inner {
 
     fn request_analysis(&self, req: &TrackRequest, priority: u8) {
         let Some(worker) = self.analysis.lock().clone() else { return };
-        let Some(key) = req.analysis_key.clone() else { return };
-        worker.request(AnalysisJob {
-            key,
-            url: req.url.clone(),
-            cache_key: req.cache_key.clone(),
-            ext: req.format_hint.clone(),
-            priority,
-        });
+        if let Some(job) = analysis_job(req, priority) {
+            worker.request(job);
+        }
+    }
+
+    /// A que toca (e a próxima) na frente da fila de análise.
+    fn request_urgent(&self, reqs: &[TrackRequest]) {
+        let Some(worker) = self.analysis.lock().clone() else { return };
+        worker.request_urgent(reqs.iter().filter_map(|r| analysis_job(r, 0)).collect());
     }
 
     fn analysis_of(&self, req: &TrackRequest) -> Option<Arc<TrackAnalysis>> {
@@ -831,7 +832,7 @@ fn handle_mixer_event(inner: &Arc<Inner>, ev: MixerEvent) {
                 }
                 on_track_started(inner, token, &req);
                 // Análise da nova atual (se ainda não tem) já na frente da fila.
-                inner.request_analysis(&req, 0);
+                inner.request_urgent(std::slice::from_ref(&req));
             }
             emit_position(inner);
         }
@@ -891,6 +892,16 @@ fn on_track_started(inner: &Arc<Inner>, token: u64, req: &TrackRequest) {
             }
         });
     }
+}
+
+fn analysis_job(req: &TrackRequest, priority: u8) -> Option<AnalysisJob> {
+    Some(AnalysisJob {
+        key: req.analysis_key.clone()?,
+        url: req.url.clone(),
+        cache_key: req.cache_key.clone(),
+        ext: req.format_hint.clone(),
+        priority,
+    })
 }
 
 fn download_cover(url: &str, path: &std::path::Path) -> Result<()> {

@@ -109,6 +109,20 @@ class SubsonicProvider implements MusicProvider {
   }
 
   @override
+  Future<List<Song>> allSongs({int count = 200, int offset = 0}) async {
+    // Busca vazia = biblioteca inteira (Navidrome e servidores OpenSubsonic).
+    final body = await client.get('search3', {
+      'query': '',
+      'artistCount': 0,
+      'albumCount': 0,
+      'songCount': count,
+      'songOffset': offset,
+    });
+    final r = body['searchResult3'] as Map? ?? const {};
+    return list(r['song']).map(parseSong).toList();
+  }
+
+  @override
   Future<SearchResult> search(String query, {int artistCount = 10, int albumCount = 20, int songCount = 50}) async {
     final body = await client.get('search3', {
       'query': query,

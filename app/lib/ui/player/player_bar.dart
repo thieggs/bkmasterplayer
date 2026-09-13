@@ -260,26 +260,41 @@ class PlayerBar extends ConsumerWidget {
   }
 }
 
-/// Indicador de transição de DJ: pulsa enquanto mixa; mostra a próxima quando planejada.
+/// Botão do AutoMix: clique liga/desliga. Desligado, só o ícone; ligado,
+/// mostra o estado (mixando agora, próxima sincronizada ou simples).
 class _MixChip extends ConsumerWidget {
   const _MixChip();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final enabled = ref.watch(settingsProvider.select((s) => s.automixEnabled));
     final (mix, planned, synced) = ref.watch(playerProvider.select((s) => (s.mix, s.plannedMix, s.plannedSynced)));
-    if (mix == null && planned == null) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
+    void toggle() => ref.read(settingsProvider.notifier).update((s) => s.copyWith(automixEnabled: !s.automixEnabled));
+    if (!enabled) {
+      return IconButton(
+        tooltip: l10n.automixOffTap,
+        icon: const Icon(Icons.auto_awesome_outlined),
+        onPressed: toggle,
+      );
+    }
     final active = mix != null;
     final kind = synced ? l10n.mixSynced : l10n.mixSimple;
+    final status = active
+        ? '${l10n.mixing}: ${mix.summary}'
+        : planned != null
+            ? '${l10n.nextMix} ($kind): $planned'
+            : l10n.automixOnWaiting;
     return Tooltip(
-      message: active ? '${l10n.mixing}: ${mix.summary}' : '${l10n.nextMix} ($kind): $planned',
+      message: '$status\n${l10n.automixOnTap}',
       child: Padding(
         padding: const EdgeInsets.only(right: 4),
-        child: Chip(
+        child: ActionChip(
           visualDensity: VisualDensity.compact,
-          // Batidas casadas: ícone de sincronia; transição simples: o de troca.
-          avatar: Icon(active || synced ? Icons.auto_awesome : Icons.swap_horiz,
+          onPressed: toggle,
+          // Batidas casadas (ou ainda sem plano): ícone de sincronia; transição simples: o de troca.
+          avatar: Icon(active || synced || planned == null ? Icons.auto_awesome : Icons.swap_horiz,
               size: 16, color: active ? scheme.onPrimary : scheme.primary),
           label: Text(active ? l10n.mixing : 'AutoMix'),
           labelStyle: TextStyle(color: active ? scheme.onPrimary : null, fontSize: 12),

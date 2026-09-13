@@ -2133,6 +2133,7 @@ dependencies = [
  "souvlaki",
  "symphonia",
  "ureq",
+ "zbus 5.19.0",
 ]
 
 [[package]]

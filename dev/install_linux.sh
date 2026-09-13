@@ -30,7 +30,7 @@ cp "$BUNDLE/data/flutter_assets/assets/icon/icon.png" "$ICON_DIR/$APP_ID.png"
 cat > "$DESKTOP" <<DESK
 [Desktop Entry]
 Type=Application
-Name=Player de Música
+Name=BKplayer 🎵
 GenericName=Player de música
 Comment=Player para Navidrome/OpenSubsonic com AutoMix DJ
 Exec=$DEST/player_musica
@@ -41,4 +41,4 @@ Keywords=música;navidrome;subsonic;player;dj;
 StartupWMClass=$APP_ID
 DESK
 update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
-echo "Instalado em $DEST — procure \"Player de Música\" no menu de aplicativos."
+echo "Instalado em $DEST — procure \"BKplayer\" no menu de aplicativos."

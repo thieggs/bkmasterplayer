@@ -19,6 +19,7 @@ import 'ui/pages/offline_page.dart';
 import 'ui/pages/playlists_page.dart';
 import 'ui/pages/search_page.dart';
 import 'ui/pages/settings_page.dart';
+import 'ui/pages/songs_page.dart';
 import 'ui/player/now_playing_page.dart';
 import 'ui/shell.dart';
 import 'ui/theme/app_theme.dart';
@@ -67,6 +68,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/artist/:id', builder: (_, state) => ArtistPage(id: state.pathParameters['id']!)),
           GoRoute(path: '/playlists', builder: (_, _) => const PlaylistsPage()),
           GoRoute(path: '/playlist/:id', builder: (_, state) => PlaylistPage(id: state.pathParameters['id']!)),
+          GoRoute(path: '/songs', builder: (_, _) => const SongsPage()),
           GoRoute(path: '/genres', builder: (_, _) => const GenresPage()),
           GoRoute(
             path: '/genre/:name',

@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Music Player';
+  String get appTitle => 'BKplayer 🎵';
 
   @override
   String get about => 'About';
@@ -809,4 +809,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mixSimple => 'simple';
+
+  @override
+  String get automixOffTap => 'AutoMix off — click to turn on';
+
+  @override
+  String get automixOnTap => 'Click to turn AutoMix off';
+
+  @override
+  String get automixOnWaiting => 'AutoMix on — analyzing the next song';
+
+  @override
+  String get filterSongs => 'Filter by song, artist or album';
 }

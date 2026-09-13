@@ -25,6 +25,9 @@ abstract class MusicProvider {
   Future<List<Song>> songsByGenre(String genre, {int count = 100, int offset = 0});
   Future<SearchResult> search(String query, {int artistCount = 10, int albumCount = 20, int songCount = 50});
 
+  /// Todas as músicas da biblioteca, em páginas.
+  Future<List<Song>> allSongs({int count = 200, int offset = 0});
+
   Future<List<Playlist>> playlists();
   Future<Playlist> playlist(String id);
   Future<Playlist> createPlaylist(String name, {List<String> songIds = const []});

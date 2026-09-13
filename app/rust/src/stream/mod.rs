@@ -371,7 +371,7 @@ impl DownloadManager {
         let config = ureq::Agent::config_builder()
             .timeout_connect(Some(Duration::from_secs(10)))
             .timeout_recv_response(Some(Duration::from_secs(30)))
-            .user_agent(concat!("player_musica/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("BKplayer/", env!("CARGO_PKG_VERSION")))
             .build();
         let pinned: std::collections::HashSet<String> = fs::read(cache_dir.join("pinned.json"))
             .ok()

@@ -58,7 +58,7 @@ class SubsonicAuth {
 }
 
 class SubsonicClient {
-  SubsonicClient({required String baseUrl, required this.auth, this.clientName = 'player_musica'})
+  SubsonicClient({required String baseUrl, required this.auth, this.clientName = 'BKplayer'})
       : baseUrl = normalizeBaseUrl(baseUrl),
         _dio = Dio(BaseOptions(
           connectTimeout: const Duration(seconds: 10),

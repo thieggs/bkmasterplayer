@@ -15,7 +15,7 @@ import 'src/rust/api/engine.dart' as engine;
 import 'src/rust/frb_generated.dart';
 
 const appId = 'player_musica';
-const appName = 'Player de Música';
+const appName = 'BKplayer 🎵';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

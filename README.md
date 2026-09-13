@@ -1,4 +1,4 @@
-# Player de Música (nome provisório)
+# BKplayer 🎵
 
 Player open source para servidores **OpenSubsonic** (Navidrome, Gonic, Ampache…),
 com integração ao **AudioMuse-AI**, **AutoMix DJ** (transições sincronizadas por

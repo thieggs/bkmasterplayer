@@ -82,6 +82,26 @@ impl AnalysisWorker {
         self.cond.notify_one();
     }
 
+    /// Análises urgentes (a que toca e a próxima), na frente da fila e nessa
+    /// ordem. Urgentes de antes perdem a urgência: ao pular várias músicas
+    /// seguidas, as que já passaram não seguram as de agora.
+    pub fn request_urgent(&self, jobs: Vec<AnalysisJob>) {
+        let jobs: Vec<AnalysisJob> = jobs
+            .into_iter()
+            .filter(|j| self.get(&j.key).is_none() && !self.has_failed(&j.key))
+            .collect();
+        let mut q = self.queue.lock();
+        for j in q.iter_mut().filter(|j| j.priority == 0) {
+            j.priority = 1;
+        }
+        q.retain(|j| !jobs.iter().any(|n| n.key == j.key));
+        for mut job in jobs.into_iter().rev() {
+            job.priority = 0;
+            q.push_front(job);
+        }
+        self.cond.notify_one();
+    }
+
     /// Esquece resultados em memória (ex.: trocou o modelo).
     pub fn clear_memory(&self) {
         self.results.lock().clear();

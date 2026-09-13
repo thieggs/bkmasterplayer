@@ -1,6 +1,6 @@
 {
  "@@locale": "pt",
- "appTitle": "Player de Música",
+ "appTitle": "BKplayer 🎵",
  "about": "Sobre",
  "aboutText": "Player open source para servidores OpenSubsonic (Navidrome), com AudioMuse-AI e AutoMix. Licença GPL-3.0.",
  "accentColor": "Cor de destaque",
@@ -322,5 +322,9 @@
  "downloads": "Baixadas",
  "downloadsHint": "Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado.",
  "mixSynced": "sincronizada",
- "mixSimple": "simples"
+ "mixSimple": "simples",
+ "automixOffTap": "AutoMix desligado — clique para ligar",
+ "automixOnTap": "Clique para desligar o AutoMix",
+ "automixOnWaiting": "AutoMix ligado — analisando a próxima música",
+ "filterSongs": "Filtrar por música, artista ou álbum"
 }

@@ -34,6 +34,10 @@ sha2 = "0.10"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# Player do Bluetooth (AVRCP) direto no BlueZ; mesma versão que o notify-rust usa.
+zbus = "5.19"
+
 [target.'cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))'.dependencies]
 souvlaki = { version = "0.8.3", default-features = false, features = ["use_zbus"] }
 notify-rust = "4.18"

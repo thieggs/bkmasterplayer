@@ -24,6 +24,7 @@ final _dests = [
   _Dest('/', Icons.home_outlined, Icons.home, (l) => l.home),
   _Dest('/search', Icons.search, Icons.search, (l) => l.search),
   _Dest('/albums', Icons.album_outlined, Icons.album, (l) => l.albums),
+  _Dest('/songs', Icons.music_note_outlined, Icons.music_note, (l) => l.songs),
   _Dest('/artists', Icons.person_outline, Icons.person, (l) => l.artists),
   _Dest('/playlists', Icons.queue_music_outlined, Icons.queue_music, (l) => l.playlists),
   _Dest('/genres', Icons.sell_outlined, Icons.sell, (l) => l.genres),

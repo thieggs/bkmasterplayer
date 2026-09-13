@@ -20,6 +20,9 @@ pub struct NotifyMsg {
 pub struct Desktop {
     controls: Option<MediaControls>,
     notifier: mpsc::Sender<NotifyMsg>,
+    /// Player registrado no BlueZ (botões de caixa/fone/carro).
+    #[cfg(target_os = "linux")]
+    bluetooth: Option<super::bluetooth::Bluetooth>,
 }
 
 impl Desktop {
@@ -74,7 +77,12 @@ impl Desktop {
             .name("notifier".into())
             .spawn(move || notifier_loop(rx, app, tag));
 
-        Self { controls, notifier: tx }
+        Self {
+            controls,
+            notifier: tx,
+            #[cfg(target_os = "linux")]
+            bluetooth: super::bluetooth::Bluetooth::new(callback),
+        }
     }
 
     pub fn set_metadata(
@@ -85,6 +93,10 @@ impl Desktop {
         cover: Option<&std::path::Path>,
         duration_ms: Option<u64>,
     ) {
+        #[cfg(target_os = "linux")]
+        if let Some(bt) = &self.bluetooth {
+            bt.set_metadata(title, artist, album, duration_ms);
+        }
         let Some(c) = self.controls.as_mut() else { return };
         let cover_url = cover.map(file_url);
         let _ = c.set_metadata(MediaMetadata {
@@ -97,6 +109,10 @@ impl Desktop {
     }
 
     pub fn set_playback(&mut self, playing: bool, has_track: bool, position_ms: Option<u64>) {
+        #[cfg(target_os = "linux")]
+        if let Some(bt) = &self.bluetooth {
+            bt.set_playback(playing, has_track, position_ms);
+        }
         let Some(c) = self.controls.as_mut() else { return };
         let progress = position_ms.map(|p| MediaPosition(Duration::from_millis(p)));
         let state = match (has_track, playing) {
