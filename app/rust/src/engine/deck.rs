@@ -8,6 +8,7 @@ use std::time::Duration;
 use anyhow::Result;
 use parking_lot::{Condvar, Mutex};
 
+use super::automix::TempoMap;
 use super::decoder::Decoder;
 use super::resample::{to_stereo, Resampler};
 
@@ -104,10 +105,16 @@ pub struct DeckShared {
     pub error: Mutex<Option<String>>,
     pub device_rate: u32,
     pub successor: Mutex<Successor>,
+    /// Time-stretch (AutoMix): mapeia frames tocados → posição original.
+    pub tempo: Option<TempoMap>,
 }
 
 impl DeckShared {
     pub fn new(token: u64, device_rate: u32) -> Arc<Self> {
+        Self::with_tempo(token, device_rate, None)
+    }
+
+    pub fn with_tempo(token: u64, device_rate: u32, tempo: Option<TempoMap>) -> Arc<Self> {
         Arc::new(Self {
             token,
             consumed: AtomicU64::new(0),
@@ -123,15 +130,36 @@ impl DeckShared {
             error: Mutex::new(None),
             device_rate,
             successor: Mutex::new(Successor::default()),
+            tempo,
         })
+    }
+
+    /// Frames tocados (sem o pré-eco) → frames da faixa original desde o início do deck.
+    pub fn played_to_native(&self, played: u64) -> u64 {
+        match &self.tempo {
+            Some(m) => m.input_at(played as f64).round().max(0.0) as u64,
+            None => played,
+        }
+    }
+
+    /// Inverso: quantos frames tocados até chegar num frame original (desde o início do deck).
+    pub fn native_to_played(&self, native: u64) -> u64 {
+        match &self.tempo {
+            Some(m) => m.output_at(native as f64).round().max(0.0) as u64,
+            None => native,
+        }
+    }
+
+    /// Posição na linha do tempo original da faixa, em frames do dispositivo.
+    pub fn native_position(&self) -> u64 {
+        let consumed = self.consumed.load(Ordering::Relaxed);
+        let lead = self.lead_in.load(Ordering::Relaxed);
+        self.start_frame.load(Ordering::Relaxed) + self.played_to_native(consumed.saturating_sub(lead))
     }
 
     /// Posição de reprodução em ms (linha do tempo original da faixa).
     pub fn position_ms(&self) -> u64 {
-        let consumed = self.consumed.load(Ordering::Relaxed);
-        let lead = self.lead_in.load(Ordering::Relaxed);
-        let frames = self.start_frame.load(Ordering::Relaxed) + consumed.saturating_sub(lead);
-        frames * 1000 / self.device_rate as u64
+        self.native_position() * 1000 / self.device_rate as u64
     }
 
     /// Duração nominal em ms (sem pré-eco/cauda), se conhecida.
@@ -142,7 +170,7 @@ impl DeckShared {
         }
         let lead = self.lead_in.load(Ordering::Relaxed);
         let tail = self.tail.load(Ordering::Relaxed);
-        let frames = self.start_frame.load(Ordering::Relaxed) + total.saturating_sub(lead + tail);
+        let frames = self.start_frame.load(Ordering::Relaxed) + self.played_to_native(total.saturating_sub(lead + tail));
         Some(frames * 1000 / self.device_rate as u64)
     }
 
@@ -210,6 +238,8 @@ pub struct ProducerParams {
     /// Duração em ms informada pelo servidor (usada se o arquivo não disser).
     pub duration_hint_ms: Option<u64>,
     pub ring_seconds: f32,
+    /// Time-stretch do AutoMix (velocidade na sobreposição + rampa de volta).
+    pub tempo: Option<TempoMap>,
 }
 
 /// Cria o deck e dispara a thread produtora. `open` roda dentro da thread
@@ -218,7 +248,8 @@ pub fn spawn_deck<F>(token: u64, gain: f32, params: ProducerParams, open: F) -> 
 where
     F: FnOnce(Arc<AtomicBool>) -> Result<Decoder> + Send + 'static,
 {
-    let shared = DeckShared::new(token, params.device_rate);
+    let tempo = params.tempo.filter(|t| !t.is_identity());
+    let shared = DeckShared::with_tempo(token, params.device_rate, tempo);
     let capacity = (params.device_rate as f32 * params.ring_seconds) as usize * 2;
     let (producer, consumer) = rtrb::RingBuffer::<f32>::new(capacity.max(8192));
     let sh = shared.clone();
@@ -270,8 +301,12 @@ where
     };
     let ratio = rs.ratio();
     let delay = rs.delay() as u64;
+    // Com time-stretch, o pré-eco do resampler é descartado aqui (a saída do
+    // deck começa exatamente no ponto de entrada) e não há sobreposição gapless.
+    let mut stretcher = sh.tempo.map(|m| TempoStretcher::new(m, p.device_rate, lead as usize));
+    let lead = if stretcher.is_some() { 0 } else { lead };
     sh.lead_in.store(lead, Ordering::Relaxed);
-    sh.tail.store(delay, Ordering::Relaxed);
+    sh.tail.store(if stretcher.is_some() { 0 } else { delay }, Ordering::Relaxed);
     sh.start_frame
         .store((start_src_frame as f64 * ratio).round() as u64, Ordering::Relaxed);
 
@@ -280,14 +315,19 @@ where
     });
     if let Some(n) = total_src {
         let remaining = n.saturating_sub(start_src_frame);
-        sh.total_frames
-            .store((remaining as f64 * ratio).round() as u64 + lead + delay, Ordering::Relaxed);
+        let native = (remaining as f64 * ratio).round() as u64;
+        let played = match &sh.tempo {
+            Some(m) => m.output_at(native as f64).round() as u64,
+            None => native + lead + delay,
+        };
+        sh.total_frames.store(played, Ordering::Relaxed);
     }
 
     let ready_after = (p.device_rate as u64) / 4; // 250 ms
     let mut decoded = Vec::with_capacity(8192);
     let mut stereo = Vec::with_capacity(8192);
     let mut out = Vec::with_capacity(16384);
+    let mut resampled = Vec::with_capacity(16384);
     let mut produced: u64 = 0;
 
     loop {
@@ -298,7 +338,14 @@ where
         let eof = match dec.next_chunk(&mut decoded)? {
             Some(_) => {
                 to_stereo(&decoded, dec.channels, &mut stereo);
-                rs.process(&stereo, &mut out)?;
+                match stretcher.as_mut() {
+                    Some(st) => {
+                        resampled.clear();
+                        rs.process(&stereo, &mut resampled)?;
+                        st.push(&resampled, &mut out);
+                    }
+                    None => rs.process(&stereo, &mut out)?,
+                }
                 false
             }
             None => {
@@ -320,7 +367,15 @@ where
                         if let Some(h) = other {
                             h.decline();
                         }
-                        rs.flush(&mut out)?;
+                        match stretcher.as_mut() {
+                            Some(st) => {
+                                resampled.clear();
+                                rs.flush(&mut resampled)?;
+                                st.push(&resampled, &mut out);
+                                st.finish(&mut out);
+                            }
+                            None => rs.flush(&mut out)?,
+                        }
                     }
                 }
                 true
@@ -343,6 +398,116 @@ where
     }
 }
 
+/// Time-stretch (Signalsmith Stretch) seguindo um [`TempoMap`]: velocidade
+/// constante na sobreposição, rampa até 1.0 e depois 1.0 (continua passando
+/// pelo stretch para não haver emenda). A saída começa exatamente no primeiro
+/// frame de entrada: a latência de entrada é suprida com `seek` e a de saída
+/// (pré-roll) é descartada.
+pub struct TempoStretcher {
+    st: signalsmith_stretch::Stretch,
+    map: TempoMap,
+    pending: Vec<f32>,
+    skip_input: usize,
+    started: bool,
+    discard_out: usize,
+    out_frames: u64,
+    in_frames: f64,
+    block: Vec<f32>,
+}
+
+const STRETCH_BLOCK: usize = 256;
+
+impl TempoStretcher {
+    pub fn new(map: TempoMap, rate: u32, skip_input: usize) -> Self {
+        let st = signalsmith_stretch::Stretch::preset_default(2, rate);
+        Self {
+            st,
+            map,
+            pending: Vec::with_capacity(16384),
+            skip_input,
+            started: false,
+            discard_out: 0,
+            out_frames: 0,
+            in_frames: 0.0,
+            block: vec![0.0; STRETCH_BLOCK * 2],
+        }
+    }
+
+    fn emit(&mut self, frames: usize, out: &mut Vec<f32>) {
+        let mut data = &self.block[..frames * 2];
+        if self.discard_out > 0 {
+            let d = self.discard_out.min(frames);
+            self.discard_out -= d;
+            data = &data[d * 2..];
+        }
+        out.extend_from_slice(data);
+    }
+
+    /// Recebe estéreo intercalado (taxa do dispositivo) e anexa a saída esticada.
+    pub fn push(&mut self, input: &[f32], out: &mut Vec<f32>) {
+        let mut input = input;
+        if self.skip_input > 0 {
+            let n = (self.skip_input * 2).min(input.len());
+            input = &input[n..];
+            self.skip_input -= n / 2;
+        }
+        self.pending.extend_from_slice(input);
+        if !self.started {
+            let lat = self.st.input_latency();
+            if self.pending.len() < lat * 2 {
+                return;
+            }
+            let first: Vec<f32> = self.pending.drain(..lat * 2).collect();
+            self.st.seek(&first, self.map.speed);
+            self.discard_out = self.st.output_latency();
+            self.started = true;
+        }
+        let mut consumed = 0usize;
+        loop {
+            let out_pos = self.out_frames as f64;
+            let next_in = self.map.input_at(out_pos + STRETCH_BLOCK as f64);
+            let need = (next_in - self.in_frames).round().max(0.0) as usize;
+            if (self.pending.len() - consumed) / 2 < need {
+                break;
+            }
+            let chunk = &self.pending[consumed..consumed + need * 2];
+            self.st.process(chunk, &mut self.block[..]);
+            consumed += need * 2;
+            self.in_frames += need as f64;
+            self.out_frames += STRETCH_BLOCK as u64;
+            self.emit(STRETCH_BLOCK, out);
+        }
+        self.pending.drain(..consumed);
+    }
+
+    /// Fim da faixa: processa o resto + a latência de entrada em silêncio e esvazia.
+    pub fn finish(&mut self, out: &mut Vec<f32>) {
+        if !self.started {
+            // Faixa curtíssima: sem stretch.
+            out.extend_from_slice(&self.pending);
+            self.pending.clear();
+            return;
+        }
+        let lat = self.st.input_latency();
+        let mut rest = std::mem::take(&mut self.pending);
+        rest.resize(rest.len() + lat * 2, 0.0);
+        let speed = self.map.speed_at(self.out_frames as f64).max(0.25);
+        let out_len = ((rest.len() / 2) as f64 / speed).round() as usize;
+        let mut buf = vec![0.0f32; out_len * 2];
+        self.st.process(&rest, &mut buf);
+        let mut data: &[f32] = &buf;
+        if self.discard_out > 0 {
+            let d = self.discard_out.min(out_len);
+            self.discard_out -= d;
+            data = &data[d * 2..];
+        }
+        out.extend_from_slice(data);
+        let mut tail = vec![0.0f32; self.st.output_latency() * 2];
+        self.st.flush(&mut tail);
+        out.extend_from_slice(&tail);
+    }
+}
+
 /// Empurra tudo no ring, esperando espaço. Retorna `false` se cancelado.
 fn push_all(ring: &mut rtrb::Producer<f32>, mut data: &[f32], sh: &DeckShared) -> bool {
     while !data.is_empty() {
@@ -360,4 +525,53 @@ fn push_all(ring: &mut rtrb::Producer<f32>, mut data: &[f32], sh: &DeckShared) -
         data = &data[pushed.len()..];
     }
     true
+}
+
+#[cfg(test)]
+mod stretch_tests {
+    use super::*;
+
+    /// Cliques a cada 0,5 s: mede onde saem depois do stretch.
+    fn click_offsets(speed: f64) -> Vec<f64> {
+        let rate = 48000u32;
+        let mut input = vec![0.0f32; rate as usize * 12 * 2];
+        for k in 0..24 {
+            let i = (k as f64 * 0.5 * rate as f64) as usize;
+            for j in 0..48 {
+                let v = (1.0 - j as f32 / 48.0) * 0.9;
+                input[(i + j) * 2] = v;
+                input[(i + j) * 2 + 1] = v;
+            }
+        }
+        let map = TempoMap { speed, hold: rate as f64 * 20.0, ramp: 0.0 };
+        let mut st = TempoStretcher::new(map, rate, 0);
+        let mut out = Vec::new();
+        for chunk in input.chunks(4096) {
+            st.push(chunk, &mut out);
+        }
+        st.finish(&mut out);
+        let mono: Vec<f32> = out.chunks(2).map(|f| f[0]).collect();
+        // Primeiro ponto acima de 30% do pico perto de cada clique esperado.
+        (2..20)
+            .filter_map(|k| {
+                let expected = k as f64 * 0.5 / speed;
+                let a = ((expected - 0.05) * rate as f64) as usize;
+                let b = ((expected + 0.05) * rate as f64) as usize;
+                let seg = &mono[a..b.min(mono.len())];
+                let peak = seg.iter().fold(0.0f32, |m, v| m.max(v.abs()));
+                let i = seg.iter().position(|v| v.abs() >= 0.3 * peak)?;
+                Some(((a + i) as f64 / rate as f64 - expected) * 1000.0)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn stretch_offset_by_speed() {
+        for speed in [0.92, 0.95, 0.97, 1.0, 1.03, 1.05, 1.08] {
+            let o = click_offsets(speed);
+            let mean = o.iter().sum::<f64>() / o.len() as f64;
+            let spread = o.iter().map(|x| (x - mean).abs()).fold(0.0, f64::max);
+            eprintln!("velocidade {speed:.2}: desvio médio {mean:+.2} ms, variação {spread:.2} ms");
+        }
+    }
 }

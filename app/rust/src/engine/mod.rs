@@ -2,6 +2,7 @@
 //! por callback. A camada `api` só adapta isso para o flutter_rust_bridge.
 
 pub mod analysis;
+pub mod analysis_worker;
 pub mod automix;
 pub mod deck;
 pub mod decoder;
@@ -22,9 +23,12 @@ use anyhow::{anyhow, Result};
 use parking_lot::Mutex;
 
 use crate::stream::{fnv1a64, Download, DownloadManager};
+use analysis::{Analyzer, BeatModel, TrackAnalysis};
+use analysis_worker::{AnalysisJob, AnalysisWorker};
+use automix::{AutomixSettings, MixPlan, TempoMap};
 use deck::{spawn_deck, DeckShared, DeckSource, Handoff, ProducerParams};
 use decoder::Decoder;
-use mixer::{Mixer, MixerCmd, MixerEvent, MixerShared, Transition};
+use mixer::{AutomixExec, Mixer, MixerCmd, MixerEvent, MixerShared, Transition};
 use output::Output;
 
 pub use output::DeviceInfo;
@@ -38,6 +42,8 @@ pub struct EngineConfig {
     pub app_id: String,
     pub app_name: String,
     pub media_controls: bool,
+    /// Pasta dos modelos de análise (beat_this_small.onnx, mel_spectrogram.onnx…).
+    pub model_dir: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -55,6 +61,8 @@ pub struct TrackRequest {
     pub album: String,
     pub cover_url: Option<String>,
     pub cover_key: Option<String>,
+    /// Identidade da música para o cache de análise (independe da qualidade do stream).
+    pub analysis_key: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -62,6 +70,8 @@ pub enum TransitionRequest {
     Gapless,
     Crossfade { ms: u32 },
     Cut,
+    /// Transição DJ: analisa as duas faixas e planeja; enquanto não dá, usa um crossfade.
+    Automix,
 }
 
 #[derive(Clone, Debug)]
@@ -88,6 +98,12 @@ pub enum EngineEvent {
     MediaControl(MediaAction),
     DeviceChanged { name: String, sample_rate: u32 },
     Error { message: String },
+    /// Análise pronta para uma faixa (id = entrada da fila).
+    Analysis { id: String, bpm: Option<f64>, key: Option<String>, camelot: Option<String>, reliable: bool },
+    /// Transição DJ planejada entre a atual e a próxima.
+    MixPlanned { from_id: String, to_id: String, summary: String, beatmatched: bool, starts_in_ms: u64 },
+    /// A transição planejada começou agora (dura `duration_ms`).
+    MixStarted { from_id: String, to_id: String, summary: String, style: String, duration_ms: u64 },
 }
 
 pub type EventCallback = Arc<dyn Fn(EngineEvent) + Send + Sync>;
@@ -123,6 +139,10 @@ struct Inner {
     desktop: Mutex<Option<desktop::Desktop>>,
     /// Faixa atual segundo os eventos do mixer (token).
     current: Mutex<Option<u64>>,
+    analysis: Mutex<Option<Arc<AnalysisWorker>>>,
+    automix: Mutex<AutomixSettings>,
+    /// Plano enviado ao mixer (de, para, plano).
+    planned: Mutex<Option<(String, String, MixPlan)>>,
 }
 
 pub struct Engine {
@@ -214,7 +234,25 @@ impl Inner {
         self.send(MixerCmd::ReplaceCurrent(src));
     }
 
+    /// Depois de um seek, uma transição DJ planejada pode ter ficado no passado: replaneja.
+    fn replan_after_seek(self: &Arc<Self>) {
+        let next = self.ctl.lock().next.clone();
+        if let Some((req, TransitionRequest::Automix)) = next {
+            self.set_next(Some(req), TransitionRequest::Automix);
+        }
+    }
+
     fn make_deck(&self, req: TrackRequest, start_ms: u64, handoff: Option<Arc<Handoff>>) -> Box<DeckSource> {
+        self.make_deck_tempo(req, start_ms, handoff, None)
+    }
+
+    fn make_deck_tempo(
+        &self,
+        req: TrackRequest,
+        start_ms: u64,
+        handoff: Option<Arc<Handoff>>,
+        tempo: Option<TempoMap>,
+    ) -> Box<DeckSource> {
         let (token, rate) = {
             let mut ctl = self.ctl.lock();
             let t = ctl.next_token;
@@ -232,6 +270,7 @@ impl Inner {
             start_ms,
             duration_hint_ms: req.duration_ms,
             ring_seconds: 2.0,
+            tempo,
         };
         let src = spawn_deck(token, gain, params, move |cancel| {
             let opened = downloads.open(key.as_deref(), &url, cancel)?;
@@ -242,16 +281,22 @@ impl Inner {
         Box::new(src)
     }
 
-    fn set_next(&self, req: Option<TrackRequest>, transition: TransitionRequest) {
+    fn set_next(self: &Arc<Self>, req: Option<TrackRequest>, transition: TransitionRequest) {
         let rate = self.ctl.lock().rate;
+        *self.planned.lock() = None;
         let kind = match transition {
             TransitionRequest::Gapless => Transition::Gapless,
             TransitionRequest::Cut => Transition::Cut,
             TransitionRequest::Crossfade { ms } => Transition::Crossfade { frames: ms as u64 * rate as u64 / 1000 },
+            // Reserva enquanto a análise não fica pronta: crossfade da duração "sem estrutura".
+            TransitionRequest::Automix => {
+                let secs = self.automix.lock().unclear_seconds;
+                Transition::Crossfade { frames: (secs * rate as f64) as u64 }
+            }
         };
         self.ctl.lock().next = req.clone().map(|r| (r, transition));
         // Gapless: a atual entrega o conversor de taxa para a próxima no fim do arquivo.
-        let handoff = (req.is_some() && kind == Transition::Gapless).then(Handoff::new);
+        let handoff = (req.is_some() && matches!(kind, Transition::Gapless)).then(Handoff::new);
         match self.current_deck() {
             Some(cur) => cur.set_successor(handoff.clone()),
             None => {
@@ -260,8 +305,116 @@ impl Inner {
                 }
             }
         }
-        let src = req.map(|r| self.make_deck(r, 0, handoff));
+        let src = req.clone().map(|r| self.make_deck(r, 0, handoff));
         self.send(MixerCmd::SetNext(src, kind));
+        if let (Some(next), TransitionRequest::Automix) = (req, transition) {
+            if let Some(cur) = self.current_request() {
+                self.request_analysis(&cur, 0);
+            }
+            self.request_analysis(&next, 0);
+            self.try_plan();
+        }
+    }
+
+    fn current_request(&self) -> Option<TrackRequest> {
+        let cur = (*self.current.lock())?;
+        self.tracks.lock().get(&cur).map(|t| t.req.clone())
+    }
+
+    fn request_analysis(&self, req: &TrackRequest, priority: u8) {
+        let Some(worker) = self.analysis.lock().clone() else { return };
+        let Some(key) = req.analysis_key.clone() else { return };
+        worker.request(AnalysisJob {
+            key,
+            url: req.url.clone(),
+            cache_key: req.cache_key.clone(),
+            ext: req.format_hint.clone(),
+            priority,
+        });
+    }
+
+    fn analysis_of(&self, req: &TrackRequest) -> Option<Arc<TrackAnalysis>> {
+        let worker = self.analysis.lock().clone()?;
+        worker.get(req.analysis_key.as_deref()?)
+    }
+
+    /// Com as duas análises prontas, planeja e troca a reserva pela transição DJ.
+    fn try_plan(self: &Arc<Self>) {
+        let next = self.ctl.lock().next.clone();
+        let Some((b_req, TransitionRequest::Automix)) = next else { return };
+        let Some(cur_token) = *self.current.lock() else { return };
+        let (a_req, a_deck) = match self.tracks.lock().get(&cur_token) {
+            Some(t) => (t.req.clone(), t.deck.clone()),
+            None => return,
+        };
+        if self.planned.lock().as_ref().is_some_and(|(f, t, _)| *f == a_req.id && *t == b_req.id) {
+            return;
+        }
+        let (Some(aa), Some(ab)) = (self.analysis_of(&a_req), self.analysis_of(&b_req)) else { return };
+        let rate = self.ctl.lock().rate;
+        let a_now = a_deck.native_position() as f64 / rate as f64;
+        let settings = self.automix.lock().clone();
+        let plan = automix::plan(&aa, &ab, &settings, a_now);
+
+        let start_native = (plan.from_start * rate as f64).round() as u64;
+        // Precisa de folga para B ser preparado (decodificar/baixar o começo).
+        if start_native <= a_deck.native_position() + rate as u64 * 2 {
+            return;
+        }
+        let len = ((plan.duration * rate as f64).round() as u64).max(rate as u64 / 100);
+        let tempo = ((plan.speed - 1.0).abs() > 1e-4).then(|| TempoMap {
+            speed: plan.speed,
+            hold: len as f64,
+            ramp: plan.ramp * rate as f64,
+        });
+        let deck_b = self.make_deck_tempo(b_req.clone(), (plan.to_start * 1000.0).round() as u64, None, tempo);
+        let exec = AutomixExec {
+            style: plan.style,
+            start_native,
+            len,
+            swap_at: (plan.swap_at * len as f64) as u64,
+            beat: (plan.beat * rate as f64) as u64,
+            echo_buf: vec![0.0; rate as usize * 2 * 2],
+            mute_from: false,
+        };
+        if let Some(cur) = self.current_deck() {
+            cur.set_successor(None);
+        }
+        self.send(MixerCmd::SetNext(Some(deck_b), Transition::Automix(Box::new(exec))));
+        let starts_in_ms = (start_native - a_deck.native_position()) * 1000 / rate as u64;
+        self.emit(EngineEvent::MixPlanned {
+            from_id: a_req.id.clone(),
+            to_id: b_req.id.clone(),
+            summary: plan.summary.clone(),
+            beatmatched: plan.beatmatched,
+            starts_in_ms,
+        });
+        *self.planned.lock() = Some((a_req.id, b_req.id, plan));
+    }
+
+    /// Chamado pela fila de análise quando um resultado fica pronto.
+    fn on_analysis(self: &Arc<Self>, key: &str, result: Option<&Arc<TrackAnalysis>>) {
+        // Informa a UI (BPM/tom) para as entradas da fila com essa música.
+        if let Some(a) = result {
+            let ids: Vec<String> = self
+                .tracks
+                .lock()
+                .values()
+                .filter(|t| t.req.analysis_key.as_deref() == Some(key))
+                .map(|t| t.req.id.clone())
+                .collect();
+            let next_id = self.ctl.lock().next.as_ref().and_then(|(r, _)| (r.analysis_key.as_deref() == Some(key)).then(|| r.id.clone()));
+            for id in ids.into_iter().chain(next_id) {
+                self.emit(EngineEvent::Analysis {
+                    id,
+                    bpm: a.bpm,
+                    key: a.key.clone(),
+                    camelot: a.camelot.clone(),
+                    reliable: a.has_beat(),
+                });
+            }
+        }
+        self.try_plan();
     }
 
     fn emit(&self, ev: EngineEvent) {
@@ -316,7 +469,25 @@ impl Engine {
             #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
             desktop: Mutex::new(None),
             current: Mutex::new(None),
+            analysis: Mutex::new(None),
+            automix: Mutex::new(AutomixSettings::default()),
+            planned: Mutex::new(None),
         });
+
+        if let Some(model_dir) = config.model_dir.clone() {
+            let analyzer = Analyzer::new(model_dir, config.cache_dir.join("analysis"));
+            let weak = Arc::downgrade(&inner);
+            let worker = AnalysisWorker::start(
+                analyzer,
+                inner.downloads.clone(),
+                Arc::new(move |key, result| {
+                    if let Some(i) = weak.upgrade() {
+                        i.on_analysis(key, result);
+                    }
+                }),
+            );
+            *inner.analysis.lock() = Some(worker);
+        }
 
         if let Err(e) = inner.open_output() {
             if inner.ctl.lock().device_id.take().is_some() {
@@ -375,6 +546,34 @@ impl Engine {
             None => return,
         };
         self.inner.replace_current(req, position_ms);
+        self.inner.replan_after_seek();
+    }
+
+    pub fn set_automix(&self, settings: AutomixSettings) {
+        *self.inner.automix.lock() = settings;
+        // Replaneja a transição pendente com as regras novas.
+        self.inner.replan_after_seek();
+    }
+
+    /// Pré-análise (prioridade baixa) de faixas que vêm depois na fila.
+    pub fn analyze(&self, req: &TrackRequest) {
+        self.inner.request_analysis(req, 5);
+    }
+
+    pub fn set_analysis_model(&self, model: BeatModel) -> BeatModel {
+        let Some(worker) = self.inner.analysis.lock().clone() else { return BeatModel::Small };
+        let chosen = worker.analyzer().set_model(model);
+        worker.clear_memory();
+        chosen
+    }
+
+    /// Modelo em uso (sem trocar).
+    pub fn set_analysis_model_query(&self) -> BeatModel {
+        self.inner.analysis.lock().as_ref().map(|w| w.analyzer().model()).unwrap_or(BeatModel::Small)
+    }
+
+    pub fn analysis_model_dir(&self) -> Option<PathBuf> {
+        self.inner.analysis.lock().as_ref().map(|w| w.analyzer().model_dir().to_path_buf())
     }
 
     pub fn seek_by(&self, delta_ms: i64) {
@@ -460,6 +659,9 @@ impl Engine {
     }
 
     pub fn shutdown(&self) {
+        if let Some(w) = self.inner.analysis.lock().as_ref() {
+            w.stop();
+        }
         self.stop();
         self.inner.running.store(false, Ordering::Relaxed);
         self.inner.ctl.lock().output = None;
@@ -568,7 +770,21 @@ fn handle_mixer_event(inner: &Arc<Inner>, ev: MixerEvent) {
                     }
                 }
                 inner.emit(EngineEvent::TrackStarted { id: req.id.clone() });
+                let planned = inner.planned.lock().take();
+                if let Some((from_id, to_id, plan)) = planned {
+                    if to_id == req.id {
+                        inner.emit(EngineEvent::MixStarted {
+                            from_id,
+                            to_id,
+                            summary: plan.summary.clone(),
+                            style: format!("{:?}", plan.style),
+                            duration_ms: (plan.duration * 1000.0) as u64,
+                        });
+                    }
+                }
                 on_track_started(inner, token, &req);
+                // Análise da nova atual (se ainda não tem) já na frente da fila.
+                inner.request_analysis(&req, 0);
             }
             emit_position(inner);
         }

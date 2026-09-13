@@ -7,6 +7,8 @@ use std::sync::{Arc, OnceLock};
 use anyhow::{anyhow, Result};
 use flutter_rust_bridge::frb;
 
+use crate::engine::analysis::{self as an, BeatModel};
+use crate::engine::automix::{AutomixSettings, MixStyle};
 use crate::engine::{self, Engine, EngineConfig};
 use crate::frb_generated::StreamSink;
 
@@ -23,6 +25,10 @@ pub struct PlayerConfig {
     pub app_id: String,
     pub app_name: String,
     pub media_controls: bool,
+    /// Pasta com os modelos de análise (AutoMix). Sem ela, o AutoMix fica desligado.
+    pub model_dir: Option<String>,
+    /// "small" | "full" (cai no pequeno se o completo não estiver baixado).
+    pub analysis_model: String,
 }
 
 pub struct TrackSource {
@@ -40,6 +46,8 @@ pub struct TrackSource {
     pub album: String,
     pub cover_url: Option<String>,
     pub cover_key: Option<String>,
+    /// Identidade da música para o cache de análise (ex.: "conta:song:id").
+    pub analysis_key: Option<String>,
 }
 
 impl From<TrackSource> for engine::TrackRequest {
@@ -57,6 +65,7 @@ impl From<TrackSource> for engine::TrackRequest {
             album: t.album,
             cover_url: t.cover_url,
             cover_key: t.cover_key,
+            analysis_key: t.analysis_key,
         }
     }
 }
@@ -65,6 +74,8 @@ pub enum TransitionMode {
     Gapless,
     Crossfade { ms: u32 },
     Cut,
+    /// Transição DJ (AutoMix).
+    Automix,
 }
 
 impl From<TransitionMode> for engine::TransitionRequest {
@@ -73,6 +84,7 @@ impl From<TransitionMode> for engine::TransitionRequest {
             TransitionMode::Gapless => Self::Gapless,
             TransitionMode::Crossfade { ms } => Self::Crossfade { ms },
             TransitionMode::Cut => Self::Cut,
+            TransitionMode::Automix => Self::Automix,
         }
     }
 }
@@ -99,6 +111,9 @@ pub enum PlayerEvent {
     MediaControl { action: MediaAction },
     DeviceChanged { name: String, sample_rate: u32 },
     Error { message: String },
+    Analysis { id: String, bpm: Option<f64>, key: Option<String>, camelot: Option<String>, reliable: bool },
+    MixPlanned { from_id: String, to_id: String, summary: String, beatmatched: bool, starts_in_ms: i64 },
+    MixStarted { from_id: String, to_id: String, summary: String, style: String, duration_ms: i64 },
 }
 
 impl From<engine::EngineEvent> for PlayerEvent {
@@ -133,6 +148,13 @@ impl From<engine::EngineEvent> for PlayerEvent {
             },
             E::DeviceChanged { name, sample_rate } => Self::DeviceChanged { name, sample_rate },
             E::Error { message } => Self::Error { message },
+            E::Analysis { id, bpm, key, camelot, reliable } => Self::Analysis { id, bpm, key, camelot, reliable },
+            E::MixPlanned { from_id, to_id, summary, beatmatched, starts_in_ms } => {
+                Self::MixPlanned { from_id, to_id, summary, beatmatched, starts_in_ms: starts_in_ms as i64 }
+            }
+            E::MixStarted { from_id, to_id, summary, style, duration_ms } => {
+                Self::MixStarted { from_id, to_id, summary, style, duration_ms: duration_ms as i64 }
+            }
         }
     }
 }
@@ -156,8 +178,10 @@ pub fn player_init(config: PlayerConfig) -> Result<()> {
         app_id: config.app_id,
         app_name: config.app_name,
         media_controls: config.media_controls,
+        model_dir: config.model_dir.map(PathBuf::from),
     };
     let e = Engine::new(cfg, None)?;
+    e.set_analysis_model(BeatModel::parse(&config.analysis_model).unwrap_or(BeatModel::Small));
     let _ = ENGINE.set(e);
     Ok(())
 }
@@ -263,6 +287,145 @@ pub fn player_clear_cache() -> Result<()> {
 pub fn player_set_cache_limit(limit_mb: u32) -> Result<()> {
     engine()?.set_cache_limit(limit_mb as u64 * 1024 * 1024);
     Ok(())
+}
+
+// ---- AutoMix ----
+
+pub enum AutomixStyle {
+    Auto,
+    BassSwap,
+    Blend,
+    Filter,
+    Echo,
+    Cut,
+}
+
+pub struct AutomixConfig {
+    pub style: AutomixStyle,
+    /// Mudança máxima de velocidade (0.08 = ±8%).
+    pub max_tempo_change: f64,
+    pub preferred_bars: u32,
+    pub min_bars: u32,
+    pub max_seconds: f64,
+    /// Duração da transição quando não há batida/estrutura clara.
+    pub unclear_seconds: f64,
+    pub harmonic: bool,
+    pub tempo_ramp_bars: u32,
+    pub trim_silence: bool,
+}
+
+#[frb(sync)]
+pub fn player_set_automix(config: AutomixConfig) -> Result<()> {
+    let style = match config.style {
+        AutomixStyle::Auto => MixStyle::Auto,
+        AutomixStyle::BassSwap => MixStyle::BassSwap,
+        AutomixStyle::Blend => MixStyle::Blend,
+        AutomixStyle::Filter => MixStyle::Filter,
+        AutomixStyle::Echo => MixStyle::Echo,
+        AutomixStyle::Cut => MixStyle::Cut,
+    };
+    engine()?.set_automix(AutomixSettings {
+        style,
+        max_tempo_change: config.max_tempo_change.clamp(0.0, 0.25),
+        preferred_bars: config.preferred_bars.clamp(1, 64),
+        min_bars: config.min_bars.clamp(1, 32),
+        max_seconds: config.max_seconds.clamp(1.0, 120.0),
+        unclear_seconds: config.unclear_seconds.clamp(0.5, 60.0),
+        harmonic: config.harmonic,
+        tempo_ramp_bars: config.tempo_ramp_bars.min(64),
+        trim_silence: config.trim_silence,
+    });
+    Ok(())
+}
+
+/// Pré-análise (prioridade baixa) de uma faixa que vem depois na fila.
+pub fn player_analyze(track: TrackSource) -> Result<()> {
+    engine()?.analyze(&track.into());
+    Ok(())
+}
+
+pub struct DeviceProfile {
+    pub cores: u32,
+    pub avx2: bool,
+    /// "small" | "full"
+    pub recommended_model: String,
+    pub full_model_downloaded: bool,
+    /// Modelo em uso agora.
+    pub active_model: String,
+}
+
+pub fn player_device_profile() -> Result<DeviceProfile> {
+    let p = an::device_profile();
+    let dir = engine()?.analysis_model_dir();
+    let full = dir.as_ref().is_some_and(|d| d.join(BeatModel::Full.file_name()).exists());
+    Ok(DeviceProfile {
+        cores: p.cores as u32,
+        avx2: p.avx2,
+        recommended_model: p.recommended.name().into(),
+        full_model_downloaded: full,
+        active_model: engine()?.set_analysis_model_query().name().into(),
+    })
+}
+
+/// Troca o modelo de análise; retorna o que ficou em uso.
+pub fn player_set_analysis_model(model: String) -> Result<String> {
+    let m = BeatModel::parse(&model).unwrap_or(BeatModel::Small);
+    Ok(engine()?.set_analysis_model(m).name().into())
+}
+
+static MODEL_PROGRESS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+/// Progresso do download do modelo completo (0–1000).
+#[frb(sync)]
+pub fn player_model_download_progress() -> u32 {
+    MODEL_PROGRESS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// Baixa o modelo completo (~83 MB), confere o SHA-256 e ativa.
+pub fn player_download_full_model() -> Result<String> {
+    use sha2::{Digest, Sha256};
+    use std::io::{Read, Write};
+    let dir = engine()?.analysis_model_dir().ok_or_else(|| anyhow!("sem pasta de modelos"))?;
+    let expected = ureq::get(an::FULL_MODEL_SHA256)
+        .call()?
+        .body_mut()
+        .read_to_string()?
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_lowercase();
+    let mut resp = ureq::get(an::FULL_MODEL_URL).call()?;
+    let total: u64 = resp
+        .headers()
+        .get("content-length")
+        .and_then(|v| v.to_str().ok()?.parse().ok())
+        .unwrap_or(83_162_650);
+    let part = dir.join("beat_this.onnx.part");
+    let mut file = std::fs::File::create(&part)?;
+    let mut reader = resp.body_mut().as_reader();
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; 256 * 1024];
+    let mut done: u64 = 0;
+    MODEL_PROGRESS.store(0, std::sync::atomic::Ordering::Relaxed);
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buf[..n])?;
+        hasher.update(&buf[..n]);
+        done += n as u64;
+        MODEL_PROGRESS.store(((done * 1000) / total.max(1)).min(1000) as u32, std::sync::atomic::Ordering::Relaxed);
+    }
+    file.flush()?;
+    let got: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    if !expected.is_empty() && got != expected {
+        let _ = std::fs::remove_file(&part);
+        return Err(anyhow!("download corrompido (checksum não confere)"));
+    }
+    std::fs::rename(&part, dir.join(BeatModel::Full.file_name()))?;
+    MODEL_PROGRESS.store(1000, std::sync::atomic::Ordering::Relaxed);
+    Ok(engine()?.set_analysis_model(BeatModel::Full).name().into())
 }
 
 #[frb(init)]

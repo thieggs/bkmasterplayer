@@ -23,7 +23,7 @@ fn deck(token: u64, path: PathBuf, rate: u32) -> Box<DeckSource> {
 
 fn deck_with(token: u64, path: PathBuf, rate: u32, handoff: Option<Arc<Handoff>>) -> Box<DeckSource> {
     let ext = path.extension().map(|e| e.to_string_lossy().to_string());
-    let params = ProducerParams { device_rate: rate, handoff_in: handoff, start_ms: 0, duration_hint_ms: None, ring_seconds: 2.0 };
+    let params = ProducerParams { device_rate: rate, handoff_in: handoff, start_ms: 0, duration_hint_ms: None, ring_seconds: 2.0, tempo: None };
     Box::new(spawn_deck(token, 1.0, params, move |_| {
         Decoder::open(Box::new(File::open(&path)?), ext.as_deref(), None)
     }))

@@ -142,8 +142,12 @@ pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
 
     let bar_a = ga.bar_seconds();
     let bar_b = gb.bar_seconds();
-    // Ponto de entrada de B: primeiro compasso com som.
-    let b_in = gb.bar_at_or_after(b.first_sound - 0.05).max(0.0);
+    // Ponto de entrada de B: primeiro compasso com som. Pode cair uns ms antes
+    // do começo do arquivo (grade com a batida em t≈0): aí B começa em 0 e a
+    // transição é atrasada nesse mesmo tanto, para as batidas continuarem casando.
+    let b_bar = gb.bar_at_or_after(b.first_sound - 0.05);
+    let b_in = b_bar.max(0.0);
+    let b_shift = (b_in - b_bar) / speed;
     let intro_bars = b
         .intro_end
         .map(|ie| ((ie - b_in) / bar_b).round().max(0.0) as u32)
@@ -197,6 +201,7 @@ pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
         }
     }
     let duration = bars as f64 * bar_a;
+    let from = from + b_shift;
 
     let style = match s.style {
         MixStyle::Auto => {

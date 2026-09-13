@@ -12,15 +12,41 @@ use std::f32::consts::FRAC_PI_2;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
+use super::automix::MixStyle;
 use super::deck::DeckSource;
 
 const BLOCK: usize = 512;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Transition {
     Gapless,
     Crossfade { frames: u64 },
     Cut,
+    /// Transição DJ planejada (AutoMix): começa num frame exato de A.
+    Automix(Box<AutomixExec>),
+}
+
+impl Transition {
+    fn is_gapless(&self) -> bool {
+        matches!(self, Transition::Gapless)
+    }
+}
+
+/// Parâmetros de execução de uma transição AutoMix (em frames do dispositivo).
+#[derive(Debug)]
+pub struct AutomixExec {
+    pub style: MixStyle,
+    /// Frame da linha do tempo ORIGINAL de A em que a transição começa.
+    pub start_native: u64,
+    pub len: u64,
+    /// Deslocamento (frames) da troca de grave / corte do eco.
+    pub swap_at: u64,
+    /// Duração de uma batida (frames): rampa da troca de grave e tempo do eco.
+    pub beat: u64,
+    /// Linha de atraso pré-alocada para o eco (estéreo intercalado).
+    pub echo_buf: Vec<f32>,
+    /// Só para testes: silencia A para medir o alinhamento de B.
+    pub mute_from: bool,
 }
 
 pub enum MixerCmd {
@@ -91,17 +117,60 @@ impl Ramp {
     }
 }
 
+/// Filtro de estado variável (TPT, Andrew Simper): passa-baixas/altas estáveis
+/// mesmo com a frequência de corte variando.
+#[derive(Clone, Copy, Default)]
+struct Svf {
+    a1: f32,
+    a2: f32,
+    a3: f32,
+    k: f32,
+    ic1: [f32; 2],
+    ic2: [f32; 2],
+}
+
+impl Svf {
+    fn set(&mut self, cutoff: f32, rate: u32) {
+        let fc = cutoff.clamp(10.0, rate as f32 * 0.45);
+        let g = (std::f32::consts::PI * fc / rate as f32).tan();
+        self.k = std::f32::consts::SQRT_2;
+        self.a1 = 1.0 / (1.0 + g * (g + self.k));
+        self.a2 = g * self.a1;
+        self.a3 = g * self.a2;
+    }
+
+    /// Retorna (passa-baixas, passa-altas) para o canal `ch`.
+    #[inline]
+    fn run(&mut self, x: f32, ch: usize) -> (f32, f32) {
+        let v3 = x - self.ic2[ch];
+        let v1 = self.a1 * self.ic1[ch] + self.a2 * v3;
+        let v2 = self.ic2[ch] + self.a2 * self.ic1[ch] + self.a3 * v3;
+        self.ic1[ch] = 2.0 * v1 - self.ic1[ch];
+        self.ic2[ch] = 2.0 * v2 - self.ic2[ch];
+        (v2, x - self.k * v1 - v2)
+    }
+}
+
+/// Efeitos de DJ de um deck durante a transição.
+#[derive(Clone, Copy, Default)]
+struct SlotFx {
+    bass: Svf,
+    bass_ready: bool,
+    sweep: Svf,
+}
+
 struct Slot {
     src: Box<DeckSource>,
     skip_lead: bool,
     fade: Ramp,
+    fx: SlotFx,
 }
 
 impl Slot {
     fn new(src: Box<DeckSource>, skip_lead: bool, fade_in: u32) -> Self {
         let mut fade = Ramp::new(if fade_in > 0 { 0.0 } else { 1.0 });
         fade.set(1.0, fade_in);
-        Self { src, skip_lead, fade }
+        Self { src, skip_lead, fade, fx: SlotFx::default() }
     }
 
     fn token(&self) -> u64 {
@@ -143,6 +212,8 @@ struct ActiveTransition {
     kind: Transition,
     pos: u64,
     len: u64,
+    /// Eco: posição de escrita na linha de atraso.
+    echo_pos: usize,
 }
 
 pub struct Mixer {
@@ -292,8 +363,9 @@ impl Mixer {
         if !next.src.shared.ready.load(Ordering::Acquire) || next.src.shared.failed.load(Ordering::Acquire) {
             return None;
         }
-        match *kind {
+        match kind {
             Transition::Cut => None,
+            Transition::Automix(exec) => Some(exec.len.max(1)),
             Transition::Gapless => {
                 // Só com o total exato (produtora terminou).
                 if !cur.src.shared.eof.load(Ordering::Acquire) {
@@ -304,7 +376,7 @@ impl Mixer {
                 Some(tail + lead).filter(|l| *l > 0)
             }
             Transition::Crossfade { frames } => {
-                let mut len = frames;
+                let mut len = *frames;
                 let next_total = next.src.shared.total_frames.load(Ordering::Relaxed);
                 if next_total != super::deck::UNKNOWN {
                     len = len.min(next_total / 2);
@@ -319,7 +391,17 @@ impl Mixer {
             return None;
         }
         let len = self.pending_overlap()?;
-        let remaining = self.current.as_ref()?.src.remaining()?;
+        let cur = self.current.as_ref()?;
+        if let Some((_, Transition::Automix(exec))) = self.next.as_ref() {
+            // Começa quando A chega no frame planejado (na linha do tempo original).
+            let sh = &cur.src.shared;
+            let start_frame = sh.start_frame.load(Ordering::Relaxed);
+            let lead = sh.lead_in.load(Ordering::Relaxed);
+            let target = lead + sh.native_to_played(exec.start_native.saturating_sub(start_frame));
+            let consumed = sh.consumed.load(Ordering::Relaxed);
+            return Some((target.saturating_sub(consumed), len));
+        }
+        let remaining = cur.src.remaining()?;
         let len = len.min(remaining);
         Some((remaining.saturating_sub(len), len))
     }
@@ -331,10 +413,11 @@ impl Mixer {
             return;
         };
         // No gapless o pré-eco da próxima é parte da soma; no crossfade entra já no início nominal.
-        next.skip_lead = !matches!(kind, Transition::Gapless);
+        next.skip_lead = !kind.is_gapless();
+        next.fx = SlotFx::default();
         let token = next.token();
         self.current = Some(next);
-        self.transition = Some(ActiveTransition { from, kind, pos: 0, len });
+        self.transition = Some(ActiveTransition { from, kind, pos: 0, len, echo_pos: 0 });
         self.shared.current.store(token, Ordering::Relaxed);
         self.shared.transitioning.store(true, Ordering::Relaxed);
         self.emit(MixerEvent::Started(token));
@@ -378,6 +461,7 @@ impl Mixer {
 
     fn render_block(&mut self, block: &mut [f32], n: usize) {
         let mut underrun = false;
+        let rate = self.rate;
         let scratch = &mut self.scratch;
 
         if let Some(cur) = self.current.as_mut() {
@@ -395,6 +479,15 @@ impl Mixer {
                         block[i * 2 + 1] += scratch[i * 2 + 1] * g;
                     }
                 }
+                Some(tr) if matches!(tr.kind, Transition::Automix(_)) => {
+                    let Transition::Automix(exec) = &tr.kind else { unreachable!() };
+                    automix_incoming(cur, exec, tr.pos, tr.len, &mut scratch[..n * 2], rate);
+                    for i in 0..n {
+                        let g = gain * cur.fade.tick();
+                        block[i * 2] += scratch[i * 2] * g;
+                        block[i * 2 + 1] += scratch[i * 2 + 1] * g;
+                    }
+                }
                 _ => {
                     for i in 0..n {
                         let g = gain * cur.fade.tick();
@@ -408,17 +501,30 @@ impl Mixer {
         if let Some(tr) = self.transition.as_mut() {
             tr.from.pull(scratch, n);
             let gain = tr.from.src.gain;
-            let crossfade = matches!(tr.kind, Transition::Crossfade { .. });
-            for i in 0..n {
-                let curve = if crossfade {
-                    let t = ((tr.pos + i as u64) as f32 / tr.len as f32).min(1.0);
-                    (t * FRAC_PI_2).cos()
-                } else {
-                    1.0
-                };
-                let g = gain * tr.from.fade.tick() * curve;
-                block[i * 2] += scratch[i * 2] * g;
-                block[i * 2 + 1] += scratch[i * 2 + 1] * g;
+            match &mut tr.kind {
+                Transition::Automix(exec) => {
+                    let (pos, len) = (tr.pos, tr.len);
+                    automix_outgoing(&mut tr.from, exec, pos, len, &mut tr.echo_pos, &mut scratch[..n * 2], rate);
+                    for i in 0..n {
+                        let g = gain * tr.from.fade.tick();
+                        block[i * 2] += scratch[i * 2] * g;
+                        block[i * 2 + 1] += scratch[i * 2 + 1] * g;
+                    }
+                }
+                kind => {
+                    let crossfade = matches!(kind, Transition::Crossfade { .. });
+                    for i in 0..n {
+                        let curve = if crossfade {
+                            let t = ((tr.pos + i as u64) as f32 / tr.len as f32).min(1.0);
+                            (t * FRAC_PI_2).cos()
+                        } else {
+                            1.0
+                        };
+                        let g = gain * tr.from.fade.tick() * curve;
+                        block[i * 2] += scratch[i * 2] * g;
+                        block[i * 2 + 1] += scratch[i * 2 + 1] * g;
+                    }
+                }
             }
             tr.pos += n as u64;
         }
@@ -454,7 +560,7 @@ impl Mixer {
         if transition_done {
             if let Some(tr) = self.transition.take() {
                 // Terminou antes da hora (faixa mais curta que o estimado): evita salto de volume.
-                if let (Transition::Crossfade { .. }, Some(cur)) = (tr.kind, self.current.as_mut()) {
+                if let (Transition::Crossfade { .. }, Some(cur)) = (&tr.kind, self.current.as_mut()) {
                     if tr.pos < tr.len {
                         let v = (tr.pos as f32 / tr.len as f32 * FRAC_PI_2).sin();
                         cur.fade = Ramp::new(v * cur.fade.v);
@@ -477,7 +583,7 @@ impl Mixer {
                 self.trash(old);
             }
             if let Some((mut next, kind)) = self.next.take() {
-                next.skip_lead = !matches!(kind, Transition::Gapless);
+                next.skip_lead = !kind.is_gapless();
                 let token = next.token();
                 self.shared.current.store(token, Ordering::Relaxed);
                 self.current = Some(next);
@@ -499,6 +605,148 @@ impl Mixer {
                 }
             }
         }
+    }
+}
+
+/// Curvas de cada estilo (t de 0 a 1 ao longo da transição).
+fn smooth_in(x: f32) -> f32 {
+    (x.clamp(0.0, 1.0) * FRAC_PI_2).sin()
+}
+
+fn smooth_out(x: f32) -> f32 {
+    (x.clamp(0.0, 1.0) * FRAC_PI_2).cos()
+}
+
+const FX_STEP: usize = 32;
+
+/// Faixa que entra (B): volume, grave cortado até a troca, passa-baixas no filtro.
+fn automix_incoming(slot: &mut Slot, e: &AutomixExec, pos: u64, len: u64, buf: &mut [f32], rate: u32) {
+    let len_f = len.max(1) as f32;
+    let s = e.swap_at as f32 / len_f;
+    let b = (e.beat as f32 / len_f).max(1e-4);
+    let frames = buf.len() / 2;
+    if !slot.fx.bass_ready {
+        slot.fx.bass.set(180.0, rate);
+        slot.fx.bass_ready = true;
+    }
+    for i in 0..frames {
+        let t = (pos + i as u64) as f32 / len_f;
+        let (l, r) = (buf[i * 2], buf[i * 2 + 1]);
+        let (mut l2, mut r2);
+        let vol;
+        match e.style {
+            MixStyle::BassSwap | MixStyle::Auto => {
+                vol = if t < 0.25 { smooth_in(t / 0.25) } else { 1.0 };
+                let kill = if t < s { 1.0 } else { (1.0 - (t - s) / b).clamp(0.0, 1.0) };
+                let (lo_l, _) = slot.fx.bass.run(l, 0);
+                let (lo_r, _) = slot.fx.bass.run(r, 1);
+                l2 = l - kill * lo_l;
+                r2 = r - kill * lo_r;
+            }
+            MixStyle::Filter => {
+                vol = if t < 0.3 { smooth_in(t / 0.3) } else { 1.0 };
+                if i % FX_STEP == 0 {
+                    let x = (t / 0.7).clamp(0.0, 1.0);
+                    slot.fx.sweep.set(300.0 * (66.0f32).powf(x), rate);
+                }
+                l2 = slot.fx.sweep.run(l, 0).0;
+                r2 = slot.fx.sweep.run(r, 1).0;
+                if t >= 0.7 {
+                    // Filtro já aberto: passa direto (sem mudar a cor no fim).
+                    let w = ((t - 0.7) / 0.1).clamp(0.0, 1.0);
+                    l2 = l2 * (1.0 - w) + l * w;
+                    r2 = r2 * (1.0 - w) + r * w;
+                }
+            }
+            MixStyle::Echo => {
+                vol = if t < s { 0.0 } else { smooth_in((t - s) / b) };
+                l2 = l;
+                r2 = r;
+            }
+            MixStyle::Blend => {
+                vol = smooth_in(t);
+                l2 = l;
+                r2 = r;
+            }
+            MixStyle::Cut => {
+                vol = smooth_in(t);
+                l2 = l;
+                r2 = r;
+            }
+        }
+        buf[i * 2] = l2 * vol;
+        buf[i * 2 + 1] = r2 * vol;
+    }
+}
+
+/// Faixa que sai (A): volume, grave cortado depois da troca, passa-altas, eco.
+fn automix_outgoing(
+    slot: &mut Slot,
+    e: &mut AutomixExec,
+    pos: u64,
+    len: u64,
+    echo_pos: &mut usize,
+    buf: &mut [f32],
+    rate: u32,
+) {
+    let len_f = len.max(1) as f32;
+    let s = e.swap_at as f32 / len_f;
+    let b = (e.beat as f32 / len_f).max(1e-4);
+    let frames = buf.len() / 2;
+    if !slot.fx.bass_ready {
+        slot.fx.bass.set(180.0, rate);
+        slot.fx.bass_ready = true;
+    }
+    let echo_frames = (e.echo_buf.len() / 2).max(1);
+    let delay = (e.beat as usize).clamp(1, echo_frames - 1);
+    for i in 0..frames {
+        let t = (pos + i as u64) as f32 / len_f;
+        let (l, r) = (buf[i * 2], buf[i * 2 + 1]);
+        let (mut l2, mut r2) = (l, r);
+        let vol;
+        match e.style {
+            MixStyle::BassSwap | MixStyle::Auto => {
+                vol = if t < s { 1.0 } else { smooth_out((t - s) / (1.0 - s).max(1e-4)) };
+                let kill = if t < s { 0.0 } else { ((t - s) / b).clamp(0.0, 1.0) };
+                let (lo_l, _) = slot.fx.bass.run(l, 0);
+                let (lo_r, _) = slot.fx.bass.run(r, 1);
+                l2 = l - kill * lo_l;
+                r2 = r - kill * lo_r;
+            }
+            MixStyle::Filter => {
+                vol = if t < 0.7 { 1.0 } else { smooth_out((t - 0.7) / 0.3) };
+                if i % FX_STEP == 0 {
+                    slot.fx.sweep.set(20.0 * (100.0f32).powf(t.clamp(0.0, 1.0)), rate);
+                }
+                l2 = slot.fx.sweep.run(l, 0).1;
+                r2 = slot.fx.sweep.run(r, 1).1;
+            }
+            MixStyle::Echo => {
+                // Seco até o ponto do eco; depois só a cauda do eco (1 batida, realimentação 0,55).
+                let dry = if t < s { 1.0 } else { (1.0 - (t - s) / (0.02 * rate as f32 / len_f)).clamp(0.0, 1.0) };
+                let feed = if t >= s && t < s + b { 1.0 } else { 0.0 };
+                if !e.echo_buf.is_empty() {
+                    let w = *echo_pos % echo_frames;
+                    let rd = (w + echo_frames - delay) % echo_frames;
+                    let (dl, dr) = (e.echo_buf[rd * 2], e.echo_buf[rd * 2 + 1]);
+                    e.echo_buf[w * 2] = l * feed + dl * 0.55;
+                    e.echo_buf[w * 2 + 1] = r * feed + dr * 0.55;
+                    *echo_pos = w + 1;
+                    l2 = l * dry + dl * 0.8;
+                    r2 = r * dry + dr * 0.8;
+                } else {
+                    l2 = l * dry;
+                    r2 = r * dry;
+                }
+                vol = 1.0;
+            }
+            MixStyle::Blend | MixStyle::Cut => {
+                vol = smooth_out(t);
+            }
+        }
+        let m = if e.mute_from { 0.0 } else { vol };
+        buf[i * 2] = l2 * m;
+        buf[i * 2 + 1] = r2 * m;
     }
 }
 

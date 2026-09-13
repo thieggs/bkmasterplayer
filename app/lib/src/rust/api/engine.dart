@@ -69,6 +69,124 @@ Future<void> playerClearCache() =>
 Future<void> playerSetCacheLimit({required int limitMb}) =>
     RustLib.instance.api.crateApiEnginePlayerSetCacheLimit(limitMb: limitMb);
 
+void playerSetAutomix({required AutomixConfig config}) =>
+    RustLib.instance.api.crateApiEnginePlayerSetAutomix(config: config);
+
+/// Pré-análise (prioridade baixa) de uma faixa que vem depois na fila.
+Future<void> playerAnalyze({required TrackSource track}) =>
+    RustLib.instance.api.crateApiEnginePlayerAnalyze(track: track);
+
+Future<DeviceProfile> playerDeviceProfile() =>
+    RustLib.instance.api.crateApiEnginePlayerDeviceProfile();
+
+/// Troca o modelo de análise; retorna o que ficou em uso.
+Future<String> playerSetAnalysisModel({required String model}) =>
+    RustLib.instance.api.crateApiEnginePlayerSetAnalysisModel(model: model);
+
+/// Progresso do download do modelo completo (0–1000).
+int playerModelDownloadProgress() =>
+    RustLib.instance.api.crateApiEnginePlayerModelDownloadProgress();
+
+/// Baixa o modelo completo (~83 MB), confere o SHA-256 e ativa.
+Future<String> playerDownloadFullModel() =>
+    RustLib.instance.api.crateApiEnginePlayerDownloadFullModel();
+
+class AutomixConfig {
+  final AutomixStyle style;
+
+  /// Mudança máxima de velocidade (0.08 = ±8%).
+  final double maxTempoChange;
+  final int preferredBars;
+  final int minBars;
+  final double maxSeconds;
+
+  /// Duração da transição quando não há batida/estrutura clara.
+  final double unclearSeconds;
+  final bool harmonic;
+  final int tempoRampBars;
+  final bool trimSilence;
+
+  const AutomixConfig({
+    required this.style,
+    required this.maxTempoChange,
+    required this.preferredBars,
+    required this.minBars,
+    required this.maxSeconds,
+    required this.unclearSeconds,
+    required this.harmonic,
+    required this.tempoRampBars,
+    required this.trimSilence,
+  });
+
+  @override
+  int get hashCode =>
+      style.hashCode ^
+      maxTempoChange.hashCode ^
+      preferredBars.hashCode ^
+      minBars.hashCode ^
+      maxSeconds.hashCode ^
+      unclearSeconds.hashCode ^
+      harmonic.hashCode ^
+      tempoRampBars.hashCode ^
+      trimSilence.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AutomixConfig &&
+          runtimeType == other.runtimeType &&
+          style == other.style &&
+          maxTempoChange == other.maxTempoChange &&
+          preferredBars == other.preferredBars &&
+          minBars == other.minBars &&
+          maxSeconds == other.maxSeconds &&
+          unclearSeconds == other.unclearSeconds &&
+          harmonic == other.harmonic &&
+          tempoRampBars == other.tempoRampBars &&
+          trimSilence == other.trimSilence;
+}
+
+enum AutomixStyle { auto, bassSwap, blend, filter, echo, cut }
+
+class DeviceProfile {
+  final int cores;
+  final bool avx2;
+
+  /// "small" | "full"
+  final String recommendedModel;
+  final bool fullModelDownloaded;
+
+  /// Modelo em uso agora.
+  final String activeModel;
+
+  const DeviceProfile({
+    required this.cores,
+    required this.avx2,
+    required this.recommendedModel,
+    required this.fullModelDownloaded,
+    required this.activeModel,
+  });
+
+  @override
+  int get hashCode =>
+      cores.hashCode ^
+      avx2.hashCode ^
+      recommendedModel.hashCode ^
+      fullModelDownloaded.hashCode ^
+      activeModel.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DeviceProfile &&
+          runtimeType == other.runtimeType &&
+          cores == other.cores &&
+          avx2 == other.avx2 &&
+          recommendedModel == other.recommendedModel &&
+          fullModelDownloaded == other.fullModelDownloaded &&
+          activeModel == other.activeModel;
+}
+
 @freezed
 sealed class MediaAction with _$MediaAction {
   const MediaAction._();
@@ -121,6 +239,12 @@ class PlayerConfig {
   final String appName;
   final bool mediaControls;
 
+  /// Pasta com os modelos de análise (AutoMix). Sem ela, o AutoMix fica desligado.
+  final String? modelDir;
+
+  /// "small" | "full" (cai no pequeno se o completo não estiver baixado).
+  final String analysisModel;
+
   const PlayerConfig({
     required this.cacheDir,
     required this.cacheLimitMb,
@@ -128,6 +252,8 @@ class PlayerConfig {
     required this.appId,
     required this.appName,
     required this.mediaControls,
+    this.modelDir,
+    required this.analysisModel,
   });
 
   @override
@@ -137,7 +263,9 @@ class PlayerConfig {
       deviceId.hashCode ^
       appId.hashCode ^
       appName.hashCode ^
-      mediaControls.hashCode;
+      mediaControls.hashCode ^
+      modelDir.hashCode ^
+      analysisModel.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -149,7 +277,9 @@ class PlayerConfig {
           deviceId == other.deviceId &&
           appId == other.appId &&
           appName == other.appName &&
-          mediaControls == other.mediaControls;
+          mediaControls == other.mediaControls &&
+          modelDir == other.modelDir &&
+          analysisModel == other.analysisModel;
 }
 
 @freezed
@@ -179,6 +309,27 @@ sealed class PlayerEvent with _$PlayerEvent {
   }) = PlayerEvent_DeviceChanged;
   const factory PlayerEvent.error({required String message}) =
       PlayerEvent_Error;
+  const factory PlayerEvent.analysis({
+    required String id,
+    double? bpm,
+    String? key,
+    String? camelot,
+    required bool reliable,
+  }) = PlayerEvent_Analysis;
+  const factory PlayerEvent.mixPlanned({
+    required String fromId,
+    required String toId,
+    required String summary,
+    required bool beatmatched,
+    required PlatformInt64 startsInMs,
+  }) = PlayerEvent_MixPlanned;
+  const factory PlayerEvent.mixStarted({
+    required String fromId,
+    required String toId,
+    required String summary,
+    required String style,
+    required PlatformInt64 durationMs,
+  }) = PlayerEvent_MixStarted;
 }
 
 class TrackSource {
@@ -198,6 +349,9 @@ class TrackSource {
   final String? coverUrl;
   final String? coverKey;
 
+  /// Identidade da música para o cache de análise (ex.: "conta:song:id").
+  final String? analysisKey;
+
   const TrackSource({
     required this.id,
     required this.url,
@@ -211,6 +365,7 @@ class TrackSource {
     required this.album,
     this.coverUrl,
     this.coverKey,
+    this.analysisKey,
   });
 
   @override
@@ -226,7 +381,8 @@ class TrackSource {
       artist.hashCode ^
       album.hashCode ^
       coverUrl.hashCode ^
-      coverKey.hashCode;
+      coverKey.hashCode ^
+      analysisKey.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -244,7 +400,8 @@ class TrackSource {
           artist == other.artist &&
           album == other.album &&
           coverUrl == other.coverUrl &&
-          coverKey == other.coverKey;
+          coverKey == other.coverKey &&
+          analysisKey == other.analysisKey;
 }
 
 @freezed
@@ -255,4 +412,7 @@ sealed class TransitionMode with _$TransitionMode {
   const factory TransitionMode.crossfade({required int ms}) =
       TransitionMode_Crossfade;
   const factory TransitionMode.cut() = TransitionMode_Cut;
+
+  /// Transição DJ (AutoMix).
+  const factory TransitionMode.automix() = TransitionMode_Automix;
 }

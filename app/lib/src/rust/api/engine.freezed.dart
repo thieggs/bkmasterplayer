@@ -723,7 +723,7 @@ extension PlayerEventPatterns on PlayerEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( PlayerEvent_TrackStarted value)?  trackStarted,TResult Function( PlayerEvent_TrackEnded value)?  trackEnded,TResult Function( PlayerEvent_Position value)?  position,TResult Function( PlayerEvent_State value)?  state,TResult Function( PlayerEvent_MediaControl value)?  mediaControl,TResult Function( PlayerEvent_DeviceChanged value)?  deviceChanged,TResult Function( PlayerEvent_Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( PlayerEvent_TrackStarted value)?  trackStarted,TResult Function( PlayerEvent_TrackEnded value)?  trackEnded,TResult Function( PlayerEvent_Position value)?  position,TResult Function( PlayerEvent_State value)?  state,TResult Function( PlayerEvent_MediaControl value)?  mediaControl,TResult Function( PlayerEvent_DeviceChanged value)?  deviceChanged,TResult Function( PlayerEvent_Error value)?  error,TResult Function( PlayerEvent_Analysis value)?  analysis,TResult Function( PlayerEvent_MixPlanned value)?  mixPlanned,TResult Function( PlayerEvent_MixStarted value)?  mixStarted,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted() when trackStarted != null:
@@ -733,7 +733,10 @@ return position(_that);case PlayerEvent_State() when state != null:
 return state(_that);case PlayerEvent_MediaControl() when mediaControl != null:
 return mediaControl(_that);case PlayerEvent_DeviceChanged() when deviceChanged != null:
 return deviceChanged(_that);case PlayerEvent_Error() when error != null:
-return error(_that);case _:
+return error(_that);case PlayerEvent_Analysis() when analysis != null:
+return analysis(_that);case PlayerEvent_MixPlanned() when mixPlanned != null:
+return mixPlanned(_that);case PlayerEvent_MixStarted() when mixStarted != null:
+return mixStarted(_that);case _:
   return orElse();
 
 }
@@ -751,7 +754,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( PlayerEvent_TrackStarted value)  trackStarted,required TResult Function( PlayerEvent_TrackEnded value)  trackEnded,required TResult Function( PlayerEvent_Position value)  position,required TResult Function( PlayerEvent_State value)  state,required TResult Function( PlayerEvent_MediaControl value)  mediaControl,required TResult Function( PlayerEvent_DeviceChanged value)  deviceChanged,required TResult Function( PlayerEvent_Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( PlayerEvent_TrackStarted value)  trackStarted,required TResult Function( PlayerEvent_TrackEnded value)  trackEnded,required TResult Function( PlayerEvent_Position value)  position,required TResult Function( PlayerEvent_State value)  state,required TResult Function( PlayerEvent_MediaControl value)  mediaControl,required TResult Function( PlayerEvent_DeviceChanged value)  deviceChanged,required TResult Function( PlayerEvent_Error value)  error,required TResult Function( PlayerEvent_Analysis value)  analysis,required TResult Function( PlayerEvent_MixPlanned value)  mixPlanned,required TResult Function( PlayerEvent_MixStarted value)  mixStarted,}){
 final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted():
@@ -761,7 +764,10 @@ return position(_that);case PlayerEvent_State():
 return state(_that);case PlayerEvent_MediaControl():
 return mediaControl(_that);case PlayerEvent_DeviceChanged():
 return deviceChanged(_that);case PlayerEvent_Error():
-return error(_that);}
+return error(_that);case PlayerEvent_Analysis():
+return analysis(_that);case PlayerEvent_MixPlanned():
+return mixPlanned(_that);case PlayerEvent_MixStarted():
+return mixStarted(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -775,7 +781,7 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( PlayerEvent_TrackStarted value)?  trackStarted,TResult? Function( PlayerEvent_TrackEnded value)?  trackEnded,TResult? Function( PlayerEvent_Position value)?  position,TResult? Function( PlayerEvent_State value)?  state,TResult? Function( PlayerEvent_MediaControl value)?  mediaControl,TResult? Function( PlayerEvent_DeviceChanged value)?  deviceChanged,TResult? Function( PlayerEvent_Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( PlayerEvent_TrackStarted value)?  trackStarted,TResult? Function( PlayerEvent_TrackEnded value)?  trackEnded,TResult? Function( PlayerEvent_Position value)?  position,TResult? Function( PlayerEvent_State value)?  state,TResult? Function( PlayerEvent_MediaControl value)?  mediaControl,TResult? Function( PlayerEvent_DeviceChanged value)?  deviceChanged,TResult? Function( PlayerEvent_Error value)?  error,TResult? Function( PlayerEvent_Analysis value)?  analysis,TResult? Function( PlayerEvent_MixPlanned value)?  mixPlanned,TResult? Function( PlayerEvent_MixStarted value)?  mixStarted,}){
 final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted() when trackStarted != null:
@@ -785,7 +791,10 @@ return position(_that);case PlayerEvent_State() when state != null:
 return state(_that);case PlayerEvent_MediaControl() when mediaControl != null:
 return mediaControl(_that);case PlayerEvent_DeviceChanged() when deviceChanged != null:
 return deviceChanged(_that);case PlayerEvent_Error() when error != null:
-return error(_that);case _:
+return error(_that);case PlayerEvent_Analysis() when analysis != null:
+return analysis(_that);case PlayerEvent_MixPlanned() when mixPlanned != null:
+return mixPlanned(_that);case PlayerEvent_MixStarted() when mixStarted != null:
+return mixStarted(_that);case _:
   return null;
 
 }
@@ -802,7 +811,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id)?  trackStarted,TResult Function( String id,  String? error)?  trackEnded,TResult Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)?  position,TResult Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult Function( MediaAction action)?  mediaControl,TResult Function( String name,  int sampleRate)?  deviceChanged,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id)?  trackStarted,TResult Function( String id,  String? error)?  trackEnded,TResult Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)?  position,TResult Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult Function( MediaAction action)?  mediaControl,TResult Function( String name,  int sampleRate)?  deviceChanged,TResult Function( String message)?  error,TResult Function( String id,  double? bpm,  String? key,  String? camelot,  bool reliable)?  analysis,TResult Function( String fromId,  String toId,  String summary,  bool beatmatched,  PlatformInt64 startsInMs)?  mixPlanned,TResult Function( String fromId,  String toId,  String summary,  String style,  PlatformInt64 durationMs)?  mixStarted,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted() when trackStarted != null:
 return trackStarted(_that.id);case PlayerEvent_TrackEnded() when trackEnded != null:
@@ -811,7 +820,10 @@ return position(_that.id,_that.positionMs,_that.durationMs,_that.buffered);case 
 return state(_that.playing,_that.buffering,_that.hasTrack);case PlayerEvent_MediaControl() when mediaControl != null:
 return mediaControl(_that.action);case PlayerEvent_DeviceChanged() when deviceChanged != null:
 return deviceChanged(_that.name,_that.sampleRate);case PlayerEvent_Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case PlayerEvent_Analysis() when analysis != null:
+return analysis(_that.id,_that.bpm,_that.key,_that.camelot,_that.reliable);case PlayerEvent_MixPlanned() when mixPlanned != null:
+return mixPlanned(_that.fromId,_that.toId,_that.summary,_that.beatmatched,_that.startsInMs);case PlayerEvent_MixStarted() when mixStarted != null:
+return mixStarted(_that.fromId,_that.toId,_that.summary,_that.style,_that.durationMs);case _:
   return orElse();
 
 }
@@ -829,7 +841,7 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id)  trackStarted,required TResult Function( String id,  String? error)  trackEnded,required TResult Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)  position,required TResult Function( bool playing,  bool buffering,  bool hasTrack)  state,required TResult Function( MediaAction action)  mediaControl,required TResult Function( String name,  int sampleRate)  deviceChanged,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id)  trackStarted,required TResult Function( String id,  String? error)  trackEnded,required TResult Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)  position,required TResult Function( bool playing,  bool buffering,  bool hasTrack)  state,required TResult Function( MediaAction action)  mediaControl,required TResult Function( String name,  int sampleRate)  deviceChanged,required TResult Function( String message)  error,required TResult Function( String id,  double? bpm,  String? key,  String? camelot,  bool reliable)  analysis,required TResult Function( String fromId,  String toId,  String summary,  bool beatmatched,  PlatformInt64 startsInMs)  mixPlanned,required TResult Function( String fromId,  String toId,  String summary,  String style,  PlatformInt64 durationMs)  mixStarted,}) {final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted():
 return trackStarted(_that.id);case PlayerEvent_TrackEnded():
@@ -838,7 +850,10 @@ return position(_that.id,_that.positionMs,_that.durationMs,_that.buffered);case 
 return state(_that.playing,_that.buffering,_that.hasTrack);case PlayerEvent_MediaControl():
 return mediaControl(_that.action);case PlayerEvent_DeviceChanged():
 return deviceChanged(_that.name,_that.sampleRate);case PlayerEvent_Error():
-return error(_that.message);}
+return error(_that.message);case PlayerEvent_Analysis():
+return analysis(_that.id,_that.bpm,_that.key,_that.camelot,_that.reliable);case PlayerEvent_MixPlanned():
+return mixPlanned(_that.fromId,_that.toId,_that.summary,_that.beatmatched,_that.startsInMs);case PlayerEvent_MixStarted():
+return mixStarted(_that.fromId,_that.toId,_that.summary,_that.style,_that.durationMs);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -852,7 +867,7 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id)?  trackStarted,TResult? Function( String id,  String? error)?  trackEnded,TResult? Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)?  position,TResult? Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult? Function( MediaAction action)?  mediaControl,TResult? Function( String name,  int sampleRate)?  deviceChanged,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id)?  trackStarted,TResult? Function( String id,  String? error)?  trackEnded,TResult? Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)?  position,TResult? Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult? Function( MediaAction action)?  mediaControl,TResult? Function( String name,  int sampleRate)?  deviceChanged,TResult? Function( String message)?  error,TResult? Function( String id,  double? bpm,  String? key,  String? camelot,  bool reliable)?  analysis,TResult? Function( String fromId,  String toId,  String summary,  bool beatmatched,  PlatformInt64 startsInMs)?  mixPlanned,TResult? Function( String fromId,  String toId,  String summary,  String style,  PlatformInt64 durationMs)?  mixStarted,}) {final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted() when trackStarted != null:
 return trackStarted(_that.id);case PlayerEvent_TrackEnded() when trackEnded != null:
@@ -861,7 +876,10 @@ return position(_that.id,_that.positionMs,_that.durationMs,_that.buffered);case 
 return state(_that.playing,_that.buffering,_that.hasTrack);case PlayerEvent_MediaControl() when mediaControl != null:
 return mediaControl(_that.action);case PlayerEvent_DeviceChanged() when deviceChanged != null:
 return deviceChanged(_that.name,_that.sampleRate);case PlayerEvent_Error() when error != null:
-return error(_that.message);case _:
+return error(_that.message);case PlayerEvent_Analysis() when analysis != null:
+return analysis(_that.id,_that.bpm,_that.key,_that.camelot,_that.reliable);case PlayerEvent_MixPlanned() when mixPlanned != null:
+return mixPlanned(_that.fromId,_that.toId,_that.summary,_that.beatmatched,_that.startsInMs);case PlayerEvent_MixStarted() when mixStarted != null:
+return mixStarted(_that.fromId,_that.toId,_that.summary,_that.style,_that.durationMs);case _:
   return null;
 
 }
@@ -1355,6 +1373,228 @@ as String,
 }
 
 /// @nodoc
+
+
+class PlayerEvent_Analysis extends PlayerEvent {
+  const PlayerEvent_Analysis({required this.id, this.bpm, this.key, this.camelot, required this.reliable}): super._();
+  
+
+ final  String id;
+ final  double? bpm;
+ final  String? key;
+ final  String? camelot;
+ final  bool reliable;
+
+/// Create a copy of PlayerEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PlayerEvent_AnalysisCopyWith<PlayerEvent_Analysis> get copyWith => _$PlayerEvent_AnalysisCopyWithImpl<PlayerEvent_Analysis>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerEvent_Analysis&&(identical(other.id, id) || other.id == id)&&(identical(other.bpm, bpm) || other.bpm == bpm)&&(identical(other.key, key) || other.key == key)&&(identical(other.camelot, camelot) || other.camelot == camelot)&&(identical(other.reliable, reliable) || other.reliable == reliable));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,id,bpm,key,camelot,reliable);
+
+@override
+String toString() {
+  return 'PlayerEvent.analysis(id: $id, bpm: $bpm, key: $key, camelot: $camelot, reliable: $reliable)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PlayerEvent_AnalysisCopyWith<$Res> implements $PlayerEventCopyWith<$Res> {
+  factory $PlayerEvent_AnalysisCopyWith(PlayerEvent_Analysis value, $Res Function(PlayerEvent_Analysis) _then) = _$PlayerEvent_AnalysisCopyWithImpl;
+@useResult
+$Res call({
+ String id, double? bpm, String? key, String? camelot, bool reliable
+});
+
+
+
+
+}
+/// @nodoc
+class _$PlayerEvent_AnalysisCopyWithImpl<$Res>
+    implements $PlayerEvent_AnalysisCopyWith<$Res> {
+  _$PlayerEvent_AnalysisCopyWithImpl(this._self, this._then);
+
+  final PlayerEvent_Analysis _self;
+  final $Res Function(PlayerEvent_Analysis) _then;
+
+/// Create a copy of PlayerEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? id = null,Object? bpm = freezed,Object? key = freezed,Object? camelot = freezed,Object? reliable = null,}) {
+  return _then(PlayerEvent_Analysis(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,bpm: freezed == bpm ? _self.bpm : bpm // ignore: cast_nullable_to_non_nullable
+as double?,key: freezed == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
+as String?,camelot: freezed == camelot ? _self.camelot : camelot // ignore: cast_nullable_to_non_nullable
+as String?,reliable: null == reliable ? _self.reliable : reliable // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class PlayerEvent_MixPlanned extends PlayerEvent {
+  const PlayerEvent_MixPlanned({required this.fromId, required this.toId, required this.summary, required this.beatmatched, required this.startsInMs}): super._();
+  
+
+ final  String fromId;
+ final  String toId;
+ final  String summary;
+ final  bool beatmatched;
+ final  PlatformInt64 startsInMs;
+
+/// Create a copy of PlayerEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PlayerEvent_MixPlannedCopyWith<PlayerEvent_MixPlanned> get copyWith => _$PlayerEvent_MixPlannedCopyWithImpl<PlayerEvent_MixPlanned>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerEvent_MixPlanned&&(identical(other.fromId, fromId) || other.fromId == fromId)&&(identical(other.toId, toId) || other.toId == toId)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.beatmatched, beatmatched) || other.beatmatched == beatmatched)&&(identical(other.startsInMs, startsInMs) || other.startsInMs == startsInMs));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,fromId,toId,summary,beatmatched,startsInMs);
+
+@override
+String toString() {
+  return 'PlayerEvent.mixPlanned(fromId: $fromId, toId: $toId, summary: $summary, beatmatched: $beatmatched, startsInMs: $startsInMs)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PlayerEvent_MixPlannedCopyWith<$Res> implements $PlayerEventCopyWith<$Res> {
+  factory $PlayerEvent_MixPlannedCopyWith(PlayerEvent_MixPlanned value, $Res Function(PlayerEvent_MixPlanned) _then) = _$PlayerEvent_MixPlannedCopyWithImpl;
+@useResult
+$Res call({
+ String fromId, String toId, String summary, bool beatmatched, PlatformInt64 startsInMs
+});
+
+
+
+
+}
+/// @nodoc
+class _$PlayerEvent_MixPlannedCopyWithImpl<$Res>
+    implements $PlayerEvent_MixPlannedCopyWith<$Res> {
+  _$PlayerEvent_MixPlannedCopyWithImpl(this._self, this._then);
+
+  final PlayerEvent_MixPlanned _self;
+  final $Res Function(PlayerEvent_MixPlanned) _then;
+
+/// Create a copy of PlayerEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? fromId = null,Object? toId = null,Object? summary = null,Object? beatmatched = null,Object? startsInMs = null,}) {
+  return _then(PlayerEvent_MixPlanned(
+fromId: null == fromId ? _self.fromId : fromId // ignore: cast_nullable_to_non_nullable
+as String,toId: null == toId ? _self.toId : toId // ignore: cast_nullable_to_non_nullable
+as String,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as String,beatmatched: null == beatmatched ? _self.beatmatched : beatmatched // ignore: cast_nullable_to_non_nullable
+as bool,startsInMs: null == startsInMs ? _self.startsInMs : startsInMs // ignore: cast_nullable_to_non_nullable
+as PlatformInt64,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class PlayerEvent_MixStarted extends PlayerEvent {
+  const PlayerEvent_MixStarted({required this.fromId, required this.toId, required this.summary, required this.style, required this.durationMs}): super._();
+  
+
+ final  String fromId;
+ final  String toId;
+ final  String summary;
+ final  String style;
+ final  PlatformInt64 durationMs;
+
+/// Create a copy of PlayerEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PlayerEvent_MixStartedCopyWith<PlayerEvent_MixStarted> get copyWith => _$PlayerEvent_MixStartedCopyWithImpl<PlayerEvent_MixStarted>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerEvent_MixStarted&&(identical(other.fromId, fromId) || other.fromId == fromId)&&(identical(other.toId, toId) || other.toId == toId)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.style, style) || other.style == style)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,fromId,toId,summary,style,durationMs);
+
+@override
+String toString() {
+  return 'PlayerEvent.mixStarted(fromId: $fromId, toId: $toId, summary: $summary, style: $style, durationMs: $durationMs)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PlayerEvent_MixStartedCopyWith<$Res> implements $PlayerEventCopyWith<$Res> {
+  factory $PlayerEvent_MixStartedCopyWith(PlayerEvent_MixStarted value, $Res Function(PlayerEvent_MixStarted) _then) = _$PlayerEvent_MixStartedCopyWithImpl;
+@useResult
+$Res call({
+ String fromId, String toId, String summary, String style, PlatformInt64 durationMs
+});
+
+
+
+
+}
+/// @nodoc
+class _$PlayerEvent_MixStartedCopyWithImpl<$Res>
+    implements $PlayerEvent_MixStartedCopyWith<$Res> {
+  _$PlayerEvent_MixStartedCopyWithImpl(this._self, this._then);
+
+  final PlayerEvent_MixStarted _self;
+  final $Res Function(PlayerEvent_MixStarted) _then;
+
+/// Create a copy of PlayerEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? fromId = null,Object? toId = null,Object? summary = null,Object? style = null,Object? durationMs = null,}) {
+  return _then(PlayerEvent_MixStarted(
+fromId: null == fromId ? _self.fromId : fromId // ignore: cast_nullable_to_non_nullable
+as String,toId: null == toId ? _self.toId : toId // ignore: cast_nullable_to_non_nullable
+as String,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as String,style: null == style ? _self.style : style // ignore: cast_nullable_to_non_nullable
+as String,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as PlatformInt64,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$TransitionMode {
 
 
@@ -1398,13 +1638,14 @@ extension TransitionModePatterns on TransitionMode {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TransitionMode_Gapless value)?  gapless,TResult Function( TransitionMode_Crossfade value)?  crossfade,TResult Function( TransitionMode_Cut value)?  cut,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TransitionMode_Gapless value)?  gapless,TResult Function( TransitionMode_Crossfade value)?  crossfade,TResult Function( TransitionMode_Cut value)?  cut,TResult Function( TransitionMode_Automix value)?  automix,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless(_that);case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that);case TransitionMode_Cut() when cut != null:
-return cut(_that);case _:
+return cut(_that);case TransitionMode_Automix() when automix != null:
+return automix(_that);case _:
   return orElse();
 
 }
@@ -1422,13 +1663,14 @@ return cut(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TransitionMode_Gapless value)  gapless,required TResult Function( TransitionMode_Crossfade value)  crossfade,required TResult Function( TransitionMode_Cut value)  cut,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TransitionMode_Gapless value)  gapless,required TResult Function( TransitionMode_Crossfade value)  crossfade,required TResult Function( TransitionMode_Cut value)  cut,required TResult Function( TransitionMode_Automix value)  automix,}){
 final _that = this;
 switch (_that) {
 case TransitionMode_Gapless():
 return gapless(_that);case TransitionMode_Crossfade():
 return crossfade(_that);case TransitionMode_Cut():
-return cut(_that);}
+return cut(_that);case TransitionMode_Automix():
+return automix(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -1442,13 +1684,14 @@ return cut(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TransitionMode_Gapless value)?  gapless,TResult? Function( TransitionMode_Crossfade value)?  crossfade,TResult? Function( TransitionMode_Cut value)?  cut,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TransitionMode_Gapless value)?  gapless,TResult? Function( TransitionMode_Crossfade value)?  crossfade,TResult? Function( TransitionMode_Cut value)?  cut,TResult? Function( TransitionMode_Automix value)?  automix,}){
 final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless(_that);case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that);case TransitionMode_Cut() when cut != null:
-return cut(_that);case _:
+return cut(_that);case TransitionMode_Automix() when automix != null:
+return automix(_that);case _:
   return null;
 
 }
@@ -1465,12 +1708,13 @@ return cut(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  gapless,TResult Function( int ms)?  crossfade,TResult Function()?  cut,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  gapless,TResult Function( int ms)?  crossfade,TResult Function()?  cut,TResult Function()?  automix,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless();case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that.ms);case TransitionMode_Cut() when cut != null:
-return cut();case _:
+return cut();case TransitionMode_Automix() when automix != null:
+return automix();case _:
   return orElse();
 
 }
@@ -1488,12 +1732,13 @@ return cut();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  gapless,required TResult Function( int ms)  crossfade,required TResult Function()  cut,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  gapless,required TResult Function( int ms)  crossfade,required TResult Function()  cut,required TResult Function()  automix,}) {final _that = this;
 switch (_that) {
 case TransitionMode_Gapless():
 return gapless();case TransitionMode_Crossfade():
 return crossfade(_that.ms);case TransitionMode_Cut():
-return cut();}
+return cut();case TransitionMode_Automix():
+return automix();}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1507,12 +1752,13 @@ return cut();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  gapless,TResult? Function( int ms)?  crossfade,TResult? Function()?  cut,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  gapless,TResult? Function( int ms)?  crossfade,TResult? Function()?  cut,TResult? Function()?  automix,}) {final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless();case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that.ms);case TransitionMode_Cut() when cut != null:
-return cut();case _:
+return cut();case TransitionMode_Automix() when automix != null:
+return automix();case _:
   return null;
 
 }
@@ -1642,6 +1888,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'TransitionMode.cut()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class TransitionMode_Automix extends TransitionMode {
+  const TransitionMode_Automix(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransitionMode_Automix);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'TransitionMode.automix()';
 }
 
 

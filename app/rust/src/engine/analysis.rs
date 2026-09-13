@@ -131,25 +131,110 @@ impl TrackAnalysis {
     }
 }
 
+/// Modelo de batidas: pequeno (~10 MB, rápido, vem com o app) ou completo
+/// (~83 MB, mais preciso; baixado sob demanda para máquinas mais fortes).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BeatModel {
+    Small,
+    Full,
+}
+
+impl BeatModel {
+    pub fn file_name(self) -> &'static str {
+        match self {
+            BeatModel::Small => "beat_this_small.onnx",
+            BeatModel::Full => "beat_this.onnx",
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            BeatModel::Small => "small",
+            BeatModel::Full => "full",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "small" => Some(BeatModel::Small),
+            "full" => Some(BeatModel::Full),
+            _ => None,
+        }
+    }
+}
+
+/// Endereço do modelo completo (release do beat-this-rs, pesos MIT).
+pub const FULL_MODEL_URL: &str = "https://github.com/danigb/beat-this-rs/releases/download/model-large/beat_this.onnx";
+pub const FULL_MODEL_SHA256: &str = "https://github.com/danigb/beat-this-rs/releases/download/model-large/beat_this.onnx.sha256";
+
+/// Potência do aparelho, para escolher o modelo automaticamente.
+#[derive(Debug, Clone)]
+pub struct DeviceProfile {
+    pub cores: usize,
+    pub avx2: bool,
+    pub recommended: BeatModel,
+}
+
+pub fn device_profile() -> DeviceProfile {
+    let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(2);
+    #[cfg(target_arch = "x86_64")]
+    let avx2 = std::arch::is_x86_feature_detected!("avx2") && std::arch::is_x86_feature_detected!("fma");
+    #[cfg(not(target_arch = "x86_64"))]
+    let avx2 = false;
+    // Desktop x86 moderno com núcleos de sobra aguenta o completo; o resto usa o pequeno.
+    let recommended = if avx2 && cores >= 8 && cfg!(not(any(target_os = "android", target_os = "ios"))) {
+        BeatModel::Full
+    } else {
+        BeatModel::Small
+    };
+    DeviceProfile { cores, avx2, recommended }
+}
+
 pub struct Analyzer {
     model_dir: PathBuf,
     cache_dir: PathBuf,
-    tracker: Mutex<Option<BeatThis<<RtenRuntime as Runtime>::Model>>>,
+    model: Mutex<BeatModel>,
+    tracker: Mutex<Option<(BeatModel, BeatThis<<RtenRuntime as Runtime>::Model>)>>,
 }
 
 impl Analyzer {
     pub fn new(model_dir: impl Into<PathBuf>, cache_dir: impl Into<PathBuf>) -> Arc<Self> {
         let cache_dir = cache_dir.into();
         let _ = std::fs::create_dir_all(&cache_dir);
-        Arc::new(Self { model_dir: model_dir.into(), cache_dir, tracker: Mutex::new(None) })
+        Arc::new(Self {
+            model_dir: model_dir.into(),
+            cache_dir,
+            model: Mutex::new(BeatModel::Small),
+            tracker: Mutex::new(None),
+        })
+    }
+
+    pub fn model_dir(&self) -> &Path {
+        &self.model_dir
+    }
+
+    pub fn model_available(&self, m: BeatModel) -> bool {
+        self.model_dir.join(m.file_name()).exists() && self.model_dir.join("mel_spectrogram.onnx").exists()
     }
 
     pub fn models_available(&self) -> bool {
-        self.model_dir.join("beat_this_small.onnx").exists() && self.model_dir.join("mel_spectrogram.onnx").exists()
+        self.model_available(BeatModel::Small)
+    }
+
+    /// Escolhe o modelo (cai no pequeno se o completo não foi baixado).
+    pub fn set_model(&self, m: BeatModel) -> BeatModel {
+        let chosen = if self.model_available(m) { m } else { BeatModel::Small };
+        *self.model.lock() = chosen;
+        chosen
+    }
+
+    pub fn model(&self) -> BeatModel {
+        *self.model.lock()
     }
 
     fn cache_path(&self, key: &str) -> PathBuf {
-        self.cache_dir.join(format!("{:016x}.json", fnv1a64(key)))
+        let model = self.model().name();
+        self.cache_dir.join(format!("{:016x}.json", fnv1a64(&format!("{key}|{model}"))))
     }
 
     pub fn cached(&self, key: &str) -> Option<TrackAnalysis> {
@@ -180,17 +265,18 @@ impl Analyzer {
 
     pub fn analyze_uncached(&self, source: Box<dyn MediaSource>, ext: Option<&str>) -> Result<TrackAnalysis> {
         let audio = decode_all(source, ext)?;
+        let model = self.model();
         let mut guard = self.tracker.lock();
-        if guard.is_none() {
+        if guard.as_ref().is_none_or(|(m, _)| *m != model) {
             let t = BeatThis::new(
                 &RtenRuntime,
                 &self.model_dir.join("mel_spectrogram.onnx"),
-                &self.model_dir.join("beat_this_small.onnx"),
+                &self.model_dir.join(model.file_name()),
             )
             .context("carregando modelos de batida")?;
-            *guard = Some(t);
+            *guard = Some((model, t));
         }
-        let tracker = guard.as_mut().unwrap();
+        let tracker = &mut guard.as_mut().unwrap().1;
         // A rede é o passo caro: roda só no começo e no fim da faixa, onde as
         // transições acontecem (em faixas curtas, na faixa inteira).
         let mut regions = Vec::new();
