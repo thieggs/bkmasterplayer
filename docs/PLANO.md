@@ -32,7 +32,8 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 ### Medições (testes automatizados)
 - **Gapless:** saída idêntica, amostra por amostra, à concatenação dos arquivos (FLAC e MP3). Com conversão 44,1→48 kHz, sem emenda (o conversor passa de uma faixa para a outra).
 - **Análise:** BPM exato nas faixas confiáveis; fase da grade com erro de até 7 ms; intro/outro no compasso certo. Faixas duvidosas são marcadas como não confiáveis e não são sincronizadas.
-- **AutoMix:** bumbos da faixa que entra alinhados aos da que sai em ~1 ms, com e sem time-stretch.
+- **AutoMix (sintético):** bumbos da faixa que entra alinhados aos da que sai em ~1 ms, com e sem time-stretch.
+- **AutoMix (música real, 76 faixas do Mandragora em ordem de BPM, `examples/eval_mix`):** 61 de 75 transições sincronizadas no modelo pequeno (58 no completo); nas que têm bateria clara dos dois lados, 16 de 18 a ±10 ms, mediana 2–3 ms. As não sincronizadas são quase todas BPM distante demais (eco no compasso) ou faixas sem batida regular.
 - **Equalizador:** ganho medido a ±0,7 dB do pedido em cada banda.
 
 ### Pedidos do usuário atendidos
@@ -42,6 +43,10 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - Duração da transição quando a música não é clara.
 - Modelo de análise escolhido pela potência do aparelho.
 - Segue a saída padrão do sistema (Bluetooth), sem travadas.
+- Nome **BKplayer 🎵**; aba "Músicas" com a biblioteca inteira; botão do AutoMix que liga/desliga na barra.
+- Botões da caixa Bluetooth (JBL): o app se registra direto no BlueZ como player AVRCP (o `mpris-proxy` foi desativado com `systemctl --user mask mpris-proxy`, porque entregava os botões ao primeiro player registrado, ex.: o celular via KDE Connect).
+- Álbum tocado em ordem só fica sem mixagem se o áudio for contínuo (ao vivo, mixado); álbuns com silêncio entre as faixas são mixados.
+- Backup do estado de 13/09 em `~/Documentos/BKplayer-backup-2026-09-13` e na tag git `backup-2026-09-13`.
 
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica; use "qualidade de streaming" com transcodificação para MP3 ou deixe o servidor converter.
@@ -49,6 +54,8 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - **Análise:** decodifica a faixa inteira na memória (~130 MB por faixa de 4 min). No Android será feita só nas regiões usadas.
 - **Mixer do KDE:** mostra o stream como "cpal-pulseaudio-PID" (o nome do cliente vem do cpal).
 - **Letras:** mostradas por linha; karaokê palavra por palavra (letras v2 do Navidrome 0.63) ⏳.
+- **AutoMix em intro sem bumbo:** se B entra por uma intro sem bateria clara, a fase local não é medida ali; em 2 de 18 transições medidas os elementos da intro ficaram ~30–40 ms à frente dos bumbos de A.
+- **Modelo completo x pequeno:** na música real, os dois têm confiabilidade parecida (cada um erra em faixas diferentes); o completo não é automaticamente melhor.
 
 ### Próximos passos
 1. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
