@@ -22,7 +22,7 @@ use super::decoder::Decoder;
 use crate::stream::fnv1a64;
 
 /// Muda quando o algoritmo muda (invalida o cache).
-pub const ANALYSIS_VERSION: u32 = 3;
+pub const ANALYSIS_VERSION: u32 = 4;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackAnalysis {
@@ -381,12 +381,13 @@ pub fn build_analysis(audio: &DecodedAudio, regions: &[BeatRegion]) -> TrackAnal
     let beats_per_bar = estimate_beats_per_bar(&beats, &downbeats);
     let odf = OnsetEnvelope::new(&audio.mono, audio.rate);
     let mut fitted: Vec<Option<BeatGrid>> = regions.iter().map(|r| fit_grid(r, beats_per_bar, &odf)).collect();
+    for g in fitted.iter_mut().flatten() {
+        set_windows(&odf, g);
+    }
     join_regions(&mut fitted, regions, &odf, &downbeats);
     let mut grids: Vec<BeatGrid> = fitted.into_iter().flatten().collect();
     for g in &mut grids {
-        g.windows = local_windows(&odf, g);
-        let locked = g.windows.iter().filter(|(_, d)| d.abs() <= 0.010).count();
-        g.lock = if g.windows.is_empty() { 0.0 } else { locked as f64 / g.windows.len() as f64 };
+        set_windows(&odf, g);
     }
     let steady: Vec<&BeatGrid> = grids.iter().filter(|g| g.is_steady()).collect();
     let (bpm, bpm_confidence) = if steady.is_empty() {
@@ -555,14 +556,14 @@ pub fn fit_grid(region: &BeatRegion, beats_per_bar: u32, odf: &OnsetEnvelope) ->
     if b.len() < 8 {
         return None;
     }
-    let mut iv: Vec<f64> = b.windows(2).map(|w| w[1] - w[0]).filter(|d| *d > 0.25 && *d < 1.5).collect();
-    let p0 = median(&mut iv)?;
-    // Busca fina do período (±3%) pela coerência de fase.
+    let iv: Vec<f64> = b.windows(2).map(|w| w[1] - w[0]).filter(|d| *d > 0.25 && *d < 1.5).collect();
+    let p0 = dominant_interval(&iv)?;
+    // Busca fina do período (±5%) pela coerência de fase.
     let search = |center: f64| -> (f64, f64, f64) {
         let mut best = (0.0, center, 0.0);
-        let steps = 1200;
+        let steps = 2000;
         for i in 0..=steps {
-            let p = center * (0.97 + 0.06 * i as f64 / steps as f64);
+            let p = center * (0.95 + 0.10 * i as f64 / steps as f64);
             let (r, t0) = phase_coherence(b, p);
             if r > best.0 {
                 best = (r, p, t0);
@@ -635,6 +636,19 @@ pub fn fit_grid(region: &BeatRegion, beats_per_bar: u32, odf: &OnsetEnvelope) ->
         lock: 0.0,
         validated: false,
     })
+}
+
+/// Intervalo entre batidas mais comum (moda com janela de ±4%), refinado pela
+/// média dos intervalos perto dela. A mediana sozinha se desloca quando a
+/// rede marca um trecho em meio tempo (intro) misturado ao tempo certo.
+fn dominant_interval(iv: &[f64]) -> Option<f64> {
+    if iv.is_empty() {
+        return None;
+    }
+    let near = |c: f64| iv.iter().filter(|d| (**d / c - 1.0).abs() < 0.04).count();
+    let mode = iv.iter().copied().max_by_key(|c| near(*c))?;
+    let close: Vec<f64> = iv.iter().copied().filter(|d| (d / mode - 1.0).abs() < 0.04).collect();
+    Some(close.iter().sum::<f64>() / close.len() as f64)
 }
 
 /// Erro RMS, cobertura e nº das batidas (com ataque) que caem na grade (±25 ms).
@@ -736,6 +750,13 @@ fn local_windows(odf: &OnsetEnvelope, g: &BeatGrid) -> Vec<(f64, f64)> {
     out
 }
 
+/// Mede onde os ataques do áudio caem na grade (janelas) e a fração travada.
+fn set_windows(odf: &OnsetEnvelope, g: &mut BeatGrid) {
+    g.windows = local_windows(odf, g);
+    let locked = g.windows.iter().filter(|(_, d)| d.abs() <= 0.010).count();
+    g.lock = if g.windows.is_empty() { 0.0 } else { locked as f64 / g.windows.len() as f64 };
+}
+
 /// Faixa de tempo constante (o normal em música eletrônica): as grades do
 /// começo e do fim viram uma só, com o tempo tirado da distância entre elas
 /// (base longa = BPM preciso), e uma valida a outra. Se só uma região achou
@@ -752,10 +773,24 @@ fn join_regions(fitted: &mut [Option<BeatGrid>], regions: &[BeatRegion], odf: &O
             let mid = |g: &BeatGrid| g.beat_time((((g.start + g.end) / 2.0 - g.t0) / g.period).round());
             let (t1, t2) = (mid(&g1), mid(&g2));
             let k = ((t2 - t1) / p).round();
-            if (g1.period / g2.period - 1.0).abs() > 1e-3 || k < 1.0 || ((t2 - t1) - k * p).abs() > 0.25 * p {
+            let same_tempo = (g1.period / g2.period - 1.0).abs() <= 1e-3;
+            // Ataques do áudio travados na grade e rede de acordo no trilho.
+            let audio_strong = |g: &BeatGrid| g.residual < 0.012 && g.inliers >= 32 && g.lock >= 0.8 && g.windows.len() >= 3;
+            if same_tempo && (k < 1.0 || ((t2 - t1) - k * p).abs() > 0.25 * p) {
+                // Mesmo tempo nas duas pontas, mas a fase pula no meio (edição,
+                // pausa): cada ponta vale por si se os ataques travam nela.
+                for g in fitted.iter_mut().flatten() {
+                    g.validated |= audio_strong(g);
+                }
+                return;
+            }
+            if !same_tempo {
                 // Não são a mesma grade. Se uma ponta é boa e a outra fraca
                 // (ex.: rede lendo 3/4 do tempo na intro), tenta estender a boa.
-                let good = |g: &BeatGrid| g.residual < 0.012 && g.coverage > 0.6 && g.inliers >= 32;
+                // "Boa": a rede concorda, ou os ataques do áudio travam nela.
+                let good = |g: &BeatGrid| {
+                    g.residual < 0.012 && g.inliers >= 32 && (g.coverage > 0.6 || (g.lock >= 0.8 && g.windows.len() >= 3))
+                };
                 for (src, dst) in [(0usize, 1usize), (1, 0)] {
                     let (s, d) = if src == 0 { (&g1, &g2) } else { (&g2, &g1) };
                     if good(s) && !good(d) {
@@ -776,7 +811,12 @@ fn join_regions(fitted: &mut [Option<BeatGrid>], regions: &[BeatRegion], odf: &O
             let joint: f32 = spans.iter().map(|(s, e)| grid_score(odf, *s, *e, pc, tc)).sum();
             let apart = grid_score(odf, g1.start, g1.end, g1.period, g1.t0) + grid_score(odf, g2.start, g2.end, g2.period, g2.t0);
             if joint < 0.97 * apart {
-                return; // uma grade só explica pior: tempo não é constante
+                // Uma grade só explica pior (a fase escorrega no meio): cada
+                // ponta vale por si se os ataques travam nela.
+                for g in fitted.iter_mut().flatten() {
+                    g.validated |= audio_strong(g);
+                }
+                return;
             }
             let phase = vote_phase(downbeats, tc, pc, g1.beats_per_bar);
             for (slot, r) in fitted.iter_mut().zip(regions) {
@@ -801,14 +841,19 @@ fn join_regions(fitted: &mut [Option<BeatGrid>], regions: &[BeatRegion], odf: &O
 }
 
 /// Estende a grade `g` para a região `r` (mesmo tempo, fase afinada ±20 ms)
-/// se os ataques do áudio ali confirmarem: 4+ janelas com bateria e 70%
-/// delas a ±10 ms da grade.
+/// se os ataques do áudio ali confirmarem: 70% das janelas com bateria a
+/// ±10 ms da grade, e pelo menos 3 janelas — ou 2, todas travadas, quando o
+/// BPM é redondo (tempo exato de DAW: estender por minutos não acumula erro;
+/// comum em outro/intro com pouca bateria).
 fn extend_into(g: &BeatGrid, r: &BeatRegion, odf: &OnsetEnvelope) -> Option<BeatGrid> {
     let (pc, tc) = tune_grid(odf, &[(r.start, r.end)], g.period, g.t0);
     let mut ext = BeatGrid { start: r.start, end: r.end, t0: tc, period: pc, validated: true, ..g.clone() };
     let w = local_windows(odf, &ext);
     let locked = w.iter().filter(|(_, d)| d.abs() <= 0.010).count();
-    if w.len() < 4 || (locked as f64) < 0.7 * w.len() as f64 {
+    let bpm = 60.0 / pc;
+    let round = ((bpm * 2.0).round() / 2.0 - bpm).abs() < 1e-6;
+    let enough = w.len() >= 3 || (round && w.len() >= 2 && locked == w.len());
+    if !enough || (locked as f64) < 0.7 * w.len() as f64 {
         return None;
     }
     let (residual, coverage, inliers) = grid_stats(&region_beats(r, odf), tc, pc);

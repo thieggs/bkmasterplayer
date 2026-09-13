@@ -6,13 +6,15 @@ use player_engine::engine::analysis::{build_analysis, decode_all, BeatRegion};
 
 fn main() -> anyhow::Result<()> {
     let path = std::env::args().nth(1).expect("arquivo");
-    let models = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../assets/models");
+    // MODELS=<pasta> e MODEL=beat_this.onnx para testar o modelo completo.
+    let models = std::env::var("MODELS").map(std::path::PathBuf::from).unwrap_or_else(|_| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../assets/models"));
+    let model = std::env::var("MODEL").unwrap_or_else(|_| "beat_this_small.onnx".into());
     let t = Instant::now();
     let ext = std::path::Path::new(&path).extension().map(|e| e.to_string_lossy().to_string());
     let audio = decode_all(Box::new(File::open(&path)?), ext.as_deref())?;
     println!("decodificar: {:?} ({} s de áudio)", t.elapsed(), audio.mono.len() / audio.rate as usize);
     let t = Instant::now();
-    let mut bt = BeatThis::new(&RtenRuntime, &models.join("mel_spectrogram.onnx"), &models.join("beat_this_small.onnx"))?;
+    let mut bt = BeatThis::new(&RtenRuntime, &models.join("mel_spectrogram.onnx"), &models.join(&model))?;
     println!("carregar modelos: {:?}", t.elapsed());
     let t = Instant::now();
     let r = bt.analyze_audio_timed(&audio.mono, audio.rate)?;
