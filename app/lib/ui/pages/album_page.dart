@@ -57,7 +57,7 @@ class _AlbumView extends ConsumerWidget {
             elevation: 6,
             borderRadius: BorderRadius.circular(10),
             clipBehavior: Clip.antiAlias,
-            child: CoverArt(coverArtId: album.coverArt, size: narrow ? 220 : 200, radius: 10),
+            child: CoverArt(coverArtId: album.coverArt, size: narrow ? 220 : 200),
           ),
           const SizedBox(width: 24, height: 16),
           Flexible(
@@ -127,7 +127,7 @@ class _AlbumView extends ConsumerWidget {
         song: s,
         number: s.track ?? i + 1,
         showCover: false,
-        onTap: () => player.playSongs(songs, start: i),
+        onTap: () => player.playFrom(songs, i),
       ));
     }
 

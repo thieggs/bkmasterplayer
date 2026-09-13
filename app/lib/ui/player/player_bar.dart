@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
+import '../../core/providers.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
@@ -59,6 +60,7 @@ class TransportControls extends ConsumerWidget {
   const TransportControls({super.key, this.big = false});
   final bool big;
 
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
@@ -67,9 +69,11 @@ class TransportControls extends ConsumerWidget {
     final p = ref.read(playerProvider.notifier);
     final scheme = Theme.of(context).colorScheme;
     final iconSize = big ? 32.0 : 22.0;
+    final buttons = ref.watch(uiPrefsProvider.select((p) => p.playerButtons));
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (big || buttons.contains('shuffle'))
         IconButton(
           tooltip: l10n.shuffle,
           iconSize: iconSize * 0.8,
@@ -112,6 +116,7 @@ class TransportControls extends ConsumerWidget {
           icon: const Icon(Icons.skip_next),
           onPressed: hasTrack ? p.next : null,
         ),
+        if (big || buttons.contains('repeat'))
         IconButton(
           tooltip: l10n.repeat,
           iconSize: iconSize * 0.8,
@@ -155,6 +160,7 @@ class PlayerBar extends ConsumerWidget {
     final l10n = context.l10n;
     final item = ref.watch(playerProvider.select((s) => s.current));
     final song = item?.song;
+    final buttons = ref.watch(uiPrefsProvider.select((p) => p.playerButtons));
     return Material(
       color: theme.colorScheme.surfaceContainer,
       child: SizedBox(
@@ -170,7 +176,7 @@ class PlayerBar extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
-                      Hero(tag: 'now-cover', child: CoverArt(coverArtId: song?.coverArt, size: 56, radius: 6)),
+                      Hero(tag: 'now-cover', child: CoverArt(coverArtId: song?.coverArt, size: 56)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -187,7 +193,7 @@ class PlayerBar extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (song != null)
+                      if (song != null && buttons.contains('favorite'))
                         IconButton(
                           icon: Icon(isSongStarred(ref, song) ? Icons.favorite : Icons.favorite_border, size: 20),
                           color: isSongStarred(ref, song) ? theme.colorScheme.primary : null,
@@ -209,30 +215,34 @@ class PlayerBar extends ConsumerWidget {
                 ],
               ),
             ),
-            // Extras
+            // Extras (configuráveis)
             Expanded(
               flex: 3,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const _MixChip(),
-                  IconButton(
-                    tooltip: l10n.openEqualizer,
-                    icon: const Icon(Icons.tune),
-                    onPressed: () => context.go('/equalizer'),
-                  ),
-                  IconButton(
-                    tooltip: l10n.lyrics,
-                    icon: const Icon(Icons.lyrics_outlined),
-                    onPressed: song == null ? null : () => context.push('/now-playing?lyrics=1'),
-                  ),
-                  IconButton(
-                    tooltip: l10n.queue,
-                    isSelected: queueOpen,
-                    icon: const Icon(Icons.queue_music),
-                    onPressed: onToggleQueue,
-                  ),
-                  const VolumeControl(),
+                  for (final b in buttons)
+                    switch (b) {
+                      'mix' => const _MixChip(),
+                      'eq' => IconButton(
+                          tooltip: l10n.openEqualizer,
+                          icon: const Icon(Icons.tune),
+                          onPressed: () => context.go('/equalizer'),
+                        ),
+                      'lyrics' => IconButton(
+                          tooltip: l10n.lyrics,
+                          icon: const Icon(Icons.lyrics_outlined),
+                          onPressed: song == null ? null : () => context.push('/now-playing?lyrics=1'),
+                        ),
+                      'queue' => IconButton(
+                          tooltip: l10n.queue,
+                          isSelected: queueOpen,
+                          icon: const Icon(Icons.queue_music),
+                          onPressed: onToggleQueue,
+                        ),
+                      'volume' => const VolumeControl(),
+                      _ => const SizedBox.shrink(),
+                    },
                   const SizedBox(width: 12),
                 ],
               ),
@@ -296,7 +306,7 @@ class MiniPlayer extends ConsumerWidget {
               child: Row(
                 children: [
                   const SizedBox(width: 8),
-                  CoverArt(coverArtId: item.song.coverArt, size: 44, radius: 4),
+                  CoverArt(coverArtId: item.song.coverArt, size: 44),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(

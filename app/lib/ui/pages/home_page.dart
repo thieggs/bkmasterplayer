@@ -47,10 +47,16 @@ class HomePage extends ConsumerWidget {
               ],
             ),
           ),
-          _AlbumRow(title: l10n.recentlyAdded, type: AlbumListType.newest),
-          _AlbumRow(title: l10n.recentlyPlayed, type: AlbumListType.recent),
-          _AlbumRow(title: l10n.mostPlayed, type: AlbumListType.frequent),
-          _AlbumRow(title: l10n.discover, type: AlbumListType.random),
+          for (final section in ref.watch(uiPrefsProvider.select((p) => p.homeSections)))
+            switch (section) {
+              'newest' => _AlbumRow(title: l10n.recentlyAdded, type: AlbumListType.newest),
+              'recent' => _AlbumRow(title: l10n.recentlyPlayed, type: AlbumListType.recent),
+              'frequent' => _AlbumRow(title: l10n.mostPlayed, type: AlbumListType.frequent),
+              'random' => _AlbumRow(title: l10n.discover, type: AlbumListType.random),
+              'starred' => _AlbumRow(title: l10n.favorites, type: AlbumListType.starred),
+              'highest' => _AlbumRow(title: l10n.topRated, type: AlbumListType.highest),
+              _ => const SizedBox.shrink(),
+            },
         ],
       ),
     );
@@ -78,7 +84,7 @@ class _AlbumRow extends ConsumerWidget {
           ),
         ),
         SizedBox(
-          height: 236,
+          height: ref.watch(uiPrefsProvider.select((p) => p.cardWidth)) + 66,
           child: AsyncView(
             value: albums,
             onRetry: () => ref.invalidate(albumListProvider),

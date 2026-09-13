@@ -46,7 +46,7 @@ class SongTile extends ConsumerWidget {
             : Text('$number', textAlign: TextAlign.right, style: theme.textTheme.bodySmall),
       );
     } else {
-      leading = CoverArt(coverArtId: song.coverArt, size: dense ? 36 : 44, radius: 4, icon: Icons.music_note);
+      leading = CoverArt(coverArtId: song.coverArt, size: dense ? 36 : 44, icon: Icons.music_note);
     }
 
     return GestureDetector(

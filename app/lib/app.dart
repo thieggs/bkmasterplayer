@@ -10,6 +10,7 @@ import 'player/player_controller.dart';
 import 'ui/pages/album_page.dart';
 import 'ui/pages/albums_page.dart';
 import 'ui/pages/artists_page.dart';
+import 'ui/pages/customize_page.dart';
 import 'ui/pages/equalizer_page.dart';
 import 'ui/pages/genres_page.dart';
 import 'ui/pages/home_page.dart';
@@ -28,6 +29,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
+    initialLocation: ref.read(uiPrefsProvider).startPage,
     refreshListenable: refresh,
     redirect: (context, state) {
       final session = ref.read(sessionProvider);
@@ -73,6 +75,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/search', builder: (_, state) => SearchPage(initial: state.uri.queryParameters['q'] ?? '')),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
           GoRoute(path: '/equalizer', builder: (_, _) => const EqualizerPage()),
+          GoRoute(path: '/customize', builder: (_, _) => const CustomizePage()),
         ],
       ),
     ],
@@ -82,7 +85,8 @@ final _routerProvider = Provider<GoRouter>((ref) {
 /// Esquema de cores: fixo pela cor de destaque ou extraído da capa atual.
 final _schemeProvider = FutureProvider.family<ColorScheme, Brightness>((ref, brightness) async {
   final s = ref.watch(settingsProvider);
-  final fallback = AppTheme.seeded(s.seedColor, brightness);
+  final custom = ref.watch(uiPrefsProvider.select((p) => p.customColor));
+  final fallback = AppTheme.seeded(custom ?? s.seedColor, brightness);
   if (!s.dynamicColorFromCover) return fallback;
   final cover = ref.watch(playerProvider.select((p) => p.current?.song.coverArt));
   if (cover == null) return fallback;
@@ -111,16 +115,18 @@ class PlayerApp extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     // Mantém o controlador vivo desde o início (recebe eventos do motor).
     ref.watch(playerProvider.select((_) => 0));
-    final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(settings.seedColor, Brightness.light);
-    final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(settings.seedColor, Brightness.dark);
+    final ui = ref.watch(uiPrefsProvider);
+    final seed = ui.customColor ?? settings.seedColor;
+    final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(seed, Brightness.light);
+    final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(seed, Brightness.dark);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       themeMode: settings.themeMode,
-      theme: AppTheme.build(light),
-      darkTheme: AppTheme.build(dark),
+      theme: AppTheme.build(light, prefs: ui),
+      darkTheme: AppTheme.build(dark, prefs: ui),
       themeAnimationDuration: const Duration(milliseconds: 600),
       locale: settings.locale == null ? null : Locale(settings.locale!),
       supportedLocales: AppLocalizations.supportedLocales,

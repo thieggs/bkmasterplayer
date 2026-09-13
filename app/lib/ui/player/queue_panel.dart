@@ -67,7 +67,7 @@ class QueuePanel extends ConsumerWidget {
                         child: ListTile(
                           dense: true,
                           selected: current,
-                          leading: CoverArt(coverArtId: item.song.coverArt, size: 36, radius: 4, icon: Icons.music_note),
+                          leading: CoverArt(coverArtId: item.song.coverArt, size: 36, icon: Icons.music_note),
                           title: Text(item.song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: Text(item.song.displayArtist, maxLines: 1, overflow: TextOverflow.ellipsis),
                           onTap: () => p.jumpTo(i),

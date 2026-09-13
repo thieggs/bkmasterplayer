@@ -78,11 +78,13 @@ ImageProvider? coverProvider(WidgetRef ref, String? coverArtId, double logicalSi
 }
 
 class CoverArt extends ConsumerWidget {
-  const CoverArt({super.key, required this.coverArtId, this.size = 48, this.radius = 6, this.icon = Icons.album});
+  const CoverArt({super.key, required this.coverArtId, this.size = 48, this.radius, this.icon = Icons.album});
 
   final String? coverArtId;
   final double size;
-  final double radius;
+
+  /// Arredondamento fixo; se nulo, segue o formato de capa escolhido pelo usuário.
+  final double? radius;
   final IconData icon;
 
   @override
@@ -95,8 +97,9 @@ class CoverArt extends ConsumerWidget {
       child: Icon(icon, size: size * 0.45, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
     );
     final provider = coverProvider(ref, coverArtId, size);
+    final double r = radius ?? ref.watch(uiPrefsProvider.select<double>((p) => p.coverRadius(size)));
     return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
+      borderRadius: BorderRadius.circular(r),
       child: provider == null
           ? placeholder
           : Image(

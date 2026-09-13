@@ -23,8 +23,15 @@ class NowPlayingPage extends ConsumerStatefulWidget {
 
 enum _Side { lyrics, queue }
 
-class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
+class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTickerProviderStateMixin {
   late _Side _side = widget.showLyrics ? _Side.lyrics : _Side.queue;
+  late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 12));
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,19 +41,61 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
     final song = item?.song;
     final bg = coverProvider(ref, song?.coverArt, 300);
     final wide = MediaQuery.sizeOf(context).width > 900;
+    final ui = ref.watch(uiPrefsProvider);
+    final layout = ui.nowPlayingLayout;
+    final vinyl = layout == 'vinyl';
+    final playing = ref.watch(playerProvider.select((s) => s.playing));
+    // Vinil gira só enquanto toca.
+    if (vinyl && playing && !_spin.isAnimating) {
+      _spin.repeat();
+    } else if ((!vinyl || !playing) && _spin.isAnimating) {
+      _spin.stop();
+    }
 
     final info = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         LayoutBuilder(builder: (context, c) {
-          final size = (c.maxWidth).clamp(160.0, 460.0);
+          final size = (c.maxWidth).clamp(160.0, layout == 'minimal' ? 560.0 : 460.0);
+          if (vinyl) {
+            return Hero(
+              tag: 'now-cover',
+              child: RotationTransition(
+                turns: _spin,
+                child: Container(
+                  width: size,
+                  height: size,
+                  padding: EdgeInsets.all(size * 0.06),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
+                    gradient: RadialGradient(
+                      colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900, Colors.black],
+                      stops: const [0.3, 0.55, 0.8, 1],
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CoverArt(coverArtId: song?.coverArt, size: size * 0.88, radius: size),
+                      Container(
+                        width: size * 0.05,
+                        height: size * 0.05,
+                        decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
           return Hero(
             tag: 'now-cover',
             child: Material(
               elevation: 12,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(ui.coverRadius(size)),
               clipBehavior: Clip.antiAlias,
-              child: CoverArt(coverArtId: song?.coverArt, size: size, radius: 12),
+              child: CoverArt(coverArtId: song?.coverArt, size: size),
             ),
           );
         }),
@@ -106,7 +155,9 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
       ],
     );
 
-    final side = Column(
+    final side = layout == 'lyrics'
+        ? (song == null ? const SizedBox() : LyricsView(song: song))
+        : Column(
       children: [
         SegmentedButton<_Side>(
           segments: [
@@ -130,12 +181,12 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (bg != null)
+          if (bg != null && ui.nowPlayingBlur > 0)
             ImageFiltered(
               imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
               child: Image(image: bg, fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox()),
             ),
-          Container(color: theme.colorScheme.surface.withValues(alpha: 0.72)),
+          Container(color: theme.colorScheme.surface.withValues(alpha: 1.0 - 0.4 * ui.nowPlayingBlur)),
           SafeArea(
             child: Column(
               children: [
@@ -147,7 +198,14 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
                   ),
                 ),
                 Expanded(
-                  child: wide
+                  child: layout == 'minimal'
+                      ? Center(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600), child: info),
+                          ),
+                        )
+                      : wide
                       ? Row(
                           children: [
                             Expanded(

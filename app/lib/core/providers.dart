@@ -1,10 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/material.dart' show ThemeMode;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/accounts.dart';
 import '../data/settings.dart';
+import '../data/ui_prefs.dart';
 import '../data/subsonic/subsonic_client.dart';
 import '../data/subsonic/subsonic_provider.dart';
 import '../domain/models.dart';
@@ -58,6 +62,50 @@ class SettingsNotifier extends Notifier<AppSettings> {
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+
+class UiPrefsNotifier extends Notifier<UiPrefs> {
+  @override
+  UiPrefs build() => UiPrefs.load(ref.watch(prefsProvider));
+
+  void update(UiPrefs Function(UiPrefs p) change) {
+    state = change(state);
+    state.save(ref.read(prefsProvider));
+  }
+
+  /// Perfil visual completo (aparência + layout) para exportar.
+  String exportProfile() {
+    final s = ref.read(settingsProvider);
+    return const JsonEncoder.withIndent('  ').convert({
+      'app': 'player_musica',
+      'version': 1,
+      'ui': state.toJson(),
+      'theme': {
+        'themeMode': s.themeMode.name,
+        'seedColor': s.seedColor,
+        'dynamicColorFromCover': s.dynamicColorFromCover,
+        'uiScale': s.uiScale,
+      },
+    });
+  }
+
+  /// Importa um perfil (lança FormatException se inválido).
+  void importProfile(String text) {
+    final j = jsonDecode(text);
+    if (j is! Map || j['ui'] is! Map) throw const FormatException('perfil inválido');
+    update((_) => UiPrefs.fromJson(Map<String, dynamic>.from(j['ui'] as Map)));
+    final t = j['theme'];
+    if (t is Map) {
+      ref.read(settingsProvider.notifier).update((s) => s.copyWith(
+            themeMode: ThemeMode.values.asNameMap()[t['themeMode']] ?? s.themeMode,
+            seedColor: t['seedColor'] is int ? t['seedColor'] as int : s.seedColor,
+            dynamicColorFromCover: t['dynamicColorFromCover'] is bool ? t['dynamicColorFromCover'] as bool : s.dynamicColorFromCover,
+            uiScale: (t['uiScale'] as num?)?.toDouble().clamp(0.8, 1.5) ?? s.uiScale,
+          ));
+    }
+  }
+}
+
+final uiPrefsProvider = NotifierProvider<UiPrefsNotifier, UiPrefs>(UiPrefsNotifier.new);
 
 class Session {
   const Session({required this.account, required this.provider, this.offlineReason});

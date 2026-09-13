@@ -75,7 +75,7 @@ class GenreSongsPage extends ConsumerWidget {
             ),
           ),
           for (var i = 0; i < list.length; i++)
-            SongTile(song: list[i], showAlbum: true, onTap: () => player.playSongs(list, start: i)),
+            SongTile(song: list[i], showAlbum: true, onTap: () => player.playFrom(list, i)),
         ],
       ),
     );
@@ -116,7 +116,7 @@ class FavoritesPage extends ConsumerWidget {
           ),
           if (list.isEmpty) Padding(padding: const EdgeInsets.all(32), child: Center(child: Text(l10n.nothingHere))),
           for (var i = 0; i < list.length; i++)
-            SongTile(song: list[i], showAlbum: true, onTap: () => player.playSongs(list, start: i)),
+            SongTile(song: list[i], showAlbum: true, onTap: () => player.playFrom(list, i)),
         ],
       ),
     );

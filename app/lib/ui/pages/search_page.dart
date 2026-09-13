@@ -107,7 +107,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         if (r.songs.isNotEmpty) ...[
                           SectionHeader(l10n.songs),
                           for (var i = 0; i < r.songs.length; i++)
-                            SongTile(song: r.songs[i], showAlbum: true, onTap: () => player.playSongs(r.songs, start: i)),
+                            SongTile(song: r.songs[i], showAlbum: true, onTap: () => player.playFrom(r.songs, i)),
                         ],
                       ],
                     );

@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers.dart';
 import '../../domain/models.dart';
 import '../../l10n/l10n.dart';
 import '../actions.dart';
 import 'cover_art.dart';
 
 class AlbumCard extends ConsumerStatefulWidget {
-  const AlbumCard({super.key, required this.album, this.width = 170});
+  const AlbumCard({super.key, required this.album, this.width});
 
   final Album album;
-  final double width;
+
+  /// Largura fixa; se nula, segue o tamanho de cartão escolhido pelo usuário.
+  final double? width;
 
   @override
   ConsumerState<AlbumCard> createState() => _AlbumCardState();
@@ -53,8 +56,9 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final a = widget.album;
+    final double width = widget.width ?? ref.watch(uiPrefsProvider.select<double>((p) => p.cardWidth));
     return SizedBox(
-      width: widget.width,
+      width: width,
       child: MouseRegion(
         onEnter: (_) => setState(() => _hover = true),
         onExit: (_) => setState(() => _hover = false),
@@ -71,7 +75,7 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
                 children: [
                   Stack(
                     children: [
-                      CoverArt(coverArtId: a.coverArt, size: widget.width - 12, radius: 8),
+                      CoverArt(coverArtId: a.coverArt, size: width - 12),
                       Positioned(
                         right: 8,
                         bottom: 8,

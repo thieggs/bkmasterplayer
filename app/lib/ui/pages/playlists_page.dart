@@ -84,7 +84,7 @@ class PlaylistPage extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                CoverArt(coverArtId: p.coverArt, size: 160, radius: 10, icon: Icons.queue_music),
+                CoverArt(coverArtId: p.coverArt, size: 160, icon: Icons.queue_music),
                 const SizedBox(width: 24),
                 Expanded(
                   child: Column(
@@ -153,7 +153,7 @@ class PlaylistPage extends ConsumerWidget {
             SongTile(
               song: p.songs[i],
               showAlbum: true,
-              onTap: () => player.playSongs(p.songs, start: i),
+              onTap: () => player.playFrom(p.songs, i),
               trailing: IconButton(
                 tooltip: l10n.removeFromPlaylist,
                 icon: const Icon(Icons.remove_circle_outline, size: 20),

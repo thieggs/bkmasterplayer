@@ -340,6 +340,18 @@ class PlayerController extends Notifier<PlayerState> {
     _startAt(startIndex);
   }
 
+  /// Toque numa música de uma lista, conforme a preferência do usuário.
+  void playFrom(List<Song> songs, int index) {
+    switch (ref.read(uiPrefsProvider).songTap) {
+      case 'playOne':
+        playSongs([songs[index]]);
+      case 'enqueue':
+        enqueue([songs[index]]);
+      default:
+        playSongs(songs, start: index);
+    }
+  }
+
   void enqueue(List<Song> songs) {
     if (songs.isEmpty) return;
     final items = songs.map(_item).toList();

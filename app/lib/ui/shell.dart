@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/providers.dart';
 import '../l10n/l10n.dart';
 import '../player/player_controller.dart';
 import 'actions.dart';
@@ -39,7 +40,7 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  bool _queueOpen = false;
+  late bool _queueOpen = ref.read(uiPrefsProvider).showQueue;
 
   int get _selected {
     final loc = widget.location;
@@ -54,7 +55,12 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final wide = MediaQuery.sizeOf(context).width >= 720;
-    final veryWide = MediaQuery.sizeOf(context).width >= 1100;
+    final sidebar = ref.watch(uiPrefsProvider.select((p) => p.sidebar));
+    final veryWide = switch (sidebar) {
+      'expanded' => true,
+      'rail' => false,
+      _ => MediaQuery.sizeOf(context).width >= 1100,
+    };
 
     // Mensagens do player (erro ao tocar etc.)
     ref.listen(playerProvider.select((s) => s.message), (_, msg) {

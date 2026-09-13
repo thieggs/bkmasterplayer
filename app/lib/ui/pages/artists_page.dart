@@ -176,7 +176,7 @@ class _ArtistView extends ConsumerWidget {
         if (top.isNotEmpty) ...[
           SectionHeader(l10n.topSongs),
           for (var i = 0; i < top.length && i < 10; i++)
-            SongTile(song: top[i], showAlbum: true, onTap: () => player.playSongs(top, start: i)),
+            SongTile(song: top[i], showAlbum: true, onTap: () => player.playFrom(top, i)),
         ],
         SectionHeader(l10n.albums),
         Padding(

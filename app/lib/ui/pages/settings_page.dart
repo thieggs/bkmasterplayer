@@ -80,6 +80,13 @@ class SettingsPage extends ConsumerWidget {
         // ---- Aparência ----
         section(l10n.appearance),
         ListTile(
+          leading: const Icon(Icons.brush_outlined),
+          title: Text(l10n.customize),
+          subtitle: Text(l10n.customizeHint),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/customize'),
+        ),
+        ListTile(
           leading: const Icon(Icons.brightness_6_outlined),
           title: Text(l10n.theme),
           trailing: SegmentedButton<ThemeMode>(

@@ -615,4 +615,156 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get off => 'Desligado';
+
+  @override
+  String get customize => 'Personalizar';
+
+  @override
+  String get customizeHint =>
+      'Tema, capas, tela tocando agora, layout, botões e perfis';
+
+  @override
+  String get amoled => 'Preto puro (AMOLED)';
+
+  @override
+  String get amoledHint => 'Fundo totalmente preto no tema escuro';
+
+  @override
+  String get usePalette => 'Usar a paleta de cores';
+
+  @override
+  String get cornerRadius => 'Arredondamento dos cantos';
+
+  @override
+  String get density => 'Densidade';
+
+  @override
+  String get densityCompact => 'Compacta';
+
+  @override
+  String get densityStandard => 'Padrão';
+
+  @override
+  String get densityComfortable => 'Confortável';
+
+  @override
+  String get nowPlaying => 'Tocando agora';
+
+  @override
+  String get coverShape => 'Formato das capas';
+
+  @override
+  String get shapeSquare => 'Quadrada';
+
+  @override
+  String get shapeRounded => 'Arredondada';
+
+  @override
+  String get shapeCircle => 'Redonda';
+
+  @override
+  String get nowPlayingLayout => 'Layout da tela tocando agora';
+
+  @override
+  String get layoutSide => 'Capa + fila/letra';
+
+  @override
+  String get layoutLyrics => 'Capa + letra';
+
+  @override
+  String get layoutMinimal => 'Minimalista';
+
+  @override
+  String get layoutVinyl => 'Vinil';
+
+  @override
+  String get backgroundBlur => 'Fundo desfocado da capa';
+
+  @override
+  String get layout => 'Layout';
+
+  @override
+  String get sidebar => 'Barra lateral';
+
+  @override
+  String get sidebarExpanded => 'Expandida';
+
+  @override
+  String get sidebarRail => 'Só ícones';
+
+  @override
+  String get cardSize => 'Tamanho dos cartões';
+
+  @override
+  String get sizeSmall => 'Pequeno';
+
+  @override
+  String get sizeMedium => 'Médio';
+
+  @override
+  String get sizeLarge => 'Grande';
+
+  @override
+  String get startPage => 'Página inicial';
+
+  @override
+  String get showQueueOnStart => 'Abrir com a fila visível';
+
+  @override
+  String get playerBarButtons =>
+      'Botões da barra do player (arraste para ordenar)';
+
+  @override
+  String get homeSections => 'Seções do Início (arraste para ordenar)';
+
+  @override
+  String get behavior => 'Comportamento';
+
+  @override
+  String get songTap => 'Ao clicar numa música';
+
+  @override
+  String get tapPlayFromHere => 'Tocar a lista a partir dela';
+
+  @override
+  String get tapPlayOne => 'Tocar só ela';
+
+  @override
+  String get shortcuts => 'Atalhos de teclado';
+
+  @override
+  String get shortcutsList =>
+      'Espaço: tocar/pausar • Ctrl+→/←: próxima/anterior • Shift+→/←: ±10 s • Ctrl+F: buscar';
+
+  @override
+  String get profiles => 'Perfis visuais';
+
+  @override
+  String get exportProfile => 'Exportar perfil';
+
+  @override
+  String get exportProfileHint =>
+      'Copia tema e layout como JSON (para guardar ou compartilhar)';
+
+  @override
+  String get profileCopied => 'Perfil copiado para a área de transferência';
+
+  @override
+  String get importProfile => 'Importar perfil';
+
+  @override
+  String get importProfileHint => 'Cola um perfil JSON copiado antes';
+
+  @override
+  String get profileImported => 'Perfil aplicado';
+
+  @override
+  String get profileInvalid =>
+      'A área de transferência não tem um perfil válido';
+
+  @override
+  String get resetAppearance => 'Restaurar aparência padrão';
+
+  @override
+  String get volume => 'Volume';
 }

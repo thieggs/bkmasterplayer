@@ -109,12 +109,12 @@ class _AlbumsPageState extends ConsumerState<AlbumsPage> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 190,
-                mainAxisExtent: 240,
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: ref.watch(uiPrefsProvider).cardWidth + 15,
+                mainAxisExtent: ref.watch(uiPrefsProvider).cardWidth + 65,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, i) => AlbumCard(album: _albums[i], width: 190),
+                (context, i) => LayoutBuilder(builder: (context, c) => AlbumCard(album: _albums[i], width: c.maxWidth)),
                 childCount: _albums.length,
               ),
             ),

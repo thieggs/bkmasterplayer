@@ -1182,6 +1182,300 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Desligado'**
   String get off;
+
+  /// No description provided for @customize.
+  ///
+  /// In pt, this message translates to:
+  /// **'Personalizar'**
+  String get customize;
+
+  /// No description provided for @customizeHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema, capas, tela tocando agora, layout, botões e perfis'**
+  String get customizeHint;
+
+  /// No description provided for @amoled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preto puro (AMOLED)'**
+  String get amoled;
+
+  /// No description provided for @amoledHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fundo totalmente preto no tema escuro'**
+  String get amoledHint;
+
+  /// No description provided for @usePalette.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar a paleta de cores'**
+  String get usePalette;
+
+  /// No description provided for @cornerRadius.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arredondamento dos cantos'**
+  String get cornerRadius;
+
+  /// No description provided for @density.
+  ///
+  /// In pt, this message translates to:
+  /// **'Densidade'**
+  String get density;
+
+  /// No description provided for @densityCompact.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compacta'**
+  String get densityCompact;
+
+  /// No description provided for @densityStandard.
+  ///
+  /// In pt, this message translates to:
+  /// **'Padrão'**
+  String get densityStandard;
+
+  /// No description provided for @densityComfortable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confortável'**
+  String get densityComfortable;
+
+  /// No description provided for @nowPlaying.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocando agora'**
+  String get nowPlaying;
+
+  /// No description provided for @coverShape.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato das capas'**
+  String get coverShape;
+
+  /// No description provided for @shapeSquare.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quadrada'**
+  String get shapeSquare;
+
+  /// No description provided for @shapeRounded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arredondada'**
+  String get shapeRounded;
+
+  /// No description provided for @shapeCircle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Redonda'**
+  String get shapeCircle;
+
+  /// No description provided for @nowPlayingLayout.
+  ///
+  /// In pt, this message translates to:
+  /// **'Layout da tela tocando agora'**
+  String get nowPlayingLayout;
+
+  /// No description provided for @layoutSide.
+  ///
+  /// In pt, this message translates to:
+  /// **'Capa + fila/letra'**
+  String get layoutSide;
+
+  /// No description provided for @layoutLyrics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Capa + letra'**
+  String get layoutLyrics;
+
+  /// No description provided for @layoutMinimal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minimalista'**
+  String get layoutMinimal;
+
+  /// No description provided for @layoutVinyl.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vinil'**
+  String get layoutVinyl;
+
+  /// No description provided for @backgroundBlur.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fundo desfocado da capa'**
+  String get backgroundBlur;
+
+  /// No description provided for @layout.
+  ///
+  /// In pt, this message translates to:
+  /// **'Layout'**
+  String get layout;
+
+  /// No description provided for @sidebar.
+  ///
+  /// In pt, this message translates to:
+  /// **'Barra lateral'**
+  String get sidebar;
+
+  /// No description provided for @sidebarExpanded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expandida'**
+  String get sidebarExpanded;
+
+  /// No description provided for @sidebarRail.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só ícones'**
+  String get sidebarRail;
+
+  /// No description provided for @cardSize.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tamanho dos cartões'**
+  String get cardSize;
+
+  /// No description provided for @sizeSmall.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pequeno'**
+  String get sizeSmall;
+
+  /// No description provided for @sizeMedium.
+  ///
+  /// In pt, this message translates to:
+  /// **'Médio'**
+  String get sizeMedium;
+
+  /// No description provided for @sizeLarge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Grande'**
+  String get sizeLarge;
+
+  /// No description provided for @startPage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Página inicial'**
+  String get startPage;
+
+  /// No description provided for @showQueueOnStart.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir com a fila visível'**
+  String get showQueueOnStart;
+
+  /// No description provided for @playerBarButtons.
+  ///
+  /// In pt, this message translates to:
+  /// **'Botões da barra do player (arraste para ordenar)'**
+  String get playerBarButtons;
+
+  /// No description provided for @homeSections.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seções do Início (arraste para ordenar)'**
+  String get homeSections;
+
+  /// No description provided for @behavior.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comportamento'**
+  String get behavior;
+
+  /// No description provided for @songTap.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao clicar numa música'**
+  String get songTap;
+
+  /// No description provided for @tapPlayFromHere.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar a lista a partir dela'**
+  String get tapPlayFromHere;
+
+  /// No description provided for @tapPlayOne.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar só ela'**
+  String get tapPlayOne;
+
+  /// No description provided for @shortcuts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atalhos de teclado'**
+  String get shortcuts;
+
+  /// No description provided for @shortcutsList.
+  ///
+  /// In pt, this message translates to:
+  /// **'Espaço: tocar/pausar • Ctrl+→/←: próxima/anterior • Shift+→/←: ±10 s • Ctrl+F: buscar'**
+  String get shortcutsList;
+
+  /// No description provided for @profiles.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfis visuais'**
+  String get profiles;
+
+  /// No description provided for @exportProfile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exportar perfil'**
+  String get exportProfile;
+
+  /// No description provided for @exportProfileHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copia tema e layout como JSON (para guardar ou compartilhar)'**
+  String get exportProfileHint;
+
+  /// No description provided for @profileCopied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil copiado para a área de transferência'**
+  String get profileCopied;
+
+  /// No description provided for @importProfile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importar perfil'**
+  String get importProfile;
+
+  /// No description provided for @importProfileHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cola um perfil JSON copiado antes'**
+  String get importProfileHint;
+
+  /// No description provided for @profileImported.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil aplicado'**
+  String get profileImported;
+
+  /// No description provided for @profileInvalid.
+  ///
+  /// In pt, this message translates to:
+  /// **'A área de transferência não tem um perfil válido'**
+  String get profileInvalid;
+
+  /// No description provided for @resetAppearance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restaurar aparência padrão'**
+  String get resetAppearance;
+
+  /// No description provided for @volume.
+  ///
+  /// In pt, this message translates to:
+  /// **'Volume'**
+  String get volume;
 }
 
 class _AppLocalizationsDelegate

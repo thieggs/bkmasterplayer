@@ -616,4 +616,154 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get off => 'Off';
+
+  @override
+  String get customize => 'Customize';
+
+  @override
+  String get customizeHint =>
+      'Theme, covers, now playing screen, layout, buttons and profiles';
+
+  @override
+  String get amoled => 'Pure black (AMOLED)';
+
+  @override
+  String get amoledHint => 'Fully black background in dark theme';
+
+  @override
+  String get usePalette => 'Use the color palette';
+
+  @override
+  String get cornerRadius => 'Corner radius';
+
+  @override
+  String get density => 'Density';
+
+  @override
+  String get densityCompact => 'Compact';
+
+  @override
+  String get densityStandard => 'Standard';
+
+  @override
+  String get densityComfortable => 'Comfortable';
+
+  @override
+  String get nowPlaying => 'Now playing';
+
+  @override
+  String get coverShape => 'Cover shape';
+
+  @override
+  String get shapeSquare => 'Square';
+
+  @override
+  String get shapeRounded => 'Rounded';
+
+  @override
+  String get shapeCircle => 'Round';
+
+  @override
+  String get nowPlayingLayout => 'Now playing layout';
+
+  @override
+  String get layoutSide => 'Cover + queue/lyrics';
+
+  @override
+  String get layoutLyrics => 'Cover + lyrics';
+
+  @override
+  String get layoutMinimal => 'Minimal';
+
+  @override
+  String get layoutVinyl => 'Vinyl';
+
+  @override
+  String get backgroundBlur => 'Blurred cover background';
+
+  @override
+  String get layout => 'Layout';
+
+  @override
+  String get sidebar => 'Sidebar';
+
+  @override
+  String get sidebarExpanded => 'Expanded';
+
+  @override
+  String get sidebarRail => 'Icons only';
+
+  @override
+  String get cardSize => 'Card size';
+
+  @override
+  String get sizeSmall => 'Small';
+
+  @override
+  String get sizeMedium => 'Medium';
+
+  @override
+  String get sizeLarge => 'Large';
+
+  @override
+  String get startPage => 'Start page';
+
+  @override
+  String get showQueueOnStart => 'Open with the queue visible';
+
+  @override
+  String get playerBarButtons => 'Player bar buttons (drag to reorder)';
+
+  @override
+  String get homeSections => 'Home sections (drag to reorder)';
+
+  @override
+  String get behavior => 'Behavior';
+
+  @override
+  String get songTap => 'When clicking a song';
+
+  @override
+  String get tapPlayFromHere => 'Play the list from it';
+
+  @override
+  String get tapPlayOne => 'Play only it';
+
+  @override
+  String get shortcuts => 'Keyboard shortcuts';
+
+  @override
+  String get shortcutsList =>
+      'Space: play/pause • Ctrl+→/←: next/previous • Shift+→/←: ±10 s • Ctrl+F: search';
+
+  @override
+  String get profiles => 'Visual profiles';
+
+  @override
+  String get exportProfile => 'Export profile';
+
+  @override
+  String get exportProfileHint =>
+      'Copies theme and layout as JSON (to keep or share)';
+
+  @override
+  String get profileCopied => 'Profile copied to the clipboard';
+
+  @override
+  String get importProfile => 'Import profile';
+
+  @override
+  String get importProfileHint => 'Pastes a previously copied JSON profile';
+
+  @override
+  String get profileImported => 'Profile applied';
+
+  @override
+  String get profileInvalid => 'The clipboard doesn\'t contain a valid profile';
+
+  @override
+  String get resetAppearance => 'Restore default appearance';
+
+  @override
+  String get volume => 'Volume';
 }
