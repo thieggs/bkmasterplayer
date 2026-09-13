@@ -19,9 +19,13 @@ fi
 BUNDLE="$(cd "$(dirname "$0")/../app/build/linux/x64/release/bundle" && pwd)"
 [ -x "$BUNDLE/player_musica" ] || { echo "Compile antes: cd app && flutter build linux --release"; exit 1; }
 
-rm -rf "$DEST"
-mkdir -p "$DEST" "$(dirname "$DESKTOP")" "$ICON_DIR"
-cp -r "$BUNDLE/." "$DEST/"
+mkdir -p "$(dirname "$DESKTOP")" "$ICON_DIR"
+# Copia ao lado e troca de uma vez: o app pode estar aberto (vale na próxima abertura).
+rm -rf "$DEST.new" "$DEST.old"
+cp -r "$BUNDLE" "$DEST.new"
+[ -d "$DEST" ] && mv "$DEST" "$DEST.old"
+mv "$DEST.new" "$DEST"
+rm -rf "$DEST.old"
 cp "$BUNDLE/data/flutter_assets/assets/icon/icon.png" "$ICON_DIR/$APP_ID.png"
 cat > "$DESKTOP" <<DESK
 [Desktop Entry]

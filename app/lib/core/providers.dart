@@ -139,21 +139,37 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     }
   }
 
-  /// Faz login. Lança [SubsonicException] se falhar.
+  /// Faz login. Lança [SubsonicException] se falhar. Sem http(s):// no
+  /// endereço, tenta HTTPS primeiro e cai para HTTP se não houver resposta.
   Future<void> login({required String url, required String username, required String password, String? name}) async {
     final auth = SubsonicAuth.fromPassword(username, password);
-    final client = SubsonicClient(baseUrl: url, auth: auth);
-    final id = '${client.baseUrl}|$username'.hashCode.toUnsigned(32).toRadixString(16);
-    final provider = SubsonicProvider(accountId: id, client: client);
-    final info = await provider.connect();
-    final account = ServerAccount(
-      id: id,
-      name: (name == null || name.trim().isEmpty) ? '${info.type} — ${Uri.parse(client.baseUrl).host}' : name.trim(),
-      baseUrl: client.baseUrl,
-      username: username,
-    );
-    await ref.read(accountStoreProvider).save(account, auth);
-    state = AsyncData(Session(account: account, provider: provider));
+    final raw = url.trim();
+    final candidates = raw.contains('://') ? [raw] : ['https://$raw', 'http://$raw'];
+    SubsonicException? error;
+    for (final candidate in candidates) {
+      final client = SubsonicClient(baseUrl: candidate, auth: auth);
+      final id = '${client.baseUrl}|$username'.hashCode.toUnsigned(32).toRadixString(16);
+      final provider = SubsonicProvider(accountId: id, client: client);
+      final ServerInfo info;
+      try {
+        info = await provider.connect();
+      } on SubsonicException catch (e) {
+        // Um servidor Subsonic respondeu (senha errada etc.): trocar o esquema não adianta.
+        if (e.code != null && e.code != 404) rethrow;
+        error ??= e;
+        continue;
+      }
+      final account = ServerAccount(
+        id: id,
+        name: (name == null || name.trim().isEmpty) ? '${info.type} — ${Uri.parse(client.baseUrl).host}' : name.trim(),
+        baseUrl: client.baseUrl,
+        username: username,
+      );
+      await ref.read(accountStoreProvider).save(account, auth);
+      state = AsyncData(Session(account: account, provider: provider));
+      return;
+    }
+    throw error!;
   }
 
   Future<void> retry() async {

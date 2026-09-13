@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:player_musica/data/settings.dart';
 import 'package:player_musica/data/subsonic/subsonic_client.dart';
@@ -20,6 +23,11 @@ void main() {
       expect(json.values.join(), isNot(contains('sesame')));
       final back = SubsonicAuth.fromJson(json)!;
       expect(back.params, a.params);
+    });
+
+    test('token de senha com acento usa os bytes UTF-8', () {
+      final a = SubsonicAuth.fromPassword('ana', 'coração');
+      expect(a.token, md5.convert(utf8.encode('coração${a.salt}')).toString());
     });
 
     test('monta a URL de stream com autenticação', () {

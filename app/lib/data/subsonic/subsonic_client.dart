@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -34,7 +35,8 @@ class SubsonicAuth {
     final rnd = Random.secure();
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final salt = List.generate(12, (_) => chars[rnd.nextInt(chars.length)]).join();
-    final token = md5.convert('$password$salt'.codeUnits).toString();
+    // Bytes UTF-8 (não code units UTF-16), senão senhas com acento falham.
+    final token = md5.convert(utf8.encode('$password$salt')).toString();
     return SubsonicAuth.token(username: username, token: token, salt: salt);
   }
 
