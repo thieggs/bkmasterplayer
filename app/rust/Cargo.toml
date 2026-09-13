@@ -21,7 +21,7 @@ symphonia = { version = "0.6.1", default-features = false, features = [
     "isomp4", "mkv", "ogg", "wav", "aiff", "caf",
     "id3v1", "id3v2", "ape",
 ] }
-cpal = "0.18.2"
+cpal = { version = "0.18.2", features = ["pulseaudio"] }
 rubato = { version = "5.0", default-features = false }
 audioadapter-buffers = "5.2"
 ureq = "3.4"

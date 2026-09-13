@@ -132,7 +132,16 @@ pub struct Engine {
 impl Inner {
     fn open_output(self: &Arc<Self>) -> Result<()> {
         let device_id = self.ctl.lock().device_id.clone();
-        let out = output::open(device_id.as_deref(), self.mixer.clone(), self.stream_failed.clone())?;
+        // Fecha a saída atual antes de abrir a nova (dois streams disputariam o mixer).
+        self.ctl.lock().output = None;
+        let out = match output::open(device_id.as_deref(), self.mixer.clone(), self.stream_failed.clone()) {
+            Ok(o) => o,
+            Err(e) => {
+                // O servidor de som pode ter reiniciado: tenta com uma conexão nova.
+                output::reset_host();
+                output::open(device_id.as_deref(), self.mixer.clone(), self.stream_failed.clone()).map_err(|_| e)?
+            }
+        };
         self.stream_failed.store(false, Ordering::Relaxed);
         let (name, rate) = (out.device_name.clone(), out.sample_rate);
         let old_rate = {
@@ -148,6 +157,23 @@ impl Inner {
             self.reload_at_current_position();
         }
         Ok(())
+    }
+
+    /// Se o app segue a saída padrão e ela mudou (ex.: fone Bluetooth conectou), migra.
+    fn follow_default_output(self: &Arc<Self>) {
+        let (following, current) = {
+            let ctl = self.ctl.lock();
+            (ctl.device_id.is_none(), ctl.output.as_ref().and_then(|o| o.device_id.clone()))
+        };
+        if !following {
+            return;
+        }
+        let Some(default) = output::default_device_id() else { return };
+        if current.as_deref() != Some(default.as_str()) {
+            if let Err(e) = self.open_output() {
+                log::warn!("migrando para a nova saída padrão: {e:#}");
+            }
+        }
     }
 
     fn reload_at_current_position(self: &Arc<Self>) {
@@ -293,8 +319,16 @@ impl Engine {
         });
 
         if let Err(e) = inner.open_output() {
-            log::warn!("sem saída de áudio: {e:#}");
-            inner.emit(EngineEvent::Error { message: format!("Sem saída de áudio: {e:#}") });
+            if inner.ctl.lock().device_id.take().is_some() {
+                // O dispositivo salvo sumiu (ex.: fone desconectado): usa o padrão.
+                log::warn!("dispositivo salvo indisponível ({e:#}), usando o padrão");
+                if let Err(e2) = inner.open_output() {
+                    inner.emit(EngineEvent::Error { message: format!("Sem saída de áudio: {e2:#}") });
+                }
+            } else {
+                log::warn!("sem saída de áudio: {e:#}");
+                inner.emit(EngineEvent::Error { message: format!("Sem saída de áudio: {e:#}") });
+            }
         }
 
         #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
@@ -392,12 +426,14 @@ impl Engine {
     }
 
     pub fn set_device(&self, device_id: Option<String>) -> Result<()> {
-        {
-            let mut ctl = self.inner.ctl.lock();
-            ctl.device_id = device_id;
-            ctl.output = None;
+        let previous = std::mem::replace(&mut self.inner.ctl.lock().device_id, device_id);
+        if let Err(e) = self.inner.open_output() {
+            // Não fica mudo: volta para o que estava funcionando.
+            self.inner.ctl.lock().device_id = previous;
+            let _ = self.inner.open_output();
+            return Err(e);
         }
-        self.inner.open_output()
+        Ok(())
     }
 
     pub fn prefetch(&self, req: &TrackRequest) {
@@ -444,6 +480,7 @@ fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
     let mut last_reopen = Instant::now() - Duration::from_secs(10);
     let mut last_state = (false, false, false);
     let mut last_mpris_pos = Instant::now();
+    let mut last_default_check = Instant::now();
 
     while inner.running.load(Ordering::Relaxed) {
         while let Ok(ev) = ev_rx.pop() {
@@ -474,10 +511,14 @@ fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
 
         if inner.stream_failed.load(Ordering::Relaxed) && last_reopen.elapsed() >= Duration::from_secs(2) {
             last_reopen = Instant::now();
-            inner.ctl.lock().output = None;
             if let Err(e) = inner.open_output() {
                 log::warn!("reabrindo saída de áudio: {e:#}");
             }
+        }
+
+        if last_default_check.elapsed() >= Duration::from_secs(2) {
+            last_default_check = Instant::now();
+            inner.follow_default_output();
         }
 
         if last_gc.elapsed() >= Duration::from_secs(5) {

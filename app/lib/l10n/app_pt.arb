@@ -173,5 +173,6 @@
     "type": "String"
    }
   }
- }
+ },
+ "outputDeviceFailed": "Não foi possível usar esse dispositivo; continuando no anterior."
 }

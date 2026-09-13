@@ -1,11 +1,16 @@
 //! Saída de áudio via cpal. O callback só chama o mixer e converte o formato.
+//!
+//! No Linux usa o PulseAudio nativo quando existe (o PipeWire atende nesse
+//! protocolo): assim o app segue a saída padrão do sistema (Bluetooth, HDMI…),
+//! aparece no mixer do desktop e lista os dispositivos com nomes legíveis.
+//! Sem servidor de som, cai no ALSA.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{ErrorKind, FromSample, SampleFormat, SizedSample};
+use cpal::{BufferSize, ErrorKind, FromSample, SampleFormat, SizedSample, SupportedBufferSize};
 use parking_lot::Mutex;
 
 use super::mixer::Mixer;
@@ -15,6 +20,8 @@ pub struct Output {
     pub sample_rate: u32,
     pub channels: u16,
     pub device_name: String,
+    /// Id do dispositivo aberto (para detectar mudança da saída padrão).
+    pub device_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -24,20 +31,60 @@ pub struct DeviceInfo {
     pub is_default: bool,
 }
 
+/// Host preferido: PulseAudio/PipeWire no Linux, senão o padrão da plataforma.
+/// Fica em cache (cada host PulseAudio é uma conexão com o servidor de som).
+static HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
+
+fn with_host<R>(f: impl FnOnce(&cpal::Host) -> R) -> R {
+    let mut guard = HOST.lock();
+    let host = guard.get_or_insert_with(make_host);
+    f(host)
+}
+
+/// Descarta o host em cache (ex.: o servidor de som reiniciou); recria na próxima chamada.
+pub fn reset_host() {
+    *HOST.lock() = None;
+}
+
+fn make_host() -> cpal::Host {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(h) = cpal::host_from_id(cpal::HostId::PulseAudio) {
+            if h.default_output_device().is_some() {
+                return h;
+            }
+        }
+    }
+    cpal::default_host()
+}
+
 fn device_name(d: &cpal::Device) -> String {
     d.description().map(|x| x.name().to_string()).unwrap_or_else(|_| "?".into())
 }
 
+fn id_of(d: &cpal::Device) -> Option<String> {
+    d.id().ok().map(|i| i.to_string())
+}
+
 pub fn list_devices() -> Result<Vec<DeviceInfo>> {
-    let host = cpal::default_host();
-    let default_id = host.default_output_device().and_then(|d| d.id().ok()).map(|i| i.to_string());
+    let (default_id, devices) = with_host(|h| -> Result<_> {
+        Ok((h.default_output_device().and_then(|d| id_of(&d)), h.output_devices()?.collect::<Vec<_>>()))
+    })?;
     let mut out = Vec::new();
-    for d in host.output_devices()? {
-        let Ok(id) = d.id() else { continue };
-        let id = id.to_string();
+    for d in devices {
+        let Some(id) = id_of(&d) else { continue };
+        // No ALSA puro há dezenas de "plugins" confusos; mostra só os úteis.
+        if id.starts_with("alsa:") && !(id == "alsa:default" || id.starts_with("alsa:plughw:") || id == "alsa:pipewire" || id == "alsa:pulse") {
+            continue;
+        }
         out.push(DeviceInfo { is_default: Some(&id) == default_id.as_ref(), name: device_name(&d), id });
     }
     Ok(out)
+}
+
+/// Id da saída padrão atual do sistema.
+pub fn default_device_id() -> Option<String> {
+    with_host(|h| h.default_output_device()).and_then(|d| id_of(&d))
 }
 
 /// Taxa padrão do dispositivo (para montar o mixer antes de abrir o stream).
@@ -47,24 +94,40 @@ pub fn device_rate(device_id: Option<&str>) -> Result<u32> {
 }
 
 fn find_device(device_id: Option<&str>) -> Result<cpal::Device> {
-    let host = cpal::default_host();
     if let Some(id) = device_id {
-        if let Ok(parsed) = id.parse::<cpal::DeviceId>() {
-            if let Some(d) = host.device_by_id(&parsed) {
-                return Ok(d);
-            }
-        }
-        log::warn!("dispositivo {id} não encontrado, usando o padrão");
+        let parsed = id.parse::<cpal::DeviceId>().map_err(|_| anyhow!("id de dispositivo inválido: {id}"))?;
+        return with_host(|h| h.device_by_id(&parsed)).ok_or_else(|| anyhow!("dispositivo de áudio não encontrado: {id}"));
     }
-    host.default_output_device().ok_or_else(|| anyhow!("nenhum dispositivo de saída de áudio"))
+    with_host(|h| h.default_output_device()).ok_or_else(|| anyhow!("nenhum dispositivo de saída de áudio"))
 }
 
 pub fn open(device_id: Option<&str>, mixer: Arc<Mutex<Mixer>>, failed: Arc<AtomicBool>) -> Result<Output> {
     let device = find_device(device_id)?;
-    let supported = device.default_output_config()?;
+    let default = device.default_output_config()?;
+    // Prefere float 32 (o servidor de som converte com mais qualidade que truncar aqui).
+    let supported = device
+        .supported_output_configs()
+        .ok()
+        .and_then(|mut it| {
+            it.find(|c| {
+                c.sample_format() == SampleFormat::F32
+                    && c.channels() == default.channels()
+                    && c.min_sample_rate() <= default.sample_rate()
+                    && c.max_sample_rate() >= default.sample_rate()
+            })
+        })
+        .map(|c| c.with_sample_rate(default.sample_rate()))
+        .unwrap_or(default);
     let format = supported.sample_format();
-    let config: cpal::StreamConfig = supported.into();
-    let sample_rate = config.sample_rate;
+    let sample_rate = supported.sample_rate();
+    // Música não precisa de latência baixa: ~50 ms por período (≈100 ms no
+    // total no PulseAudio) evita travadas com Bluetooth e CPU ocupada.
+    let wanted = (sample_rate / 20).max(256);
+    let buffer_size = match supported.buffer_size() {
+        SupportedBufferSize::Range { min, max } if wanted >= *min && wanted <= *max => BufferSize::Fixed(wanted),
+        _ => BufferSize::Default,
+    };
+    let config = cpal::StreamConfig { channels: supported.channels().max(1), sample_rate, buffer_size };
     let channels = config.channels;
     mixer.lock().set_rate(sample_rate);
 
@@ -74,9 +137,16 @@ pub fn open(device_id: Option<&str>, mixer: Arc<Mutex<Mixer>>, failed: Arc<Atomi
         SampleFormat::I32 => build::<i32>(&device, config, mixer, failed)?,
         SampleFormat::U16 => build::<u16>(&device, config, mixer, failed)?,
         SampleFormat::F64 => build::<f64>(&device, config, mixer, failed)?,
+        SampleFormat::I24 => build::<cpal::I24>(&device, config, mixer, failed)?,
         other => return Err(anyhow!("formato de saída não suportado: {other}")),
     };
-    Ok(Output { _stream: stream, sample_rate, channels, device_name: device_name(&device) })
+    Ok(Output {
+        _stream: stream,
+        sample_rate,
+        channels,
+        device_name: device_name(&device),
+        device_id: id_of(&device),
+    })
 }
 
 fn build<T>(
@@ -116,11 +186,10 @@ where
             }
         },
         move |err: cpal::Error| match err.kind() {
-            ErrorKind::Xrun | ErrorKind::RealtimeDenied | ErrorKind::DeviceChanged => {
-                log::debug!("áudio: {err}")
-            }
+            ErrorKind::Xrun => eprintln!("[áudio] xrun (o callback atrasou)"),
+            ErrorKind::RealtimeDenied | ErrorKind::DeviceChanged => log::debug!("áudio: {err}"),
             _ => {
-                log::warn!("stream de áudio falhou: {err}");
+                eprintln!("[áudio] stream falhou: {err}");
                 failed.store(true, Ordering::Relaxed);
             }
         },

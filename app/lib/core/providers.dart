@@ -21,6 +21,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
   @override
   AppSettings build() => AppSettings.load(ref.watch(prefsProvider));
 
+  /// Troca a saída de áudio; só salva se o motor conseguir abrir o dispositivo.
+  Future<void> setOutputDevice(String? id) async {
+    await engine.playerSetOutputDevice(deviceId: id);
+    update((s) => id == null ? s.copyWith(clearOutputDevice: true) : s.copyWith(outputDeviceId: id));
+  }
+
   void update(AppSettings Function(AppSettings s) change) {
     final old = state;
     state = change(state);
@@ -34,9 +40,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
     }
     if (old.cacheLimitMb != s.cacheLimitMb) {
       engine.playerSetCacheLimit(limitMb: s.cacheLimitMb);
-    }
-    if (old.outputDeviceId != s.outputDeviceId) {
-      engine.playerSetOutputDevice(deviceId: s.outputDeviceId);
     }
   }
 }

@@ -15,6 +15,14 @@ import 'src/rust/frb_generated.dart';
 const appId = 'player_musica';
 const appName = 'Player de Música';
 
+class _CloseListener with WindowListener {
+  @override
+  void onWindowClose() {
+    engine.playerStop();
+    exit(0);
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
@@ -31,6 +39,10 @@ Future<void> main() async {
       await windowManager.show();
       await windowManager.focus();
     });
+    // Fechar a janela encerra o app na hora (o desligamento padrão do Flutter
+    // no Linux às vezes aborta ao liberar o contexto OpenGL).
+    await windowManager.setPreventClose(true);
+    windowManager.addListener(_CloseListener());
   }
 
   await RustLib.init();

@@ -811,6 +811,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Excluir a playlist \"{name}\"?'**
   String deletePlaylistQuestion(String name);
+
+  /// No description provided for @outputDeviceFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível usar esse dispositivo; continuando no anterior.'**
+  String get outputDeviceFailed;
 }
 
 class _AppLocalizationsDelegate

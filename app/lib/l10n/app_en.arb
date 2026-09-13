@@ -118,5 +118,6 @@
  "seconds": "{count, plural, =1{1 second} other{{count} seconds}}",
  "queueSummary": "{count, plural, =1{1 song up next} other{{count} songs up next}} • {duration}",
  "cacheUsage": "{used} MB used of {limit} MB",
- "deletePlaylistQuestion": "Delete the playlist \"{name}\"?"
+ "deletePlaylistQuestion": "Delete the playlist \"{name}\"?",
+ "outputDeviceFailed": "Couldn't use that device; keeping the previous one."
 }

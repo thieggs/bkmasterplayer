@@ -410,4 +410,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String deletePlaylistQuestion(String name) {
     return 'Excluir a playlist \"$name\"?';
   }
+
+  @override
+  String get outputDeviceFailed =>
+      'Não foi possível usar esse dispositivo; continuando no anterior.';
 }

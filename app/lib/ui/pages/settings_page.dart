@@ -7,6 +7,7 @@ import '../../core/providers.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
+import '../actions.dart';
 
 final outputDevicesProvider = FutureProvider.autoDispose<List<engine.OutputDevice>>((ref) => engine.playerOutputDevices());
 final cacheSizeProvider = FutureProvider.autoDispose<int>((ref) => engine.playerCacheSize());
@@ -199,7 +200,14 @@ class SettingsPage extends ConsumerWidget {
                     ),
                   ),
               ],
-              onChanged: (v) => set((x) => v == null ? x.copyWith(clearOutputDevice: true) : x.copyWith(outputDeviceId: v)),
+              onChanged: (v) async {
+                try {
+                  await ref.read(settingsProvider.notifier).setOutputDevice(v);
+                } catch (e) {
+                  if (context.mounted) showSnack(context, l10n.outputDeviceFailed);
+                }
+                ref.invalidate(outputDevicesProvider);
+              },
             ),
           );
         }),

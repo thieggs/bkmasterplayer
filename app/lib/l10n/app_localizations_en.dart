@@ -411,4 +411,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String deletePlaylistQuestion(String name) {
     return 'Delete the playlist \"$name\"?';
   }
+
+  @override
+  String get outputDeviceFailed =>
+      'Couldn\'t use that device; keeping the previous one.';
 }
