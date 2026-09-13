@@ -7,3 +7,4 @@ dev/navidrome-data/
 
 # Python
 __pycache__/
+dist/
