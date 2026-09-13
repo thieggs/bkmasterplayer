@@ -222,6 +222,32 @@ class SubsonicProvider implements MusicProvider {
   }
 
   @override
+  Future<void> savePlayQueue(List<String> songIds, {String? current, Duration position = Duration.zero}) =>
+      client.get('savePlayQueue', {
+        'id': songIds,
+        'current': current,
+        'position': position.inMilliseconds,
+      });
+
+  @override
+  Future<({List<Song> songs, String? current, Duration position})?> playQueue() async {
+    try {
+      final body = await client.get('getPlayQueue');
+      final q = body['playQueue'];
+      if (q is! Map) return null;
+      final songs = list(q['entry']).map(parseSong).toList();
+      if (songs.isEmpty) return null;
+      return (
+        songs: songs,
+        current: q['current']?.toString(),
+        position: Duration(milliseconds: (q['position'] as num?)?.toInt() ?? 0),
+      );
+    } on SubsonicException {
+      return null;
+    }
+  }
+
+  @override
   Uri streamUri(Song song, {String? format, int? maxBitRate}) => client.uri('stream', {
         'id': song.id,
         'format': format ?? 'raw',

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -54,6 +55,7 @@ class PlayerState {
     this.insights = const {},
     this.mix,
     this.plannedMix,
+    this.radio = false,
   });
 
   final List<QueueItem> queue;
@@ -79,6 +81,9 @@ class PlayerState {
   /// Resumo da próxima transição planejada.
   final String? plannedMix;
 
+  /// Rádio infinita: quando a fila acaba, completa com músicas parecidas.
+  final bool radio;
+
   QueueItem? get current => index >= 0 && index < queue.length ? queue[index] : null;
   bool get hasNext => index + 1 < queue.length || repeat != LoopMode.off;
 
@@ -100,6 +105,7 @@ class PlayerState {
     bool clearMix = false,
     String? plannedMix,
     bool clearPlanned = false,
+    bool? radio,
   }) =>
       PlayerState(
         queue: queue ?? this.queue,
@@ -116,6 +122,7 @@ class PlayerState {
         insights: insights ?? this.insights,
         mix: clearMix ? null : (mix ?? this.mix),
         plannedMix: clearPlanned ? null : (plannedMix ?? this.plannedMix),
+        radio: radio ?? this.radio,
       );
 }
 
@@ -149,7 +156,160 @@ class PlayerController extends Notifier<PlayerState> {
         _scheduleNext();
       }
     });
+    ref.listen(sessionProvider, (_, next) {
+      if (next.value != null && !_restored) {
+        _restored = true;
+        _restore();
+      }
+    }, fireImmediately: true);
+    ref.onDispose(() {
+      _saveTimer?.cancel();
+      _syncTimer?.cancel();
+    });
     return PlayerState(volume: volume);
+  }
+
+  // ---- Fila salva (disco) e sincronizada (servidor) ----
+
+  bool _restored = false;
+  Duration? _resumeAt;
+  Timer? _saveTimer;
+  Timer? _syncTimer;
+  DateTime _lastPositionSave = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastServerSync = DateTime.fromMillisecondsSinceEpoch(0);
+
+  File get _queueFile => File('${ref.read(supportDirProvider).path}/queue.json');
+
+  void _persistSoon() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(seconds: 1), _persistNow);
+    _syncSoon();
+  }
+
+  Future<void> _persistNow() async {
+    final p = _provider;
+    if (p == null) return;
+    // Guarda até 1000 faixas em volta da atual.
+    final start = max(0, state.index - 200);
+    final items = state.queue.skip(start).take(1000).toList();
+    final data = {
+      'account': p.accountId,
+      'index': state.index - start,
+      'position': state.position.inMilliseconds,
+      'radio': state.radio,
+      'queue': items.map((q) => q.song.toJson()).toList(),
+    };
+    try {
+      final tmp = File('${_queueFile.path}.tmp');
+      await tmp.writeAsString(jsonEncode(data));
+      await tmp.rename(_queueFile.path);
+    } catch (e) {
+      debugPrint('salvando fila: $e');
+    }
+  }
+
+  void _syncSoon() {
+    if (!ref.read(settingsProvider).syncQueue) return;
+    _syncTimer?.cancel();
+    _syncTimer = Timer(const Duration(seconds: 5), _syncNow);
+  }
+
+  Future<void> _syncNow() async {
+    final p = _provider;
+    final cur = state.current;
+    if (p == null || cur == null || !ref.read(settingsProvider).syncQueue) return;
+    _lastServerSync = DateTime.now();
+    final start = max(0, state.index - 100);
+    final ids = state.queue.skip(start).take(500).map((q) => q.song.id).toList();
+    try {
+      await p.savePlayQueue(ids, current: cur.song.id, position: state.position);
+    } catch (_) {}
+  }
+
+  Future<void> _restore() async {
+    final p = _provider;
+    if (p == null || state.queue.isNotEmpty) return;
+    List<Song>? songs;
+    int index = 0;
+    Duration position = Duration.zero;
+    var radio = false;
+    try {
+      if (await _queueFile.exists()) {
+        final j = jsonDecode(await _queueFile.readAsString()) as Map<String, dynamic>;
+        if (j['account'] == p.accountId) {
+          songs = (j['queue'] as List).map((e) => Song.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+          index = (j['index'] as int?) ?? 0;
+          position = Duration(milliseconds: (j['position'] as int?) ?? 0);
+          radio = j['radio'] == true;
+        }
+      }
+    } catch (e) {
+      debugPrint('fila salva ilegível: $e');
+    }
+    if ((songs == null || songs.isEmpty) && ref.read(settingsProvider).syncQueue) {
+      final remote = await p.playQueue();
+      if (remote != null) {
+        songs = remote.songs;
+        index = max(0, remote.songs.indexWhere((s) => s.id == remote.current));
+        position = remote.position;
+      }
+    }
+    if (songs == null || songs.isEmpty || state.queue.isNotEmpty) return;
+    final items = songs.map(_item).toList();
+    index = index.clamp(0, items.length - 1);
+    _resumeAt = position;
+    state = state.copyWith(
+      queue: items,
+      index: index,
+      position: position,
+      duration: items[index].song.duration ?? Duration.zero,
+      radio: radio,
+    );
+  }
+
+  // ---- Rádio infinita ----
+
+  bool _extending = false;
+
+  void toggleRadio() {
+    state = state.copyWith(radio: !state.radio);
+    _persistSoon();
+    _maybeExtendRadio();
+  }
+
+  void setRadio(bool on) {
+    state = state.copyWith(radio: on);
+    _maybeExtendRadio();
+  }
+
+  /// Com a rádio ligada e a fila acabando, completa com músicas parecidas com
+  /// a última (análise sônica do AudioMuse quando o servidor tem; senão o
+  /// "similar" do servidor; em último caso, aleatórias).
+  Future<void> _maybeExtendRadio() async {
+    if (!state.radio || _extending || state.queue.isEmpty) return;
+    if (state.queue.length - state.index - 1 > 2) return;
+    final p = _provider;
+    if (p == null) return;
+    _extending = true;
+    try {
+      final seed = state.queue.last.song;
+      var songs = <Song>[];
+      if (p.serverInfo?.sonicSimilarity ?? false) {
+        songs = (await p.sonicSimilar(seed.id, count: 40)).map((m) => m.song).toList();
+      }
+      if (songs.isEmpty) songs = await p.similarSongs(seed.id, count: 40);
+      if (songs.isEmpty) songs = await p.randomSongs(size: 20);
+      final seen = state.queue.map((q) => q.song.id).toSet();
+      final lastArtist = seed.artistId;
+      // Evita repetir e alterna artistas quando possível.
+      final fresh = songs.where((s) => !seen.contains(s.id)).toList()
+        ..sort((a, b) => (a.artistId == lastArtist ? 1 : 0) - (b.artistId == lastArtist ? 1 : 0));
+      if (fresh.isNotEmpty) enqueue(fresh.take(10).toList());
+    } catch (e) {
+      debugPrint('rádio: $e');
+    } finally {
+      _extending = false;
+    }
   }
 
   MusicProvider? get _provider {
@@ -273,15 +433,20 @@ class PlayerController extends Notifier<PlayerState> {
 
   void toggle() {
     if (state.current == null) return;
-    if (!state.playing && state.position == Duration.zero && !state.buffering && !_engineHasTrack) {
-      _startAt(state.index);
+    if (!state.playing && !state.buffering && !_engineHasTrack) {
+      final at = _resumeAt ?? Duration.zero;
+      _resumeAt = null;
+      _startAt(state.index, start: at);
       return;
     }
     engine.playerToggle();
   }
 
   void play() => state.playing ? null : toggle();
-  void pause() => engine.playerPause();
+  void pause() {
+    engine.playerPause();
+    _persistSoon();
+  }
 
   void stop() {
     engine.playerStop();
@@ -337,6 +502,8 @@ class PlayerController extends Notifier<PlayerState> {
     final item = state.queue[i];
     final src = _source(item);
     if (src == null) return;
+    _resumeAt = null;
+    _persistSoon();
     state = state.copyWith(index: i, position: start, duration: item.song.duration ?? Duration.zero, buffered: 0);
     _scheduledKey = null;
     engine.playerPlay(track: src, startMs: start.inMilliseconds);
@@ -344,6 +511,7 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void _scheduleNext() {
+    _persistSoon();
     final cur = state.current;
     final n = cur == null ? null : _nextIndex();
     final next = n == null ? null : state.queue[n];
@@ -431,6 +599,7 @@ class PlayerController extends Notifier<PlayerState> {
           _scheduleNext();
           _beginScrobble(item);
           _preAnalyze(i);
+          _maybeExtendRadio();
         }
       case engine.PlayerEvent_TrackEnded(:final id, :final error):
         if (error != null) {
@@ -441,6 +610,14 @@ class PlayerController extends Notifier<PlayerState> {
         if (state.current?.uid != id) return;
         final pos = Duration(milliseconds: positionMs);
         _trackListening(pos);
+        final now = DateTime.now();
+        if (now.difference(_lastPositionSave) > const Duration(seconds: 15)) {
+          _lastPositionSave = now;
+          _persistNow();
+        }
+        if (now.difference(_lastServerSync) > const Duration(seconds: 60)) {
+          _syncSoon();
+        }
         state = state.copyWith(
           position: pos,
           duration: durationMs != null ? Duration(milliseconds: durationMs) : state.duration,

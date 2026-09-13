@@ -42,6 +42,11 @@ class AppSettings {
     this.automixRespectAlbums = true,
     this.analysisModel = AnalysisModelSetting.auto,
     this.preAnalyze = true,
+    this.syncQueue = true,
+    this.eqEnabled = false,
+    this.eqPreamp = 0,
+    this.eqGains = const [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    this.eqPreset = 'flat',
   });
 
   final ThemeMode themeMode;
@@ -73,6 +78,15 @@ class AppSettings {
   final AnalysisModelSetting analysisModel;
   final bool preAnalyze;
 
+  /// Salva a fila no servidor (continuar em outro aparelho).
+  final bool syncQueue;
+
+  // Equalizador
+  final bool eqEnabled;
+  final double eqPreamp;
+  final List<double> eqGains;
+  final String eqPreset;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     int? seedColor,
@@ -103,6 +117,11 @@ class AppSettings {
     bool? automixRespectAlbums,
     AnalysisModelSetting? analysisModel,
     bool? preAnalyze,
+    bool? syncQueue,
+    bool? eqEnabled,
+    double? eqPreamp,
+    List<double>? eqGains,
+    String? eqPreset,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -131,6 +150,11 @@ class AppSettings {
         automixRespectAlbums: automixRespectAlbums ?? this.automixRespectAlbums,
         analysisModel: analysisModel ?? this.analysisModel,
         preAnalyze: preAnalyze ?? this.preAnalyze,
+        syncQueue: syncQueue ?? this.syncQueue,
+        eqEnabled: eqEnabled ?? this.eqEnabled,
+        eqPreamp: eqPreamp ?? this.eqPreamp,
+        eqGains: eqGains ?? this.eqGains,
+        eqPreset: eqPreset ?? this.eqPreset,
       );
 
   Map<String, dynamic> toJson() => {
@@ -160,6 +184,11 @@ class AppSettings {
         'automixRespectAlbums': automixRespectAlbums,
         'analysisModel': analysisModel.name,
         'preAnalyze': preAnalyze,
+        'syncQueue': syncQueue,
+        'eqEnabled': eqEnabled,
+        'eqPreamp': eqPreamp,
+        'eqGains': eqGains,
+        'eqPreset': eqPreset,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -192,6 +221,11 @@ class AppSettings {
       automixRespectAlbums: pick('automixRespectAlbums', d.automixRespectAlbums),
       analysisModel: AnalysisModelSetting.values.asNameMap()[j['analysisModel']] ?? d.analysisModel,
       preAnalyze: pick('preAnalyze', d.preAnalyze),
+      syncQueue: pick('syncQueue', d.syncQueue),
+      eqEnabled: pick('eqEnabled', d.eqEnabled),
+      eqPreamp: (j['eqPreamp'] as num?)?.toDouble() ?? d.eqPreamp,
+      eqGains: (j['eqGains'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? d.eqGains,
+      eqPreset: j['eqPreset'] as String? ?? d.eqPreset,
     );
   }
 

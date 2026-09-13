@@ -557,4 +557,62 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get crossfadeAutomixNote =>
       'Com o AutoMix ligado, o crossfade só vale quando ele está desativado.';
+
+  @override
+  String get radioOn =>
+      'Rádio infinita ligada: a fila continua com músicas parecidas';
+
+  @override
+  String get radioOff =>
+      'Ligar rádio infinita (completa a fila com músicas parecidas)';
+
+  @override
+  String get syncQueue => 'Sincronizar a fila com o servidor';
+
+  @override
+  String get syncQueueHint =>
+      'Salva a fila no servidor para continuar de onde parou em outro aparelho.';
+
+  @override
+  String get equalizer => 'Equalizador';
+
+  @override
+  String get eqFlat => 'Plano';
+
+  @override
+  String get eqBass => 'Graves';
+
+  @override
+  String get eqTreble => 'Agudos';
+
+  @override
+  String get eqVocal => 'Vocal';
+
+  @override
+  String get eqElectronic => 'Eletrônica';
+
+  @override
+  String get eqClassical => 'Clássica';
+
+  @override
+  String get eqLoudness => 'Volume baixo';
+
+  @override
+  String get eqHeadphones => 'Fone de ouvido';
+
+  @override
+  String get eqCustom => 'Personalizado';
+
+  @override
+  String get eqHint =>
+      'Se aumentar muitas bandas, reduza a pré-amplificação para evitar distorção.';
+
+  @override
+  String get openEqualizer => 'Abrir equalizador';
+
+  @override
+  String get on => 'Ligado';
+
+  @override
+  String get off => 'Desligado';
 }

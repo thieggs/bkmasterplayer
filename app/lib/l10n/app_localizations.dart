@@ -1074,6 +1074,114 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Com o AutoMix ligado, o crossfade só vale quando ele está desativado.'**
   String get crossfadeAutomixNote;
+
+  /// No description provided for @radioOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rádio infinita ligada: a fila continua com músicas parecidas'**
+  String get radioOn;
+
+  /// No description provided for @radioOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ligar rádio infinita (completa a fila com músicas parecidas)'**
+  String get radioOff;
+
+  /// No description provided for @syncQueue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronizar a fila com o servidor'**
+  String get syncQueue;
+
+  /// No description provided for @syncQueueHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salva a fila no servidor para continuar de onde parou em outro aparelho.'**
+  String get syncQueueHint;
+
+  /// No description provided for @equalizer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Equalizador'**
+  String get equalizer;
+
+  /// No description provided for @eqFlat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Plano'**
+  String get eqFlat;
+
+  /// No description provided for @eqBass.
+  ///
+  /// In pt, this message translates to:
+  /// **'Graves'**
+  String get eqBass;
+
+  /// No description provided for @eqTreble.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agudos'**
+  String get eqTreble;
+
+  /// No description provided for @eqVocal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vocal'**
+  String get eqVocal;
+
+  /// No description provided for @eqElectronic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Eletrônica'**
+  String get eqElectronic;
+
+  /// No description provided for @eqClassical.
+  ///
+  /// In pt, this message translates to:
+  /// **'Clássica'**
+  String get eqClassical;
+
+  /// No description provided for @eqLoudness.
+  ///
+  /// In pt, this message translates to:
+  /// **'Volume baixo'**
+  String get eqLoudness;
+
+  /// No description provided for @eqHeadphones.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fone de ouvido'**
+  String get eqHeadphones;
+
+  /// No description provided for @eqCustom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Personalizado'**
+  String get eqCustom;
+
+  /// No description provided for @eqHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se aumentar muitas bandas, reduza a pré-amplificação para evitar distorção.'**
+  String get eqHint;
+
+  /// No description provided for @openEqualizer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir equalizador'**
+  String get openEqualizer;
+
+  /// No description provided for @on.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ligado'**
+  String get on;
+
+  /// No description provided for @off.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligado'**
+  String get off;
 }
 
 class _AppLocalizationsDelegate

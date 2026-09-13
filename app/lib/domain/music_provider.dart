@@ -45,6 +45,10 @@ abstract class MusicProvider {
   Future<List<SonicMatch>> sonicSimilar(String songId, {int count = 50});
   Future<List<SonicMatch>> sonicPath(String startSongId, String endSongId, {int count = 25});
 
+  /// Fila salva no servidor (continuar em outro aparelho).
+  Future<void> savePlayQueue(List<String> songIds, {String? current, Duration position = Duration.zero});
+  Future<({List<Song> songs, String? current, Duration position})?> playQueue();
+
   Uri streamUri(Song song, {String? format, int? maxBitRate});
   String streamCacheKey(Song song, {String? format, int? maxBitRate});
   Uri? coverUri(String? coverArtId, {int? size});

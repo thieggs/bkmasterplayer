@@ -14,8 +14,8 @@ class QueuePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final s = ref.watch(playerProvider.select((s) => (s.queue, s.index)));
-    final (queue, index) = s;
+    final s = ref.watch(playerProvider.select((s) => (s.queue, s.index, s.radio)));
+    final (queue, index, radio) = s;
     final p = ref.read(playerProvider.notifier);
     final upcoming = queue.length - index - 1;
     final remaining = queue
@@ -30,6 +30,12 @@ class QueuePanel extends ConsumerWidget {
           child: Row(
             children: [
               Expanded(child: Text(l10n.queue, style: theme.textTheme.titleMedium)),
+              IconButton(
+                tooltip: radio ? l10n.radioOn : l10n.radioOff,
+                isSelected: radio,
+                icon: const Icon(Icons.all_inclusive),
+                onPressed: p.toggleRadio,
+              ),
               if (upcoming > 0)
                 TextButton(onPressed: p.clearUpcoming, child: Text(l10n.clear)),
             ],

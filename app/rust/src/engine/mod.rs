@@ -553,6 +553,10 @@ impl Engine {
         self.inner.replan_after_seek();
     }
 
+    pub fn set_eq(&self, eq: mixer::EqSettings) {
+        self.inner.send(MixerCmd::SetEq(eq));
+    }
+
     pub fn set_automix(&self, settings: AutomixSettings) {
         *self.inner.automix.lock() = settings;
         // Replaneja a transição pendente com as regras novas.

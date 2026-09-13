@@ -10,6 +10,7 @@ import 'player/player_controller.dart';
 import 'ui/pages/album_page.dart';
 import 'ui/pages/albums_page.dart';
 import 'ui/pages/artists_page.dart';
+import 'ui/pages/equalizer_page.dart';
 import 'ui/pages/genres_page.dart';
 import 'ui/pages/home_page.dart';
 import 'ui/pages/login_page.dart';
@@ -71,6 +72,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/favorites', builder: (_, _) => const FavoritesPage()),
           GoRoute(path: '/search', builder: (_, state) => SearchPage(initial: state.uri.queryParameters['q'] ?? '')),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+          GoRoute(path: '/equalizer', builder: (_, _) => const EqualizerPage()),
         ],
       ),
     ],

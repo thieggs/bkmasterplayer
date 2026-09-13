@@ -96,6 +96,60 @@ class Song {
 
   bool get isStarred => starred != null;
 
+  /// Serialização compacta (fila salva no disco).
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        if (album != null) 'album': album,
+        if (albumId != null) 'albumId': albumId,
+        if (artist != null) 'artist': artist,
+        if (artistId != null) 'artistId': artistId,
+        if (albumArtist != null) 'albumArtist': albumArtist,
+        if (track != null) 'track': track,
+        if (disc != null) 'disc': disc,
+        if (year != null) 'year': year,
+        if (genre != null) 'genre': genre,
+        if (coverArt != null) 'coverArt': coverArt,
+        if (duration != null) 'duration': duration!.inMilliseconds,
+        if (bitRate != null) 'bitRate': bitRate,
+        if (sampleRate != null) 'sampleRate': sampleRate,
+        if (bitDepth != null) 'bitDepth': bitDepth,
+        if (suffix != null) 'suffix': suffix,
+        if (starred != null) 'starred': starred!.toIso8601String(),
+        if (bpm != null) 'bpm': bpm,
+        if (replayGain != null)
+          'rg': [replayGain!.trackGain, replayGain!.albumGain, replayGain!.trackPeak, replayGain!.albumPeak, replayGain!.baseGain, replayGain!.fallbackGain],
+      };
+
+  factory Song.fromJson(Map<String, dynamic> j) {
+    double? d(List? l, int i) => (l != null && l.length > i && l[i] is num) ? (l[i] as num).toDouble() : null;
+    final rg = j['rg'] as List?;
+    return Song(
+      id: j['id'] as String,
+      title: j['title'] as String? ?? '?',
+      album: j['album'] as String?,
+      albumId: j['albumId'] as String?,
+      artist: j['artist'] as String?,
+      artistId: j['artistId'] as String?,
+      albumArtist: j['albumArtist'] as String?,
+      track: j['track'] as int?,
+      disc: j['disc'] as int?,
+      year: j['year'] as int?,
+      genre: j['genre'] as String?,
+      coverArt: j['coverArt'] as String?,
+      duration: j['duration'] is int ? Duration(milliseconds: j['duration'] as int) : null,
+      bitRate: j['bitRate'] as int?,
+      sampleRate: j['sampleRate'] as int?,
+      bitDepth: j['bitDepth'] as int?,
+      suffix: j['suffix'] as String?,
+      starred: j['starred'] is String ? DateTime.tryParse(j['starred'] as String) : null,
+      bpm: j['bpm'] as int?,
+      replayGain: rg == null
+          ? null
+          : ReplayGain(trackGain: d(rg, 0), albumGain: d(rg, 1), trackPeak: d(rg, 2), albumPeak: d(rg, 3), baseGain: d(rg, 4), fallbackGain: d(rg, 5)),
+    );
+  }
+
   Song copyWith({DateTime? starred, bool clearStarred = false, int? userRating}) => Song(
         id: id,
         title: title,

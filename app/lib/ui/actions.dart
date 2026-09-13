@@ -62,6 +62,7 @@ class LibraryActions {
         return;
       }
       _player(ref).playSongs([song, ...similar.where((s) => s.id != song.id)]);
+      _player(ref).setRadio(true);
     } on SubsonicException catch (e) {
       if (context.mounted) showSnack(context, e.message);
     }
@@ -77,6 +78,7 @@ class LibraryActions {
         return;
       }
       _player(ref).playSongs([song, ...matches.map((m) => m.song).where((s) => s.id != song.id)]);
+      _player(ref).setRadio(true);
     } on SubsonicException catch (e) {
       if (context.mounted) showSnack(context, e.message);
     }

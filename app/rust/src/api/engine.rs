@@ -289,6 +289,17 @@ pub fn player_set_cache_limit(limit_mb: u32) -> Result<()> {
     Ok(())
 }
 
+/// Equalizador de 10 bandas (31 Hz … 16 kHz), ganhos em dB (±12).
+#[frb(sync)]
+pub fn player_set_eq(enabled: bool, preamp_db: f32, gains_db: Vec<f32>) -> Result<()> {
+    let mut g = [0.0f32; 10];
+    for (i, v) in gains_db.iter().take(10).enumerate() {
+        g[i] = v.clamp(-15.0, 15.0);
+    }
+    engine()?.set_eq(crate::engine::mixer::EqSettings { enabled, preamp_db: preamp_db.clamp(-15.0, 15.0), gains_db: g });
+    Ok(())
+}
+
 // ---- AutoMix ----
 
 pub enum AutomixStyle {

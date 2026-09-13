@@ -50,6 +50,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final settings = AppSettings.load(prefs);
   final cacheDir = await getApplicationCacheDirectory();
+  final supportDir = await getApplicationSupportDirectory();
   await Directory('${cacheDir.path}/ui_covers').create(recursive: true);
   Directory? modelDir;
   try {
@@ -71,12 +72,14 @@ Future<void> main() async {
     ),
   );
   await applyAutomix(settings);
+  applyEq(settings);
   engine.playerSetNotifications(enabled: settings.notifications && isDesktop);
 
   runApp(ProviderScope(
     overrides: [
       prefsProvider.overrideWithValue(prefs),
       cacheDirProvider.overrideWithValue(cacheDir),
+      supportDirProvider.overrideWithValue(supportDir),
     ],
     child: const PlayerApp(),
   ));

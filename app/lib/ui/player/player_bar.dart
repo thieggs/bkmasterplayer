@@ -217,6 +217,11 @@ class PlayerBar extends ConsumerWidget {
                 children: [
                   const _MixChip(),
                   IconButton(
+                    tooltip: l10n.openEqualizer,
+                    icon: const Icon(Icons.tune),
+                    onPressed: () => context.go('/equalizer'),
+                  ),
+                  IconButton(
                     tooltip: l10n.lyrics,
                     icon: const Icon(Icons.lyrics_outlined),
                     onPressed: song == null ? null : () => context.push('/now-playing?lyrics=1'),

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../data/settings.dart';
@@ -182,6 +183,13 @@ class SettingsPage extends ConsumerWidget {
               onChanged: (v) => set((x) => x.copyWith(replayGainPreampDb: v)),
             ),
           ),
+        ListTile(
+          leading: const Icon(Icons.tune),
+          title: Text(l10n.equalizer),
+          subtitle: Text(s.eqEnabled ? l10n.on : l10n.off),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/equalizer'),
+        ),
         Consumer(builder: (context, ref, _) {
           final devices = ref.watch(outputDevicesProvider).value ?? const [];
           final ids = devices.map((d) => d.id).toSet();
@@ -213,6 +221,14 @@ class SettingsPage extends ConsumerWidget {
             ),
           );
         }),
+
+        SwitchListTile(
+          secondary: const Icon(Icons.sync),
+          title: Text(l10n.syncQueue),
+          subtitle: Text(l10n.syncQueueHint),
+          value: s.syncQueue,
+          onChanged: (v) => set((x) => x.copyWith(syncQueue: v)),
+        ),
 
         // ---- AutoMix ----
         section(l10n.automix),

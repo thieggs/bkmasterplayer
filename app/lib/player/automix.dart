@@ -58,3 +58,7 @@ Future<void> applyAutomix(AppSettings s) async {
   engine.playerSetAutomix(config: automixConfig(s));
   await engine.playerSetAnalysisModel(model: await resolveModel(s));
 }
+
+void applyEq(AppSettings s) {
+  engine.playerSetEq(enabled: s.eqEnabled, preampDb: s.eqPreamp, gainsDb: s.eqGains);
+}

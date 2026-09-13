@@ -69,6 +69,17 @@ Future<void> playerClearCache() =>
 Future<void> playerSetCacheLimit({required int limitMb}) =>
     RustLib.instance.api.crateApiEnginePlayerSetCacheLimit(limitMb: limitMb);
 
+/// Equalizador de 10 bandas (31 Hz … 16 kHz), ganhos em dB (±12).
+void playerSetEq({
+  required bool enabled,
+  required double preampDb,
+  required List<double> gainsDb,
+}) => RustLib.instance.api.crateApiEnginePlayerSetEq(
+  enabled: enabled,
+  preampDb: preampDb,
+  gainsDb: gainsDb,
+);
+
 void playerSetAutomix({required AutomixConfig config}) =>
     RustLib.instance.api.crateApiEnginePlayerSetAutomix(config: config);
 

@@ -15,6 +15,7 @@ import '../src/rust/api/engine.dart' as engine;
 /// Sobrescritos no `main` com as instâncias reais.
 final prefsProvider = Provider<SharedPreferences>((ref) => throw UnimplementedError());
 final cacheDirProvider = Provider<Directory>((ref) => throw UnimplementedError());
+final supportDirProvider = Provider<Directory>((ref) => throw UnimplementedError());
 
 final accountStoreProvider = Provider<AccountStore>((ref) => AccountStore(ref.watch(prefsProvider)));
 
@@ -52,6 +53,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
         old.automixTrimSilence != s.automixTrimSilence ||
         old.analysisModel != s.analysisModel;
     if (automixChanged) applyAutomix(s);
+    if (old.eqEnabled != s.eqEnabled || old.eqPreamp != s.eqPreamp || old.eqGains != s.eqGains) applyEq(s);
   }
 }
 

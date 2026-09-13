@@ -49,6 +49,96 @@ pub struct AutomixExec {
     pub mute_from: bool,
 }
 
+/// Equalizador gráfico de 10 bandas (oitavas de 31 Hz a 16 kHz).
+#[derive(Debug, Clone, Copy)]
+pub struct EqSettings {
+    pub enabled: bool,
+    pub preamp_db: f32,
+    pub gains_db: [f32; 10],
+}
+
+pub const EQ_FREQS: [f32; 10] = [31.25, 62.5, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0];
+
+/// Biquad peaking (RBJ), forma direta II transposta, estéreo.
+#[derive(Clone, Copy, Default)]
+struct PeakBand {
+    b0: f32,
+    b1: f32,
+    b2: f32,
+    a1: f32,
+    a2: f32,
+    z1: [f32; 2],
+    z2: [f32; 2],
+    active: bool,
+}
+
+impl PeakBand {
+    fn set(&mut self, freq: f32, gain_db: f32, rate: u32) {
+        self.active = gain_db.abs() > 0.05 && freq < rate as f32 * 0.45;
+        if !self.active {
+            return;
+        }
+        let a = 10f32.powf(gain_db / 40.0);
+        let w0 = 2.0 * std::f32::consts::PI * freq / rate as f32;
+        let (sn, cs) = w0.sin_cos();
+        let alpha = sn / (2.0 * 1.41);
+        let a0 = 1.0 + alpha / a;
+        self.b0 = (1.0 + alpha * a) / a0;
+        self.b1 = -2.0 * cs / a0;
+        self.b2 = (1.0 - alpha * a) / a0;
+        self.a1 = -2.0 * cs / a0;
+        self.a2 = (1.0 - alpha / a) / a0;
+    }
+
+    #[inline]
+    fn run(&mut self, x: f32, ch: usize) -> f32 {
+        let y = self.b0 * x + self.z1[ch];
+        self.z1[ch] = self.b1 * x - self.a1 * y + self.z2[ch];
+        self.z2[ch] = self.b2 * x - self.a2 * y;
+        y
+    }
+}
+
+struct Equalizer {
+    settings: EqSettings,
+    bands: [PeakBand; 10],
+    preamp: f32,
+}
+
+impl Equalizer {
+    fn new() -> Self {
+        Self {
+            settings: EqSettings { enabled: false, preamp_db: 0.0, gains_db: [0.0; 10] },
+            bands: [PeakBand::default(); 10],
+            preamp: 1.0,
+        }
+    }
+
+    fn configure(&mut self, s: EqSettings, rate: u32) {
+        self.settings = s;
+        self.preamp = 10f32.powf(s.preamp_db / 20.0);
+        for (i, b) in self.bands.iter_mut().enumerate() {
+            b.set(EQ_FREQS[i], s.gains_db[i], rate);
+        }
+    }
+
+    #[inline]
+    fn process(&mut self, block: &mut [f32]) {
+        if !self.settings.enabled {
+            return;
+        }
+        for f in block.chunks_exact_mut(2) {
+            let (mut l, mut r) = (f[0] * self.preamp, f[1] * self.preamp);
+            for b in self.bands.iter_mut().filter(|b| b.active) {
+                l = b.run(l, 0);
+                r = b.run(r, 1);
+            }
+            f[0] = l;
+            f[1] = r;
+        }
+    }
+}
+
 pub enum MixerCmd {
     /// Toca agora (troca rápida com fade curto). Descarta a próxima.
     Play(Box<DeckSource>),
@@ -59,6 +149,7 @@ pub enum MixerCmd {
     Resume,
     Stop,
     SetVolume(f32),
+    SetEq(EqSettings),
 }
 
 pub enum MixerEvent {
@@ -230,6 +321,7 @@ pub struct Mixer {
     volume: Ramp,
     buffering: bool,
     scratch: Vec<f32>,
+    eq: Equalizer,
 }
 
 impl Mixer {
@@ -248,6 +340,7 @@ impl Mixer {
             volume: Ramp::new(1.0),
             buffering: false,
             scratch: vec![0.0; BLOCK * 2],
+            eq: Equalizer::new(),
         }
     }
 
@@ -257,6 +350,8 @@ impl Mixer {
 
     pub fn set_rate(&mut self, rate: u32) {
         self.rate = rate;
+        let s = self.eq.settings;
+        self.eq.configure(s, rate);
     }
 
     fn ms(&self, ms: u32) -> u32 {
@@ -351,6 +446,10 @@ impl Mixer {
                 MixerCmd::SetVolume(v) => {
                     let frames = self.ms(30);
                     self.volume.set(v.clamp(0.0, 2.0), frames);
+                }
+                MixerCmd::SetEq(s) => {
+                    let rate = self.rate;
+                    self.eq.configure(s, rate);
                 }
             }
         }
@@ -539,6 +638,7 @@ impl Mixer {
             }
         }
 
+        self.eq.process(block);
         for i in 0..n {
             let g = self.volume.tick() * self.run_gain.tick();
             block[i * 2] = soft_clip(block[i * 2] * g);
@@ -747,6 +847,42 @@ fn automix_outgoing(
         let m = if e.mute_from { 0.0 } else { vol };
         buf[i * 2] = l2 * m;
         buf[i * 2 + 1] = r2 * m;
+    }
+}
+
+#[cfg(test)]
+mod eq_tests {
+    use super::*;
+
+    /// Resposta do equalizador a uma senoide (dB).
+    fn gain_at(freq: f32, s: EqSettings) -> f32 {
+        let rate = 48000;
+        let mut eq = Equalizer::new();
+        eq.configure(s, rate);
+        let n = rate as usize;
+        let mut buf: Vec<f32> = (0..n)
+            .flat_map(|i| {
+                let v = (2.0 * std::f32::consts::PI * freq * i as f32 / rate as f32).sin() * 0.1;
+                [v, v]
+            })
+            .collect();
+        eq.process(&mut buf);
+        let tail = &buf[n..];
+        let rms = (tail.iter().map(|x| x * x).sum::<f32>() / tail.len() as f32).sqrt();
+        20.0 * (rms / (0.1 / std::f32::consts::SQRT_2)).log10()
+    }
+
+    #[test]
+    fn bands_hit_their_gain() {
+        let mut g = [0.0; 10];
+        g[2] = 6.0; // 125 Hz
+        g[7] = -6.0; // 4 kHz
+        let s = EqSettings { enabled: true, preamp_db: 0.0, gains_db: g };
+        assert!((gain_at(125.0, s) - 6.0).abs() < 0.7, "{}", gain_at(125.0, s));
+        assert!((gain_at(4000.0, s) + 6.0).abs() < 0.7, "{}", gain_at(4000.0, s));
+        assert!(gain_at(1000.0, s).abs() < 1.0);
+        let off = EqSettings { enabled: false, ..s };
+        assert!(gain_at(125.0, off).abs() < 0.01);
     }
 }
 
