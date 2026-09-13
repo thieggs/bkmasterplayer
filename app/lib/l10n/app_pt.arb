@@ -1,0 +1,177 @@
+{
+ "@@locale": "pt",
+ "appTitle": "Player de Música",
+ "about": "Sobre",
+ "aboutText": "Player open source para servidores OpenSubsonic (Navidrome), com AudioMuse-AI e AutoMix. Licença GPL-3.0.",
+ "accentColor": "Cor de destaque",
+ "addedToPlaylist": "Adicionado à playlist",
+ "addToPlaylist": "Adicionar à playlist",
+ "addToQueue": "Adicionar à fila",
+ "album": "Álbum",
+ "albums": "Álbuns",
+ "appearance": "Aparência",
+ "artist": "Artista",
+ "artistRadio": "Rádio do artista",
+ "artists": "Artistas",
+ "audioMuse": "AudioMuse-AI (análise sônica)",
+ "audioMuseActive": "Ativo: rádio sônica e caminho sônico disponíveis nos menus",
+ "audioMuseInactive": "Não detectado. Instale o plugin AudioMuse-AI no Navidrome (0.62+) para liberar a rádio sônica.",
+ "buildingMix": "Montando o mix…",
+ "cache": "Cache de músicas",
+ "cancel": "Cancelar",
+ "clear": "Limpar",
+ "compilation": "Coletânea",
+ "connect": "Conectar",
+ "crossfade": "Crossfade",
+ "crossfadeHint": "Faixas seguidas do mesmo álbum sempre tocam sem pausa e sem crossfade.",
+ "crossfadeOff": "Desligado (sem pausa entre faixas)",
+ "delete": "Excluir",
+ "desktop": "Computador",
+ "discover": "Descobrir",
+ "dynamicColor": "Cores da capa",
+ "dynamicColorHint": "O tema acompanha a capa da música tocando",
+ "favorite": "Favoritar",
+ "favorites": "Favoritas",
+ "filter": "Filtrar",
+ "genres": "Gêneros",
+ "goToAlbum": "Ir para o álbum",
+ "goToArtist": "Ir para o artista",
+ "home": "Início",
+ "instantMix": "Mix instantâneo",
+ "loginHint": "Funciona com Navidrome, Gonic, Ampache, Airsonic e outros servidores compatíveis com Subsonic. A senha não é guardada: só um token.",
+ "loginSubtitle": "Conecte ao seu servidor de música",
+ "logout": "Sair",
+ "lyrics": "Letra",
+ "mostPlayed": "Mais tocados",
+ "newPlaylist": "Nova playlist",
+ "next": "Próxima",
+ "noLyrics": "Sem letra para esta música",
+ "noResults": "Nada encontrado",
+ "noSimilarSongs": "Nenhuma música parecida encontrada",
+ "nothingHere": "Nada por aqui ainda",
+ "nothingPlaying": "Nada tocando",
+ "offline": "Servidor offline — tentar de novo",
+ "ok": "OK",
+ "outputDevice": "Saída de áudio",
+ "password": "Senha",
+ "pause": "Pausar",
+ "play": "Tocar",
+ "playback": "Reprodução",
+ "playlist": "Playlist",
+ "playlistName": "Nome da playlist",
+ "playlists": "Playlists",
+ "playNext": "Tocar a seguir",
+ "playNow": "Tocar agora",
+ "preamp": "Pré-amplificação",
+ "previous": "Anterior",
+ "qualityOriginal": "Original (sem conversão)",
+ "queue": "Fila",
+ "queueEmpty": "A fila está vazia",
+ "random": "Aleatório",
+ "recentlyAdded": "Adicionados recentemente",
+ "recentlyPlayed": "Tocados recentemente",
+ "removeFromPlaylist": "Remover da playlist",
+ "rename": "Renomear",
+ "repeat": "Repetir",
+ "replayGain": "Normalização de volume (ReplayGain)",
+ "required": "Obrigatório",
+ "retry": "Tentar de novo",
+ "rgAlbum": "Por álbum",
+ "rgAuto": "Automático",
+ "rgOff": "Desligado",
+ "rgTrack": "Por faixa",
+ "search": "Buscar",
+ "searchEmptyHint": "Busque por artistas, álbuns e músicas",
+ "searchHint": "Buscar…",
+ "seeAll": "Ver tudo",
+ "server": "Servidor",
+ "serverUrl": "Endereço do servidor",
+ "settings": "Configurações",
+ "shuffle": "Aleatório",
+ "shuffleLibrary": "Aleatório na biblioteca",
+ "similarArtists": "Artistas parecidos",
+ "songs": "Músicas",
+ "sonicPath": "Caminho sônico até…",
+ "sonicPathPickTarget": "Escolha a música de destino",
+ "sonicRadio": "Rádio sônica (AudioMuse)",
+ "sortByArtist": "Artista (A–Z)",
+ "sortByName": "Nome (A–Z)",
+ "sortByYear": "Ano",
+ "streaming": "Streaming",
+ "streamQuality": "Qualidade do streaming",
+ "systemDefault": "Padrão do sistema",
+ "theme": "Tema",
+ "themeDark": "Escuro",
+ "themeLight": "Claro",
+ "themeSystem": "Sistema",
+ "topRated": "Mais bem avaliados",
+ "topSongs": "Mais tocadas",
+ "trackNotifications": "Notificar troca de música",
+ "trackNotificationsHint": "Mostra uma notificação com a capa. Trocas seguidas atualizam a mesma notificação (não empilha).",
+ "uiScale": "Tamanho da interface",
+ "unfavorite": "Desfavoritar",
+ "username": "Usuário",
+ "wrongCredentials": "Usuário ou senha incorretos",
+ "albumCount": "{count, plural, =0{Nenhum álbum} =1{1 álbum} other{{count} álbuns}}",
+ "@albumCount": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "songCount": "{count, plural, =0{Nenhuma música} =1{1 música} other{{count} músicas}}",
+ "@songCount": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "disc": "Disco {number}",
+ "@disc": {
+  "placeholders": {
+   "number": {
+    "type": "int"
+   }
+  }
+ },
+ "seconds": "{count, plural, =1{1 segundo} other{{count} segundos}}",
+ "@seconds": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "queueSummary": "{count, plural, =1{1 música a seguir} other{{count} músicas a seguir}} • {duration}",
+ "@queueSummary": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   },
+   "duration": {
+    "type": "String"
+   }
+  }
+ },
+ "cacheUsage": "{used} MB usados de {limit} MB",
+ "@cacheUsage": {
+  "placeholders": {
+   "used": {
+    "type": "String"
+   },
+   "limit": {
+    "type": "int"
+   }
+  }
+ },
+ "deletePlaylistQuestion": "Excluir a playlist \"{name}\"?",
+ "@deletePlaylistQuestion": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ }
+}

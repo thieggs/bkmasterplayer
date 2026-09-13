@@ -19,7 +19,7 @@ Future<void> playerInit({required PlayerConfig config}) =>
 Stream<PlayerEvent> playerEvents() =>
     RustLib.instance.api.crateApiEnginePlayerEvents();
 
-void playerPlay({required TrackSource track, required BigInt startMs}) =>
+void playerPlay({required TrackSource track, required PlatformInt64 startMs}) =>
     RustLib.instance.api.crateApiEnginePlayerPlay(
       track: track,
       startMs: startMs,
@@ -36,7 +36,7 @@ void playerToggle() => RustLib.instance.api.crateApiEnginePlayerToggle();
 
 void playerStop() => RustLib.instance.api.crateApiEnginePlayerStop();
 
-void playerSeek({required BigInt positionMs}) =>
+void playerSeek({required PlatformInt64 positionMs}) =>
     RustLib.instance.api.crateApiEnginePlayerSeek(positionMs: positionMs);
 
 void playerSeekBy({required PlatformInt64 deltaMs}) =>
@@ -60,7 +60,7 @@ Future<void> playerSetOutputDevice({String? deviceId}) => RustLib.instance.api
 Future<bool> playerIsCached({required String cacheKey}) =>
     RustLib.instance.api.crateApiEnginePlayerIsCached(cacheKey: cacheKey);
 
-Future<BigInt> playerCacheSize() =>
+Future<PlatformInt64> playerCacheSize() =>
     RustLib.instance.api.crateApiEnginePlayerCacheSize();
 
 Future<void> playerClearCache() =>
@@ -79,7 +79,7 @@ sealed class MediaAction with _$MediaAction {
   const factory MediaAction.next() = MediaAction_Next;
   const factory MediaAction.previous() = MediaAction_Previous;
   const factory MediaAction.stop() = MediaAction_Stop;
-  const factory MediaAction.seekTo({required BigInt positionMs}) =
+  const factory MediaAction.seekTo({required PlatformInt64 positionMs}) =
       MediaAction_SeekTo;
   const factory MediaAction.seekBy({required PlatformInt64 deltaMs}) =
       MediaAction_SeekBy;
@@ -162,8 +162,8 @@ sealed class PlayerEvent with _$PlayerEvent {
       PlayerEvent_TrackEnded;
   const factory PlayerEvent.position({
     required String id,
-    required BigInt positionMs,
-    BigInt? durationMs,
+    required PlatformInt64 positionMs,
+    PlatformInt64? durationMs,
     double? buffered,
   }) = PlayerEvent_Position;
   const factory PlayerEvent.state({
@@ -187,7 +187,7 @@ class TrackSource {
   final String url;
   final String? cacheKey;
   final String? formatHint;
-  final BigInt? durationMs;
+  final PlatformInt64? durationMs;
 
   /// ReplayGain já resolvido (dB), 0 se não houver.
   final double gainDb;

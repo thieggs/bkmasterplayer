@@ -31,7 +31,7 @@ pub struct TrackSource {
     pub url: String,
     pub cache_key: Option<String>,
     pub format_hint: Option<String>,
-    pub duration_ms: Option<u64>,
+    pub duration_ms: Option<i64>,
     /// ReplayGain já resolvido (dB), 0 se não houver.
     pub gain_db: f32,
     pub peak: Option<f32>,
@@ -49,7 +49,7 @@ impl From<TrackSource> for engine::TrackRequest {
             url: t.url,
             cache_key: t.cache_key,
             format_hint: t.format_hint,
-            duration_ms: t.duration_ms,
+            duration_ms: t.duration_ms.map(|d| d.max(0) as u64),
             gain_db: t.gain_db,
             peak: t.peak,
             title: t.title,
@@ -84,7 +84,7 @@ pub enum MediaAction {
     Next,
     Previous,
     Stop,
-    SeekTo { position_ms: u64 },
+    SeekTo { position_ms: i64 },
     SeekBy { delta_ms: i64 },
     SetVolume { volume: f64 },
     Raise,
@@ -94,7 +94,7 @@ pub enum MediaAction {
 pub enum PlayerEvent {
     TrackStarted { id: String },
     TrackEnded { id: String, error: Option<String> },
-    Position { id: String, position_ms: u64, duration_ms: Option<u64>, buffered: Option<f32> },
+    Position { id: String, position_ms: i64, duration_ms: Option<i64>, buffered: Option<f32> },
     State { playing: bool, buffering: bool, has_track: bool },
     MediaControl { action: MediaAction },
     DeviceChanged { name: String, sample_rate: u32 },
@@ -108,7 +108,12 @@ impl From<engine::EngineEvent> for PlayerEvent {
             E::TrackStarted { id } => Self::TrackStarted { id },
             E::TrackEnded { id, error } => Self::TrackEnded { id, error },
             E::Position { id, position_ms, duration_ms, buffered } => {
-                Self::Position { id, position_ms, duration_ms, buffered }
+                Self::Position {
+                    id,
+                    position_ms: position_ms as i64,
+                    duration_ms: duration_ms.map(|d| d as i64),
+                    buffered,
+                }
             }
             E::State { playing, buffering, has_track } => Self::State { playing, buffering, has_track },
             E::MediaControl(a) => Self::MediaControl {
@@ -119,7 +124,7 @@ impl From<engine::EngineEvent> for PlayerEvent {
                     engine::MediaAction::Next => MediaAction::Next,
                     engine::MediaAction::Previous => MediaAction::Previous,
                     engine::MediaAction::Stop => MediaAction::Stop,
-                    engine::MediaAction::SeekTo(p) => MediaAction::SeekTo { position_ms: p },
+                    engine::MediaAction::SeekTo(p) => MediaAction::SeekTo { position_ms: p as i64 },
                     engine::MediaAction::SeekBy(d) => MediaAction::SeekBy { delta_ms: d },
                     engine::MediaAction::SetVolume(v) => MediaAction::SetVolume { volume: v },
                     engine::MediaAction::Raise => MediaAction::Raise,
@@ -167,8 +172,8 @@ pub fn player_events(sink: StreamSink<PlayerEvent>) -> Result<()> {
 }
 
 #[frb(sync)]
-pub fn player_play(track: TrackSource, start_ms: u64) -> Result<()> {
-    engine()?.play(track.into(), start_ms);
+pub fn player_play(track: TrackSource, start_ms: i64) -> Result<()> {
+    engine()?.play(track.into(), start_ms.max(0) as u64);
     Ok(())
 }
 
@@ -202,8 +207,8 @@ pub fn player_stop() -> Result<()> {
 }
 
 #[frb(sync)]
-pub fn player_seek(position_ms: u64) -> Result<()> {
-    engine()?.seek(position_ms);
+pub fn player_seek(position_ms: i64) -> Result<()> {
+    engine()?.seek(position_ms.max(0) as u64);
     Ok(())
 }
 
@@ -246,8 +251,8 @@ pub fn player_is_cached(cache_key: String) -> Result<bool> {
     Ok(engine()?.is_cached(&cache_key))
 }
 
-pub fn player_cache_size() -> Result<u64> {
-    Ok(engine()?.cache_size())
+pub fn player_cache_size() -> Result<i64> {
+    Ok(engine()?.cache_size() as i64)
 }
 
 pub fn player_clear_cache() -> Result<()> {

@@ -146,7 +146,7 @@ return quit(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  play,TResult Function()?  pause,TResult Function()?  toggle,TResult Function()?  next,TResult Function()?  previous,TResult Function()?  stop,TResult Function( BigInt positionMs)?  seekTo,TResult Function( PlatformInt64 deltaMs)?  seekBy,TResult Function( double volume)?  setVolume,TResult Function()?  raise,TResult Function()?  quit,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  play,TResult Function()?  pause,TResult Function()?  toggle,TResult Function()?  next,TResult Function()?  previous,TResult Function()?  stop,TResult Function( PlatformInt64 positionMs)?  seekTo,TResult Function( PlatformInt64 deltaMs)?  seekBy,TResult Function( double volume)?  setVolume,TResult Function()?  raise,TResult Function()?  quit,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MediaAction_Play() when play != null:
 return play();case MediaAction_Pause() when pause != null:
@@ -177,7 +177,7 @@ return quit();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  play,required TResult Function()  pause,required TResult Function()  toggle,required TResult Function()  next,required TResult Function()  previous,required TResult Function()  stop,required TResult Function( BigInt positionMs)  seekTo,required TResult Function( PlatformInt64 deltaMs)  seekBy,required TResult Function( double volume)  setVolume,required TResult Function()  raise,required TResult Function()  quit,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  play,required TResult Function()  pause,required TResult Function()  toggle,required TResult Function()  next,required TResult Function()  previous,required TResult Function()  stop,required TResult Function( PlatformInt64 positionMs)  seekTo,required TResult Function( PlatformInt64 deltaMs)  seekBy,required TResult Function( double volume)  setVolume,required TResult Function()  raise,required TResult Function()  quit,}) {final _that = this;
 switch (_that) {
 case MediaAction_Play():
 return play();case MediaAction_Pause():
@@ -204,7 +204,7 @@ return quit();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  play,TResult? Function()?  pause,TResult? Function()?  toggle,TResult? Function()?  next,TResult? Function()?  previous,TResult? Function()?  stop,TResult? Function( BigInt positionMs)?  seekTo,TResult? Function( PlatformInt64 deltaMs)?  seekBy,TResult? Function( double volume)?  setVolume,TResult? Function()?  raise,TResult? Function()?  quit,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  play,TResult? Function()?  pause,TResult? Function()?  toggle,TResult? Function()?  next,TResult? Function()?  previous,TResult? Function()?  stop,TResult? Function( PlatformInt64 positionMs)?  seekTo,TResult? Function( PlatformInt64 deltaMs)?  seekBy,TResult? Function( double volume)?  setVolume,TResult? Function()?  raise,TResult? Function()?  quit,}) {final _that = this;
 switch (_that) {
 case MediaAction_Play() when play != null:
 return play();case MediaAction_Pause() when pause != null:
@@ -424,7 +424,7 @@ class MediaAction_SeekTo extends MediaAction {
   const MediaAction_SeekTo({required this.positionMs}): super._();
   
 
- final  BigInt positionMs;
+ final  PlatformInt64 positionMs;
 
 /// Create a copy of MediaAction
 /// with the given fields replaced by the non-null parameter values.
@@ -456,7 +456,7 @@ abstract mixin class $MediaAction_SeekToCopyWith<$Res> implements $MediaActionCo
   factory $MediaAction_SeekToCopyWith(MediaAction_SeekTo value, $Res Function(MediaAction_SeekTo) _then) = _$MediaAction_SeekToCopyWithImpl;
 @useResult
 $Res call({
- BigInt positionMs
+ PlatformInt64 positionMs
 });
 
 
@@ -476,7 +476,7 @@ class _$MediaAction_SeekToCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? positionMs = null,}) {
   return _then(MediaAction_SeekTo(
 positionMs: null == positionMs ? _self.positionMs : positionMs // ignore: cast_nullable_to_non_nullable
-as BigInt,
+as PlatformInt64,
   ));
 }
 
@@ -802,7 +802,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id)?  trackStarted,TResult Function( String id,  String? error)?  trackEnded,TResult Function( String id,  BigInt positionMs,  BigInt? durationMs,  double? buffered)?  position,TResult Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult Function( MediaAction action)?  mediaControl,TResult Function( String name,  int sampleRate)?  deviceChanged,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id)?  trackStarted,TResult Function( String id,  String? error)?  trackEnded,TResult Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)?  position,TResult Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult Function( MediaAction action)?  mediaControl,TResult Function( String name,  int sampleRate)?  deviceChanged,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted() when trackStarted != null:
 return trackStarted(_that.id);case PlayerEvent_TrackEnded() when trackEnded != null:
@@ -829,7 +829,7 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id)  trackStarted,required TResult Function( String id,  String? error)  trackEnded,required TResult Function( String id,  BigInt positionMs,  BigInt? durationMs,  double? buffered)  position,required TResult Function( bool playing,  bool buffering,  bool hasTrack)  state,required TResult Function( MediaAction action)  mediaControl,required TResult Function( String name,  int sampleRate)  deviceChanged,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id)  trackStarted,required TResult Function( String id,  String? error)  trackEnded,required TResult Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)  position,required TResult Function( bool playing,  bool buffering,  bool hasTrack)  state,required TResult Function( MediaAction action)  mediaControl,required TResult Function( String name,  int sampleRate)  deviceChanged,required TResult Function( String message)  error,}) {final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted():
 return trackStarted(_that.id);case PlayerEvent_TrackEnded():
@@ -852,7 +852,7 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id)?  trackStarted,TResult? Function( String id,  String? error)?  trackEnded,TResult? Function( String id,  BigInt positionMs,  BigInt? durationMs,  double? buffered)?  position,TResult? Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult? Function( MediaAction action)?  mediaControl,TResult? Function( String name,  int sampleRate)?  deviceChanged,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id)?  trackStarted,TResult? Function( String id,  String? error)?  trackEnded,TResult? Function( String id,  PlatformInt64 positionMs,  PlatformInt64? durationMs,  double? buffered)?  position,TResult? Function( bool playing,  bool buffering,  bool hasTrack)?  state,TResult? Function( MediaAction action)?  mediaControl,TResult? Function( String name,  int sampleRate)?  deviceChanged,TResult? Function( String message)?  error,}) {final _that = this;
 switch (_that) {
 case PlayerEvent_TrackStarted() when trackStarted != null:
 return trackStarted(_that.id);case PlayerEvent_TrackEnded() when trackEnded != null:
@@ -1011,8 +1011,8 @@ class PlayerEvent_Position extends PlayerEvent {
   
 
  final  String id;
- final  BigInt positionMs;
- final  BigInt? durationMs;
+ final  PlatformInt64 positionMs;
+ final  PlatformInt64? durationMs;
  final  double? buffered;
 
 /// Create a copy of PlayerEvent
@@ -1045,7 +1045,7 @@ abstract mixin class $PlayerEvent_PositionCopyWith<$Res> implements $PlayerEvent
   factory $PlayerEvent_PositionCopyWith(PlayerEvent_Position value, $Res Function(PlayerEvent_Position) _then) = _$PlayerEvent_PositionCopyWithImpl;
 @useResult
 $Res call({
- String id, BigInt positionMs, BigInt? durationMs, double? buffered
+ String id, PlatformInt64 positionMs, PlatformInt64? durationMs, double? buffered
 });
 
 
@@ -1066,8 +1066,8 @@ class _$PlayerEvent_PositionCopyWithImpl<$Res>
   return _then(PlayerEvent_Position(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,positionMs: null == positionMs ? _self.positionMs : positionMs // ignore: cast_nullable_to_non_nullable
-as BigInt,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
-as BigInt?,buffered: freezed == buffered ? _self.buffered : buffered // ignore: cast_nullable_to_non_nullable
+as PlatformInt64,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as PlatformInt64?,buffered: freezed == buffered ? _self.buffered : buffered // ignore: cast_nullable_to_non_nullable
 as double?,
   ));
 }

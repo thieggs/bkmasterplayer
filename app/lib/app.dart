@@ -1,0 +1,140 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import 'core/providers.dart';
+import 'domain/models.dart';
+import 'l10n/l10n.dart';
+import 'player/player_controller.dart';
+import 'ui/pages/album_page.dart';
+import 'ui/pages/albums_page.dart';
+import 'ui/pages/artists_page.dart';
+import 'ui/pages/genres_page.dart';
+import 'ui/pages/home_page.dart';
+import 'ui/pages/login_page.dart';
+import 'ui/pages/playlists_page.dart';
+import 'ui/pages/search_page.dart';
+import 'ui/pages/settings_page.dart';
+import 'ui/player/now_playing_page.dart';
+import 'ui/shell.dart';
+import 'ui/theme/app_theme.dart';
+import 'ui/widgets/cover_art.dart';
+
+final _routerProvider = Provider<GoRouter>((ref) {
+  final refresh = ValueNotifier(0);
+  ref.listen(sessionProvider, (_, _) => refresh.value++);
+  ref.onDispose(refresh.dispose);
+
+  return GoRouter(
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final session = ref.read(sessionProvider);
+      if (session.isLoading && !session.hasValue) return null;
+      final loggedIn = session.value != null;
+      final atLogin = state.matchedLocation == '/login';
+      if (!loggedIn && !atLogin) return '/login';
+      if (loggedIn && atLogin) return '/';
+      return null;
+    },
+    routes: [
+      GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
+      GoRoute(
+        path: '/now-playing',
+        pageBuilder: (_, state) => MaterialPage(
+          fullscreenDialog: true,
+          child: NowPlayingPage(showLyrics: state.uri.queryParameters['lyrics'] == '1'),
+        ),
+      ),
+      ShellRoute(
+        builder: (context, state, child) => AppShell(location: state.matchedLocation, child: child),
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const HomePage()),
+          GoRoute(
+            path: '/albums',
+            builder: (_, state) => AlbumsPage(
+              key: ValueKey(state.uri.toString()),
+              initialSort: AlbumListType.values.asNameMap()[state.uri.queryParameters['sort']],
+              genre: state.uri.queryParameters['genre'],
+            ),
+          ),
+          GoRoute(path: '/album/:id', builder: (_, state) => AlbumPage(id: state.pathParameters['id']!)),
+          GoRoute(path: '/artists', builder: (_, _) => const ArtistsPage()),
+          GoRoute(path: '/artist/:id', builder: (_, state) => ArtistPage(id: state.pathParameters['id']!)),
+          GoRoute(path: '/playlists', builder: (_, _) => const PlaylistsPage()),
+          GoRoute(path: '/playlist/:id', builder: (_, state) => PlaylistPage(id: state.pathParameters['id']!)),
+          GoRoute(path: '/genres', builder: (_, _) => const GenresPage()),
+          GoRoute(
+            path: '/genre/:name',
+            builder: (_, state) => GenreSongsPage(genre: state.pathParameters['name']!),
+          ),
+          GoRoute(path: '/favorites', builder: (_, _) => const FavoritesPage()),
+          GoRoute(path: '/search', builder: (_, state) => SearchPage(initial: state.uri.queryParameters['q'] ?? '')),
+          GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+        ],
+      ),
+    ],
+  );
+});
+
+/// Esquema de cores: fixo pela cor de destaque ou extraído da capa atual.
+final _schemeProvider = FutureProvider.family<ColorScheme, Brightness>((ref, brightness) async {
+  final s = ref.watch(settingsProvider);
+  final fallback = AppTheme.seeded(s.seedColor, brightness);
+  if (!s.dynamicColorFromCover) return fallback;
+  final cover = ref.watch(playerProvider.select((p) => p.current?.song.coverArt));
+  if (cover == null) return fallback;
+  final session = ref.watch(sessionProvider).value;
+  if (session == null) return fallback;
+  final uri = session.provider.coverUri(cover, size: 128);
+  final key = session.provider.coverCacheKey(cover, size: 128);
+  if (uri == null || key == null) return fallback;
+  final dir = ref.watch(cacheDirProvider);
+  try {
+    return await ColorScheme.fromImageProvider(
+      provider: CoverImageProvider(url: uri.toString(), cacheKey: key, cacheDir: '${dir.path}/ui_covers'),
+      brightness: brightness,
+    );
+  } catch (_) {
+    return fallback;
+  }
+});
+
+class PlayerApp extends ConsumerWidget {
+  const PlayerApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(_routerProvider);
+    final settings = ref.watch(settingsProvider);
+    // Mantém o controlador vivo desde o início (recebe eventos do motor).
+    ref.watch(playerProvider.select((_) => 0));
+    final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(settings.seedColor, Brightness.light);
+    final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(settings.seedColor, Brightness.dark);
+
+    return MaterialApp.router(
+      onGenerateTitle: (context) => context.l10n.appTitle,
+      debugShowCheckedModeBanner: false,
+      routerConfig: router,
+      themeMode: settings.themeMode,
+      theme: AppTheme.build(light),
+      darkTheme: AppTheme.build(dark),
+      themeAnimationDuration: const Duration(milliseconds: 600),
+      locale: settings.locale == null ? null : Locale(settings.locale!),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(textScaler: TextScaler.linear(settings.uiScale)),
+          child: child!,
+        );
+      },
+    );
+  }
+}

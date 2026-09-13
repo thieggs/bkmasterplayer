@@ -38,6 +38,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double dco_decode_box_autoadd_f_32(dynamic raw);
 
   @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   MediaAction dco_decode_box_autoadd_media_action(dynamic raw);
 
   @protected
@@ -48,9 +51,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TransitionMode dco_decode_box_autoadd_transition_mode(dynamic raw);
-
-  @protected
-  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
 
   @protected
   double dco_decode_f_32(dynamic raw);
@@ -77,10 +77,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double? dco_decode_opt_box_autoadd_f_32(dynamic raw);
 
   @protected
-  TrackSource? dco_decode_opt_box_autoadd_track_source(dynamic raw);
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
-  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+  TrackSource? dco_decode_opt_box_autoadd_track_source(dynamic raw);
 
   @protected
   OutputDevice dco_decode_output_device(dynamic raw);
@@ -99,9 +99,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int dco_decode_u_32(dynamic raw);
-
-  @protected
-  BigInt dco_decode_u_64(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -127,6 +124,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double sse_decode_box_autoadd_f_32(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   MediaAction sse_decode_box_autoadd_media_action(SseDeserializer deserializer);
 
   @protected
@@ -141,9 +141,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   TransitionMode sse_decode_box_autoadd_transition_mode(
     SseDeserializer deserializer,
   );
-
-  @protected
-  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   double sse_decode_f_32(SseDeserializer deserializer);
@@ -172,12 +169,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   TrackSource? sse_decode_opt_box_autoadd_track_source(
     SseDeserializer deserializer,
   );
-
-  @protected
-  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   OutputDevice sse_decode_output_device(SseDeserializer deserializer);
@@ -196,9 +193,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
-
-  @protected
-  BigInt sse_decode_u_64(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -231,6 +225,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_media_action(
     MediaAction self,
     SseSerializer serializer,
@@ -253,9 +253,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     TransitionMode self,
     SseSerializer serializer,
   );
-
-  @protected
-  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_f_32(double self, SseSerializer serializer);
@@ -288,13 +285,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_f_32(double? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_box_autoadd_track_source(
-    TrackSource? self,
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+  void sse_encode_opt_box_autoadd_track_source(
+    TrackSource? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_output_device(OutputDevice self, SseSerializer serializer);
@@ -316,9 +316,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

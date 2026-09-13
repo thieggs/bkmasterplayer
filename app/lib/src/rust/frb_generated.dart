@@ -80,7 +80,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 abstract class RustLibApi extends BaseApi {
   Future<void> crateApiEngineInitApp();
 
-  Future<BigInt> crateApiEnginePlayerCacheSize();
+  Future<PlatformInt64> crateApiEnginePlayerCacheSize();
 
   Future<void> crateApiEnginePlayerClearCache();
 
@@ -96,14 +96,14 @@ abstract class RustLibApi extends BaseApi {
 
   void crateApiEnginePlayerPlay({
     required TrackSource track,
-    required BigInt startMs,
+    required PlatformInt64 startMs,
   });
 
   Future<void> crateApiEnginePlayerPrefetch({required TrackSource track});
 
   void crateApiEnginePlayerResume();
 
-  void crateApiEnginePlayerSeek({required BigInt positionMs});
+  void crateApiEnginePlayerSeek({required PlatformInt64 positionMs});
 
   void crateApiEnginePlayerSeekBy({required PlatformInt64 deltaMs});
 
@@ -161,7 +161,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   @override
-  Future<BigInt> crateApiEnginePlayerCacheSize() {
+  Future<PlatformInt64> crateApiEnginePlayerCacheSize() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -174,7 +174,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_u_64,
+          decodeSuccessData: sse_decode_i_64,
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiEnginePlayerCacheSizeConstMeta,
@@ -357,14 +357,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @override
   void crateApiEnginePlayerPlay({
     required TrackSource track,
-    required BigInt startMs,
+    required PlatformInt64 startMs,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_track_source(track, serializer);
-          sse_encode_u_64(startMs, serializer);
+          sse_encode_i_64(startMs, serializer);
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
         codec: SseCodec(
@@ -434,12 +434,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "player_resume", argNames: []);
 
   @override
-  void crateApiEnginePlayerSeek({required BigInt positionMs}) {
+  void crateApiEnginePlayerSeek({required PlatformInt64 positionMs}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(positionMs, serializer);
+          sse_encode_i_64(positionMs, serializer);
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
         },
         codec: SseCodec(
@@ -697,6 +697,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_i_64(raw);
+  }
+
+  @protected
   MediaAction dco_decode_box_autoadd_media_action(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_media_action(raw);
@@ -718,12 +724,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TransitionMode dco_decode_box_autoadd_transition_mode(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_transition_mode(raw);
-  }
-
-  @protected
-  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_u_64(raw);
   }
 
   @protected
@@ -773,7 +773,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 5:
         return MediaAction_Stop();
       case 6:
-        return MediaAction_SeekTo(positionMs: dco_decode_u_64(raw[1]));
+        return MediaAction_SeekTo(positionMs: dco_decode_i_64(raw[1]));
       case 7:
         return MediaAction_SeekBy(deltaMs: dco_decode_i_64(raw[1]));
       case 8:
@@ -800,15 +800,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  TrackSource? dco_decode_opt_box_autoadd_track_source(dynamic raw) {
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_track_source(raw);
+    return raw == null ? null : dco_decode_box_autoadd_i_64(raw);
   }
 
   @protected
-  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
+  TrackSource? dco_decode_opt_box_autoadd_track_source(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+    return raw == null ? null : dco_decode_box_autoadd_track_source(raw);
   }
 
   @protected
@@ -854,8 +854,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 2:
         return PlayerEvent_Position(
           id: dco_decode_String(raw[1]),
-          positionMs: dco_decode_u_64(raw[2]),
-          durationMs: dco_decode_opt_box_autoadd_u_64(raw[3]),
+          positionMs: dco_decode_i_64(raw[2]),
+          durationMs: dco_decode_opt_box_autoadd_i_64(raw[3]),
           buffered: dco_decode_opt_box_autoadd_f_32(raw[4]),
         );
       case 3:
@@ -891,7 +891,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       url: dco_decode_String(arr[1]),
       cacheKey: dco_decode_opt_String(arr[2]),
       formatHint: dco_decode_opt_String(arr[3]),
-      durationMs: dco_decode_opt_box_autoadd_u_64(arr[4]),
+      durationMs: dco_decode_opt_box_autoadd_i_64(arr[4]),
       gainDb: dco_decode_f_32(arr[5]),
       peak: dco_decode_opt_box_autoadd_f_32(arr[6]),
       title: dco_decode_String(arr[7]),
@@ -921,12 +921,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
-  }
-
-  @protected
-  BigInt dco_decode_u_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dcoDecodeU64(raw);
   }
 
   @protected
@@ -976,6 +970,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_64(deserializer));
+  }
+
+  @protected
   MediaAction sse_decode_box_autoadd_media_action(
     SseDeserializer deserializer,
   ) {
@@ -1005,12 +1005,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_transition_mode(deserializer));
-  }
-
-  @protected
-  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_u_64(deserializer));
   }
 
   @protected
@@ -1071,7 +1065,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 5:
         return MediaAction_Stop();
       case 6:
-        var var_positionMs = sse_decode_u_64(deserializer);
+        var var_positionMs = sse_decode_i_64(deserializer);
         return MediaAction_SeekTo(positionMs: var_positionMs);
       case 7:
         var var_deltaMs = sse_decode_i_64(deserializer);
@@ -1111,6 +1105,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   TrackSource? sse_decode_opt_box_autoadd_track_source(
     SseDeserializer deserializer,
   ) {
@@ -1118,17 +1123,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_track_source(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
-  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_u_64(deserializer));
     } else {
       return null;
     }
@@ -1177,8 +1171,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         return PlayerEvent_TrackEnded(id: var_id, error: var_error);
       case 2:
         var var_id = sse_decode_String(deserializer);
-        var var_positionMs = sse_decode_u_64(deserializer);
-        var var_durationMs = sse_decode_opt_box_autoadd_u_64(deserializer);
+        var var_positionMs = sse_decode_i_64(deserializer);
+        var var_durationMs = sse_decode_opt_box_autoadd_i_64(deserializer);
         var var_buffered = sse_decode_opt_box_autoadd_f_32(deserializer);
         return PlayerEvent_Position(
           id: var_id,
@@ -1220,7 +1214,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_url = sse_decode_String(deserializer);
     var var_cacheKey = sse_decode_opt_String(deserializer);
     var var_formatHint = sse_decode_opt_String(deserializer);
-    var var_durationMs = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_durationMs = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_gainDb = sse_decode_f_32(deserializer);
     var var_peak = sse_decode_opt_box_autoadd_f_32(deserializer);
     var var_title = sse_decode_String(deserializer);
@@ -1266,12 +1260,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int sse_decode_u_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint32();
-  }
-
-  @protected
-  BigInt sse_decode_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getBigUint64();
   }
 
   @protected
@@ -1336,6 +1324,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_media_action(
     MediaAction self,
     SseSerializer serializer,
@@ -1369,12 +1366,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_transition_mode(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_u_64(self, serializer);
   }
 
   @protected
@@ -1435,7 +1426,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_i_32(5, serializer);
       case MediaAction_SeekTo(positionMs: final positionMs):
         sse_encode_i_32(6, serializer);
-        sse_encode_u_64(positionMs, serializer);
+        sse_encode_i_64(positionMs, serializer);
       case MediaAction_SeekBy(deltaMs: final deltaMs):
         sse_encode_i_32(7, serializer);
         sse_encode_i_64(deltaMs, serializer);
@@ -1470,6 +1461,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_64(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_track_source(
     TrackSource? self,
     SseSerializer serializer,
@@ -1479,16 +1483,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_track_source(self, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_u_64(self, serializer);
     }
   }
 
@@ -1530,8 +1524,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       ):
         sse_encode_i_32(2, serializer);
         sse_encode_String(id, serializer);
-        sse_encode_u_64(positionMs, serializer);
-        sse_encode_opt_box_autoadd_u_64(durationMs, serializer);
+        sse_encode_i_64(positionMs, serializer);
+        sse_encode_opt_box_autoadd_i_64(durationMs, serializer);
         sse_encode_opt_box_autoadd_f_32(buffered, serializer);
       case PlayerEvent_State(
         playing: final playing,
@@ -1565,7 +1559,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.url, serializer);
     sse_encode_opt_String(self.cacheKey, serializer);
     sse_encode_opt_String(self.formatHint, serializer);
-    sse_encode_opt_box_autoadd_u_64(self.durationMs, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.durationMs, serializer);
     sse_encode_f_32(self.gainDb, serializer);
     sse_encode_opt_box_autoadd_f_32(self.peak, serializer);
     sse_encode_String(self.title, serializer);
@@ -1596,12 +1590,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_u_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint32(self);
-  }
-
-  @protected
-  void sse_encode_u_64(BigInt self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putBigUint64(self);
   }
 
   @protected

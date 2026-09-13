@@ -135,37 +135,66 @@ fn file_url(p: &std::path::Path) -> String {
     out
 }
 
-/// Mostra só a notificação mais recente, reaproveitando o id da anterior.
+const NOTIFY_TIMEOUT: Duration = Duration::from_millis(5000);
+
+/// Mostra só a notificação mais recente. Se a anterior ainda está na tela, é
+/// substituída no lugar (sem empilhar). Se já expirou, é fechada e uma nova é
+/// mostrada — alguns servidores (KDE Plasma) atualizam em silêncio uma
+/// notificação expirada em vez de mostrar o popup de novo.
+#[cfg(all(unix, not(target_os = "macos")))]
 fn notifier_loop(rx: mpsc::Receiver<NotifyMsg>, app: String, tag: String) {
-    let mut last_id: Option<u32> = None;
+    use std::time::Instant;
+    let mut last: Option<(notify_rust::NotificationHandle, Instant)> = None;
     while let Ok(mut msg) = rx.recv() {
-        // Se chegaram várias em sequência (trocas rápidas), fica só com a última.
         std::thread::sleep(Duration::from_millis(150));
         while let Ok(newer) = rx.try_recv() {
             msg = newer;
         }
         let mut n = notify_rust::Notification::new();
-        n.appname(&app).summary(&msg.title).body(&msg.body).timeout(notify_rust::Timeout::Milliseconds(5000));
+        n.appname(&app)
+            .summary(&msg.title)
+            .body(&msg.body)
+            .timeout(notify_rust::Timeout::Milliseconds(NOTIFY_TIMEOUT.as_millis() as u32))
+            .hint(notify_rust::Hint::Transient(true))
+            .hint(notify_rust::Hint::Custom("x-canonical-private-synchronous".into(), tag.clone()))
+            .hint(notify_rust::Hint::Category("x-gnome.music".into()));
         if let Some(img) = msg.image.as_ref().and_then(|p| p.to_str()) {
             n.image_path(img);
         }
-        #[cfg(all(unix, not(target_os = "macos")))]
-        {
-            n.hint(notify_rust::Hint::Transient(true));
-            n.hint(notify_rust::Hint::Custom("x-canonical-private-synchronous".into(), tag.clone()));
-            n.hint(notify_rust::Hint::Category("x-gnome.music".into()));
-        }
-        #[cfg(not(all(unix, not(target_os = "macos"))))]
-        let _ = &tag;
-        if let Some(id) = last_id {
-            n.id(id);
+        if let Some((handle, shown_at)) = last.take() {
+            if shown_at.elapsed() < NOTIFY_TIMEOUT - Duration::from_millis(300) {
+                n.id(handle.id());
+            } else {
+                handle.close();
+            }
         }
         match n.show() {
-            #[cfg(all(unix, not(target_os = "macos")))]
-            Ok(handle) => last_id = Some(handle.id()),
-            #[cfg(not(all(unix, not(target_os = "macos"))))]
-            Ok(_) => last_id = Some(1),
+            Ok(handle) => last = Some((handle, Instant::now())),
             Err(e) => log::debug!("notificação falhou: {e}"),
+        }
+    }
+}
+
+#[cfg(not(all(unix, not(target_os = "macos"))))]
+fn notifier_loop(rx: mpsc::Receiver<NotifyMsg>, app: String, tag: String) {
+    // Windows: toasts com o mesmo id substituem o anterior na Central de Ações.
+    let _ = &tag;
+    while let Ok(mut msg) = rx.recv() {
+        std::thread::sleep(Duration::from_millis(150));
+        while let Ok(newer) = rx.try_recv() {
+            msg = newer;
+        }
+        let mut n = notify_rust::Notification::new();
+        n.appname(&app)
+            .summary(&msg.title)
+            .body(&msg.body)
+            .timeout(notify_rust::Timeout::Milliseconds(NOTIFY_TIMEOUT.as_millis() as u32))
+            .id(1);
+        if let Some(img) = msg.image.as_ref().and_then(|p| p.to_str()) {
+            n.image_path(img);
+        }
+        if let Err(e) = n.show() {
+            log::debug!("notificação falhou: {e}");
         }
     }
 }

@@ -344,7 +344,7 @@ fn wire__crate__api__engine__player_play_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_track = <crate::api::engine::TrackSource>::sse_decode(&mut deserializer);
-            let api_start_ms = <u64>::sse_decode(&mut deserializer);
+            let api_start_ms = <i64>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                 (move || {
@@ -442,7 +442,7 @@ fn wire__crate__api__engine__player_seek_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_position_ms = <u64>::sse_decode(&mut deserializer);
+            let api_position_ms = <i64>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                 (move || {
@@ -821,7 +821,7 @@ impl SseDecode for crate::api::engine::MediaAction {
                 return crate::api::engine::MediaAction::Stop;
             }
             6 => {
-                let mut var_positionMs = <u64>::sse_decode(deserializer);
+                let mut var_positionMs = <i64>::sse_decode(deserializer);
                 return crate::api::engine::MediaAction::SeekTo {
                     position_ms: var_positionMs,
                 };
@@ -871,22 +871,22 @@ impl SseDecode for Option<f32> {
     }
 }
 
-impl SseDecode for Option<crate::api::engine::TrackSource> {
+impl SseDecode for Option<i64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::engine::TrackSource>::sse_decode(deserializer));
+            return Some(<i64>::sse_decode(deserializer));
         } else {
             return None;
         }
     }
 }
 
-impl SseDecode for Option<u64> {
+impl SseDecode for Option<crate::api::engine::TrackSource> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<u64>::sse_decode(deserializer));
+            return Some(<crate::api::engine::TrackSource>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -946,8 +946,8 @@ impl SseDecode for crate::api::engine::PlayerEvent {
             }
             2 => {
                 let mut var_id = <String>::sse_decode(deserializer);
-                let mut var_positionMs = <u64>::sse_decode(deserializer);
-                let mut var_durationMs = <Option<u64>>::sse_decode(deserializer);
+                let mut var_positionMs = <i64>::sse_decode(deserializer);
+                let mut var_durationMs = <Option<i64>>::sse_decode(deserializer);
                 let mut var_buffered = <Option<f32>>::sse_decode(deserializer);
                 return crate::api::engine::PlayerEvent::Position {
                     id: var_id,
@@ -998,7 +998,7 @@ impl SseDecode for crate::api::engine::TrackSource {
         let mut var_url = <String>::sse_decode(deserializer);
         let mut var_cacheKey = <Option<String>>::sse_decode(deserializer);
         let mut var_formatHint = <Option<String>>::sse_decode(deserializer);
-        let mut var_durationMs = <Option<u64>>::sse_decode(deserializer);
+        let mut var_durationMs = <Option<i64>>::sse_decode(deserializer);
         let mut var_gainDb = <f32>::sse_decode(deserializer);
         let mut var_peak = <Option<f32>>::sse_decode(deserializer);
         let mut var_title = <String>::sse_decode(deserializer);
@@ -1049,13 +1049,6 @@ impl SseDecode for u32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u32::<NativeEndian>().unwrap()
-    }
-}
-
-impl SseDecode for u64 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_u64::<NativeEndian>().unwrap()
     }
 }
 
@@ -1438,7 +1431,7 @@ impl SseEncode for crate::api::engine::MediaAction {
             }
             crate::api::engine::MediaAction::SeekTo { position_ms } => {
                 <i32>::sse_encode(6, serializer);
-                <u64>::sse_encode(position_ms, serializer);
+                <i64>::sse_encode(position_ms, serializer);
             }
             crate::api::engine::MediaAction::SeekBy { delta_ms } => {
                 <i32>::sse_encode(7, serializer);
@@ -1481,22 +1474,22 @@ impl SseEncode for Option<f32> {
     }
 }
 
+impl SseEncode for Option<i64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <i64>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::engine::TrackSource> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::api::engine::TrackSource>::sse_encode(value, serializer);
-        }
-    }
-}
-
-impl SseEncode for Option<u64> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <u64>::sse_encode(value, serializer);
         }
     }
 }
@@ -1543,8 +1536,8 @@ impl SseEncode for crate::api::engine::PlayerEvent {
             } => {
                 <i32>::sse_encode(2, serializer);
                 <String>::sse_encode(id, serializer);
-                <u64>::sse_encode(position_ms, serializer);
-                <Option<u64>>::sse_encode(duration_ms, serializer);
+                <i64>::sse_encode(position_ms, serializer);
+                <Option<i64>>::sse_encode(duration_ms, serializer);
                 <Option<f32>>::sse_encode(buffered, serializer);
             }
             crate::api::engine::PlayerEvent::State {
@@ -1584,7 +1577,7 @@ impl SseEncode for crate::api::engine::TrackSource {
         <String>::sse_encode(self.url, serializer);
         <Option<String>>::sse_encode(self.cache_key, serializer);
         <Option<String>>::sse_encode(self.format_hint, serializer);
-        <Option<u64>>::sse_encode(self.duration_ms, serializer);
+        <Option<i64>>::sse_encode(self.duration_ms, serializer);
         <f32>::sse_encode(self.gain_db, serializer);
         <Option<f32>>::sse_encode(self.peak, serializer);
         <String>::sse_encode(self.title, serializer);
@@ -1620,13 +1613,6 @@ impl SseEncode for u32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
-    }
-}
-
-impl SseEncode for u64 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_u64::<NativeEndian>(self).unwrap();
     }
 }
 
