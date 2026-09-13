@@ -1557,6 +1557,9 @@ impl SseDecode for crate::api::engine::TransitionMode {
             3 => {
                 return crate::api::engine::TransitionMode::Automix;
             }
+            4 => {
+                return crate::api::engine::TransitionMode::AutomixAlbum;
+            }
             _ => {
                 unimplemented!("");
             }
@@ -1989,6 +1992,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::engine::TransitionMode {
             }
             crate::api::engine::TransitionMode::Cut => [2.into_dart()].into_dart(),
             crate::api::engine::TransitionMode::Automix => [3.into_dart()].into_dart(),
+            crate::api::engine::TransitionMode::AutomixAlbum => [4.into_dart()].into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -2423,6 +2427,9 @@ impl SseEncode for crate::api::engine::TransitionMode {
             }
             crate::api::engine::TransitionMode::Automix => {
                 <i32>::sse_encode(3, serializer);
+            }
+            crate::api::engine::TransitionMode::AutomixAlbum => {
+                <i32>::sse_encode(4, serializer);
             }
             _ => {
                 unimplemented!("");

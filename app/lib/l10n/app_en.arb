@@ -144,7 +144,7 @@
  "automixHarmonicHint": "When keys clash (Camelot wheel), makes a short filtered transition.",
  "automixTrim": "Trim silence at start and end",
  "automixAlbums": "Respect albums",
- "automixAlbumsHint": "Consecutive tracks from the same album play gapless, without mixing.",
+ "automixAlbumsHint": "In continuous albums (live, mixed, concept), consecutive tracks play gapless, without mixing. Albums with silence between tracks are mixed as usual.",
  "automixPreAnalyze": "Pre-analyze the queue",
  "automixPreAnalyzeHint": "Analyzes upcoming songs ahead of time, in the background, at low priority.",
  "automixDefaults": "Restore AutoMix defaults",
@@ -239,5 +239,7 @@
  "downloadingCount": "Downloading {done} of {total}",
  "removeOfflineQuestion": "Remove from downloads?",
  "downloads": "Downloads",
- "downloadsHint": "Downloaded albums and playlists play even without internet or with the server off."
+ "downloadsHint": "Downloaded albums and playlists play even without internet or with the server off.",
+ "mixSynced": "beat-synced",
+ "mixSimple": "simple"
 }

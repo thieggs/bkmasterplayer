@@ -72,6 +72,15 @@ pub enum TransitionRequest {
     Cut,
     /// Transição DJ: analisa as duas faixas e planeja; enquanto não dá, usa um crossfade.
     Automix,
+    /// Faixas seguidas de um álbum: sem pausa (reserva) e, com as análises,
+    /// mixa só se o álbum não for contínuo (há silêncio entre as faixas).
+    AutomixAlbum,
+}
+
+impl TransitionRequest {
+    fn is_automix(&self) -> bool {
+        matches!(self, Self::Automix | Self::AutomixAlbum)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -237,8 +246,10 @@ impl Inner {
     /// Depois de um seek, uma transição DJ planejada pode ter ficado no passado: replaneja.
     fn replan_after_seek(self: &Arc<Self>) {
         let next = self.ctl.lock().next.clone();
-        if let Some((req, TransitionRequest::Automix)) = next {
-            self.set_next(Some(req), TransitionRequest::Automix);
+        if let Some((req, t)) = next {
+            if t.is_automix() {
+                self.set_next(Some(req), t);
+            }
         }
     }
 
@@ -296,6 +307,8 @@ impl Inner {
                 let secs = self.automix.lock().unclear_seconds;
                 Transition::Crossfade { frames: (secs * rate as f64) as u64 }
             }
+            // Álbum: na dúvida, sem pausa (o que o álbum pede se for contínuo).
+            TransitionRequest::AutomixAlbum => Transition::Gapless,
         };
         self.ctl.lock().next = req.clone().map(|r| (r, transition));
         // Gapless: a atual entrega o conversor de taxa para a próxima no fim do arquivo.
@@ -310,7 +323,7 @@ impl Inner {
         }
         let src = req.clone().map(|r| self.make_deck(r, 0, handoff));
         self.send(MixerCmd::SetNext(src, kind));
-        if let (Some(next), TransitionRequest::Automix) = (req, transition) {
+        if let (Some(next), true) = (req, transition.is_automix()) {
             if let Some(cur) = self.current_request() {
                 self.request_analysis(&cur, 0);
             }
@@ -344,7 +357,10 @@ impl Inner {
     /// Com as duas análises prontas, planeja e troca a reserva pela transição DJ.
     fn try_plan(self: &Arc<Self>) {
         let next = self.ctl.lock().next.clone();
-        let Some((b_req, TransitionRequest::Automix)) = next else { return };
+        let Some((b_req, mode)) = next else { return };
+        if !mode.is_automix() {
+            return;
+        }
         let Some(cur_token) = *self.current.lock() else { return };
         let (a_req, a_deck) = match self.tracks.lock().get(&cur_token) {
             Some(t) => (t.req.clone(), t.deck.clone()),
@@ -357,6 +373,19 @@ impl Inner {
         let rate = self.ctl.lock().rate;
         let a_now = a_deck.native_position() as f64 / rate as f64;
         let settings = self.automix.lock().clone();
+        if matches!(mode, TransitionRequest::AutomixAlbum) && automix::seamless(&aa, &ab) {
+            // Álbum contínuo: fica a reserva sem pausa (já está no mixer).
+            let left = (aa.duration - a_now).max(0.0);
+            self.emit(EngineEvent::MixPlanned {
+                from_id: a_req.id.clone(),
+                to_id: b_req.id.clone(),
+                summary: "álbum contínuo: emenda sem pausa, sem mixar".into(),
+                beatmatched: false,
+                starts_in_ms: (left * 1000.0) as u64,
+            });
+            *self.planned.lock() = Some((a_req.id, b_req.id, automix::gapless_plan(&aa)));
+            return;
+        }
         let plan = automix::plan(&aa, &ab, &settings, a_now);
 
         let start_native = (plan.from_start * rate as f64).round() as u64;
@@ -790,7 +819,7 @@ fn handle_mixer_event(inner: &Arc<Inner>, ev: MixerEvent) {
                 inner.emit(EngineEvent::TrackStarted { id: req.id.clone() });
                 let planned = inner.planned.lock().take();
                 if let Some((from_id, to_id, plan)) = planned {
-                    if to_id == req.id {
+                    if to_id == req.id && plan.duration > 0.0 {
                         inner.emit(EngineEvent::MixStarted {
                             from_id,
                             to_id,

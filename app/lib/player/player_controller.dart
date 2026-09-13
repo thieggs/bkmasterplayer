@@ -56,6 +56,7 @@ class PlayerState {
     this.insights = const {},
     this.mix,
     this.plannedMix,
+    this.plannedSynced = false,
     this.radio = false,
   });
 
@@ -82,6 +83,9 @@ class PlayerState {
   /// Resumo da próxima transição planejada.
   final String? plannedMix;
 
+  /// A próxima transição é sincronizada (batidas casadas) ou simples.
+  final bool plannedSynced;
+
   /// Rádio infinita: quando a fila acaba, completa com músicas parecidas.
   final bool radio;
 
@@ -105,6 +109,7 @@ class PlayerState {
     MixInfo? mix,
     bool clearMix = false,
     String? plannedMix,
+    bool? plannedSynced,
     bool clearPlanned = false,
     bool? radio,
   }) =>
@@ -123,6 +128,7 @@ class PlayerState {
         insights: insights ?? this.insights,
         mix: clearMix ? null : (mix ?? this.mix),
         plannedMix: clearPlanned ? null : (plannedMix ?? this.plannedMix),
+        plannedSynced: clearPlanned ? false : (plannedSynced ?? this.plannedSynced),
         radio: radio ?? this.radio,
       );
 }
@@ -543,11 +549,12 @@ class PlayerController extends Notifier<PlayerState> {
         (a.disc ?? 1) == (b.disc ?? 1) &&
         a.track != null &&
         b.track == a.track! + 1;
-    // Faixas seguidas do mesmo álbum: sem pausa e sem mixagem (álbuns ao vivo,
-    // conceituais, mixados) — a menos que o usuário desligue essa proteção.
-    final protectAlbum = albumSequence && s.automixRespectAlbums;
-    if (s.automixEnabled && !protectAlbum && cur.uid != next.uid) {
-      return const engine.TransitionMode.automix();
+    if (s.automixEnabled && cur.uid != next.uid) {
+      // Álbum em ordem: o motor emenda sem pausa se o álbum for contínuo (ao
+      // vivo, mixado, conceitual) e mixa se houver silêncio entre as faixas.
+      return albumSequence && s.automixRespectAlbums
+          ? const engine.TransitionMode.automixAlbum()
+          : const engine.TransitionMode.automix();
     }
     if (s.crossfadeSeconds > 0 && !albumSequence) {
       return engine.TransitionMode.crossfade(ms: s.crossfadeSeconds * 1000);
@@ -659,8 +666,8 @@ class PlayerController extends Notifier<PlayerState> {
           ...state.insights,
           id: TrackInsight(bpm: bpm, key: key, camelot: camelot, reliable: reliable),
         });
-      case engine.PlayerEvent_MixPlanned(:final summary):
-        state = state.copyWith(plannedMix: summary);
+      case engine.PlayerEvent_MixPlanned(:final summary, :final beatmatched):
+        state = state.copyWith(plannedMix: summary, plannedSynced: beatmatched);
       case engine.PlayerEvent_MixStarted(:final summary, :final style, :final durationMs):
         final until = DateTime.now().add(Duration(milliseconds: durationMs));
         state = state.copyWith(mix: MixInfo(summary: summary, style: style, until: until), clearPlanned: true);

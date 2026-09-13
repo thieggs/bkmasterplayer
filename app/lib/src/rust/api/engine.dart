@@ -439,4 +439,8 @@ sealed class TransitionMode with _$TransitionMode {
 
   /// Transição DJ (AutoMix).
   const factory TransitionMode.automix() = TransitionMode_Automix;
+
+  /// AutoMix entre faixas seguidas de um álbum: se o áudio emenda sem
+  /// silêncio (ao vivo, mixado, conceitual), toca sem pausa e sem mixar.
+  const factory TransitionMode.automixAlbum() = TransitionMode_AutomixAlbum;
 }

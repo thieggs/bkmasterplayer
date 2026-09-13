@@ -1638,14 +1638,15 @@ extension TransitionModePatterns on TransitionMode {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TransitionMode_Gapless value)?  gapless,TResult Function( TransitionMode_Crossfade value)?  crossfade,TResult Function( TransitionMode_Cut value)?  cut,TResult Function( TransitionMode_Automix value)?  automix,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TransitionMode_Gapless value)?  gapless,TResult Function( TransitionMode_Crossfade value)?  crossfade,TResult Function( TransitionMode_Cut value)?  cut,TResult Function( TransitionMode_Automix value)?  automix,TResult Function( TransitionMode_AutomixAlbum value)?  automixAlbum,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless(_that);case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that);case TransitionMode_Cut() when cut != null:
 return cut(_that);case TransitionMode_Automix() when automix != null:
-return automix(_that);case _:
+return automix(_that);case TransitionMode_AutomixAlbum() when automixAlbum != null:
+return automixAlbum(_that);case _:
   return orElse();
 
 }
@@ -1663,14 +1664,15 @@ return automix(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TransitionMode_Gapless value)  gapless,required TResult Function( TransitionMode_Crossfade value)  crossfade,required TResult Function( TransitionMode_Cut value)  cut,required TResult Function( TransitionMode_Automix value)  automix,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TransitionMode_Gapless value)  gapless,required TResult Function( TransitionMode_Crossfade value)  crossfade,required TResult Function( TransitionMode_Cut value)  cut,required TResult Function( TransitionMode_Automix value)  automix,required TResult Function( TransitionMode_AutomixAlbum value)  automixAlbum,}){
 final _that = this;
 switch (_that) {
 case TransitionMode_Gapless():
 return gapless(_that);case TransitionMode_Crossfade():
 return crossfade(_that);case TransitionMode_Cut():
 return cut(_that);case TransitionMode_Automix():
-return automix(_that);}
+return automix(_that);case TransitionMode_AutomixAlbum():
+return automixAlbum(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -1684,14 +1686,15 @@ return automix(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TransitionMode_Gapless value)?  gapless,TResult? Function( TransitionMode_Crossfade value)?  crossfade,TResult? Function( TransitionMode_Cut value)?  cut,TResult? Function( TransitionMode_Automix value)?  automix,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TransitionMode_Gapless value)?  gapless,TResult? Function( TransitionMode_Crossfade value)?  crossfade,TResult? Function( TransitionMode_Cut value)?  cut,TResult? Function( TransitionMode_Automix value)?  automix,TResult? Function( TransitionMode_AutomixAlbum value)?  automixAlbum,}){
 final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless(_that);case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that);case TransitionMode_Cut() when cut != null:
 return cut(_that);case TransitionMode_Automix() when automix != null:
-return automix(_that);case _:
+return automix(_that);case TransitionMode_AutomixAlbum() when automixAlbum != null:
+return automixAlbum(_that);case _:
   return null;
 
 }
@@ -1708,13 +1711,14 @@ return automix(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  gapless,TResult Function( int ms)?  crossfade,TResult Function()?  cut,TResult Function()?  automix,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  gapless,TResult Function( int ms)?  crossfade,TResult Function()?  cut,TResult Function()?  automix,TResult Function()?  automixAlbum,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless();case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that.ms);case TransitionMode_Cut() when cut != null:
 return cut();case TransitionMode_Automix() when automix != null:
-return automix();case _:
+return automix();case TransitionMode_AutomixAlbum() when automixAlbum != null:
+return automixAlbum();case _:
   return orElse();
 
 }
@@ -1732,13 +1736,14 @@ return automix();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  gapless,required TResult Function( int ms)  crossfade,required TResult Function()  cut,required TResult Function()  automix,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  gapless,required TResult Function( int ms)  crossfade,required TResult Function()  cut,required TResult Function()  automix,required TResult Function()  automixAlbum,}) {final _that = this;
 switch (_that) {
 case TransitionMode_Gapless():
 return gapless();case TransitionMode_Crossfade():
 return crossfade(_that.ms);case TransitionMode_Cut():
 return cut();case TransitionMode_Automix():
-return automix();}
+return automix();case TransitionMode_AutomixAlbum():
+return automixAlbum();}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1752,13 +1757,14 @@ return automix();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  gapless,TResult? Function( int ms)?  crossfade,TResult? Function()?  cut,TResult? Function()?  automix,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  gapless,TResult? Function( int ms)?  crossfade,TResult? Function()?  cut,TResult? Function()?  automix,TResult? Function()?  automixAlbum,}) {final _that = this;
 switch (_that) {
 case TransitionMode_Gapless() when gapless != null:
 return gapless();case TransitionMode_Crossfade() when crossfade != null:
 return crossfade(_that.ms);case TransitionMode_Cut() when cut != null:
 return cut();case TransitionMode_Automix() when automix != null:
-return automix();case _:
+return automix();case TransitionMode_AutomixAlbum() when automixAlbum != null:
+return automixAlbum();case _:
   return null;
 
 }
@@ -1920,6 +1926,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'TransitionMode.automix()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class TransitionMode_AutomixAlbum extends TransitionMode {
+  const TransitionMode_AutomixAlbum(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransitionMode_AutomixAlbum);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'TransitionMode.automixAlbum()';
 }
 
 

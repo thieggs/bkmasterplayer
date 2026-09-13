@@ -199,7 +199,7 @@
  "automixHarmonicHint": "Quando os tons não combinam (roda Camelot), faz uma transição curta com filtro.",
  "automixTrim": "Cortar silêncio no começo e no fim",
  "automixAlbums": "Respeitar álbuns",
- "automixAlbumsHint": "Faixas seguidas do mesmo álbum tocam sem pausa, sem mixar.",
+ "automixAlbumsHint": "Em álbuns contínuos (ao vivo, mixados, conceituais), faixas seguidas emendam sem pausa, sem mixar. Álbuns com silêncio entre as faixas são mixados normalmente.",
  "automixPreAnalyze": "Pré-analisar a fila",
  "automixPreAnalyzeHint": "Analisa as próximas músicas com antecedência, em segundo plano e com prioridade baixa.",
  "automixDefaults": "Restaurar padrões do AutoMix",
@@ -320,5 +320,7 @@
  },
  "removeOfflineQuestion": "Remover das músicas baixadas?",
  "downloads": "Baixadas",
- "downloadsHint": "Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado."
+ "downloadsHint": "Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado.",
+ "mixSynced": "sincronizada",
+ "mixSimple": "simples"
 }

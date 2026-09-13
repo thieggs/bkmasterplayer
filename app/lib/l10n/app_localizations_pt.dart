@@ -495,7 +495,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get automixAlbumsHint =>
-      'Faixas seguidas do mesmo álbum tocam sem pausa, sem mixar.';
+      'Em álbuns contínuos (ao vivo, mixados, conceituais), faixas seguidas emendam sem pausa, sem mixar. Álbuns com silêncio entre as faixas são mixados normalmente.';
 
   @override
   String get automixPreAnalyze => 'Pré-analisar a fila';
@@ -804,4 +804,10 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get downloadsHint =>
       'Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado.';
+
+  @override
+  String get mixSynced => 'sincronizada';
+
+  @override
+  String get mixSimple => 'simples';
 }

@@ -76,6 +76,9 @@ pub enum TransitionMode {
     Cut,
     /// Transição DJ (AutoMix).
     Automix,
+    /// AutoMix entre faixas seguidas de um álbum: se o áudio emenda sem
+    /// silêncio (ao vivo, mixado, conceitual), toca sem pausa e sem mixar.
+    AutomixAlbum,
 }
 
 impl From<TransitionMode> for engine::TransitionRequest {
@@ -85,6 +88,7 @@ impl From<TransitionMode> for engine::TransitionRequest {
             TransitionMode::Crossfade { ms } => Self::Crossfade { ms },
             TransitionMode::Cut => Self::Cut,
             TransitionMode::Automix => Self::Automix,
+            TransitionMode::AutomixAlbum => Self::AutomixAlbum,
         }
     }
 }

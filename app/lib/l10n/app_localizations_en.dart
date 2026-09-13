@@ -496,7 +496,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get automixAlbumsHint =>
-      'Consecutive tracks from the same album play gapless, without mixing.';
+      'In continuous albums (live, mixed, concept), consecutive tracks play gapless, without mixing. Albums with silence between tracks are mixed as usual.';
 
   @override
   String get automixPreAnalyze => 'Pre-analyze the queue';
@@ -803,4 +803,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get downloadsHint =>
       'Downloaded albums and playlists play even without internet or with the server off.';
+
+  @override
+  String get mixSynced => 'beat-synced';
+
+  @override
+  String get mixSimple => 'simple';
 }

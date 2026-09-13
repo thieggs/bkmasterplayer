@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::analysis::{camelot_compatible, TrackAnalysis};
+use super::analysis::{camelot_compatible, BeatGrid, TrackAnalysis};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MixStyle {
@@ -91,6 +91,29 @@ fn snap_bars(bars: u32) -> u32 {
     [32, 16, 8, 4, 2, 1].into_iter().find(|b| *b <= bars).unwrap_or(1)
 }
 
+/// A emenda entre A e B é contínua (álbum ao vivo, mixado ou conceitual):
+/// A soa até o fim do arquivo e B já começa soando.
+pub fn seamless(a: &TrackAnalysis, b: &TrackAnalysis) -> bool {
+    a.duration - a.last_sound < 0.4 && b.first_sound < 0.4
+}
+
+/// "Plano" de emenda sem pausa (nada a mixar).
+pub fn gapless_plan(a: &TrackAnalysis) -> MixPlan {
+    MixPlan {
+        style: MixStyle::Cut,
+        from_start: a.duration,
+        to_start: 0.0,
+        duration: 0.0,
+        speed: 1.0,
+        ramp: 0.0,
+        swap_at: 0.5,
+        beat: 0.5,
+        beatmatched: false,
+        bars: 0,
+        summary: "sem pausa".into(),
+    }
+}
+
 /// Transição simples (sem batida confiável ou estrutura clara).
 fn unclear_plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f64, why: &str) -> MixPlan {
     let dur = s.unclear_seconds.min(s.max_seconds).max(0.5);
@@ -117,17 +140,72 @@ fn unclear_plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now
     }
 }
 
+/// BPMs longe demais para casar: em vez de misturar dois tempos brigando, faz
+/// como DJ — A ecoa (ou corta) num início de compasso perto do fim e B entra
+/// no primeiro tempo dela no mesmo instante. Estilos "mistura"/"filtro"
+/// escolhidos pelo usuário ficam com a transição simples.
+fn tempo_jump_plan(a: &TrackAnalysis, b: &TrackAnalysis, ga: &BeatGrid, gb: &BeatGrid, s: &AutomixSettings, a_now: f64) -> MixPlan {
+    let style = match s.style {
+        MixStyle::Auto | MixStyle::BassSwap | MixStyle::Echo => MixStyle::Echo,
+        MixStyle::Cut => MixStyle::Cut,
+        MixStyle::Blend | MixStyle::Filter => return unclear_plan(a, b, s, a_now, "BPM muito diferente"),
+    };
+    let a_end = if s.trim_silence { a.last_sound } else { a.duration };
+    let bar_a = ga.bar_seconds();
+    let a_stop = ga.nearest_bar(a_end).min(a.duration);
+    // Onde sair: começo da outro, se estiver nos últimos 16 compassos (a outro
+    // de A não casa com B mesmo), senão 4 compassos antes do fim musical.
+    let mut at = match a.outro_start {
+        Some(o) if a_stop - o <= 16.0 * bar_a => ga.nearest_bar(o),
+        _ => a_stop - 4.0 * bar_a,
+    };
+    at = at.max(ga.bar_at_or_after(a_now + 4.0));
+    // O eco repete a batida de A por 2 compassos, sumindo (0,55 por repetição).
+    let duration = if style == MixStyle::Cut { ga.period } else { 2.0 * bar_a };
+    if at + duration > a.duration {
+        return unclear_plan(a, b, s, a_now, "BPM muito diferente");
+    }
+    let b_bar = gb.bar_at_or_after(b.first_sound - 0.05);
+    let off_a = ga.offset_near(at, at + bar_a).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
+    let off_b = gb.offset_near(b_bar, b_bar + gb.bar_seconds()).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
+    MixPlan {
+        style,
+        from_start: at + off_a,
+        to_start: (b_bar + off_b).max(0.0),
+        duration,
+        speed: 1.0,
+        ramp: 0.0,
+        // Eco já no primeiro tempo: A para e ecoa, B entra ao longo de 1 batida.
+        swap_at: 0.0,
+        beat: ga.period,
+        beatmatched: false,
+        bars: 1,
+        summary: format!(
+            "{} no compasso, {:.1}→{:.1} BPM (diferença grande demais para casar)",
+            if style == MixStyle::Cut { "corte" } else { "eco" },
+            ga.bpm(),
+            gb.bpm()
+        ),
+    }
+}
+
 /// Planeja a transição de A (tocando, na posição `a_now` s) para B.
 pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f64) -> MixPlan {
     if !a.has_beat() || !b.has_beat() {
         return unclear_plan(a, b, s, a_now, "sem batida confiável");
     }
     let a_end = if s.trim_silence { a.last_sound } else { a.duration };
-    let (Some(ga), Some(gb)) = (a.grid_at(a_end - 20.0), b.grid_at(b.first_sound + 5.0)) else {
-        return unclear_plan(a, b, s, a_now, "sem grade");
+    let Some(ga) = a.grid_at(a_end - 20.0) else {
+        return unclear_plan(a, b, s, a_now, "sem grade no fim da atual");
     };
-    if !ga.is_steady() || !gb.is_steady() {
-        return unclear_plan(a, b, s, a_now, "tempo instável");
+    let Some(gb) = b.grid_at(b.first_sound + 5.0) else {
+        return unclear_plan(a, b, s, a_now, "sem grade no começo da próxima");
+    };
+    if !ga.is_steady() {
+        return unclear_plan(a, b, s, a_now, "batida irregular no fim da atual");
+    }
+    if !gb.is_steady() {
+        return unclear_plan(a, b, s, a_now, "batida irregular no começo da próxima");
     }
 
     // Velocidade de B para as batidas baterem (aceita 2:1 e 1:2).
@@ -137,17 +215,14 @@ pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
         .min_by(|x, y| (x.0 - 1.0).abs().partial_cmp(&(y.0 - 1.0).abs()).unwrap())
         .unwrap();
     if (speed - 1.0).abs() > s.max_tempo_change {
-        return unclear_plan(a, b, s, a_now, "BPM muito diferente");
+        return tempo_jump_plan(a, b, ga, gb, s, a_now);
     }
 
     let bar_a = ga.bar_seconds();
     let bar_b = gb.bar_seconds();
-    // Ponto de entrada de B: primeiro compasso com som. Pode cair uns ms antes
-    // do começo do arquivo (grade com a batida em t≈0): aí B começa em 0 e a
-    // transição é atrasada nesse mesmo tanto, para as batidas continuarem casando.
+    // Ponto de entrada de B: primeiro compasso com som.
     let b_bar = gb.bar_at_or_after(b.first_sound - 0.05);
     let b_in = b_bar.max(0.0);
-    let b_shift = (b_in - b_bar) / speed;
     let intro_bars = b
         .intro_end
         .map(|ie| ((ie - b_in) / bar_b).round().max(0.0) as u32)
@@ -201,7 +276,21 @@ pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
         }
     }
     let duration = bars as f64 * bar_a;
-    let from = from + b_shift;
+
+    // Fase medida nos ataques do áudio exatamente no trecho da mixagem: corrige
+    // o que sobrou de erro da grade ali (poucos ms). Muito fora = não confia.
+    let off_a = ga.offset_near(from, from + duration).unwrap_or(0.0);
+    let off_b = gb.offset_near(b_bar, b_bar + bars as f64 * bar_b).unwrap_or(0.0);
+    if off_a.abs() > 0.025 || off_b.abs() > 0.025 {
+        return unclear_plan(a, b, s, a_now, "fase incerta no ponto da mixagem");
+    }
+    // B pode cair uns ms antes do começo do arquivo (batida em t≈0): aí B
+    // começa em 0 e a transição atrasa esse mesmo tanto, para as batidas
+    // continuarem casando.
+    let b_true = b_bar + off_b;
+    let b_in = b_true.max(0.0);
+    let b_shift = (b_in - b_true) / speed;
+    let from = from + off_a + b_shift;
 
     let style = match s.style {
         MixStyle::Auto => {
@@ -312,7 +401,6 @@ impl TempoMap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::analysis::BeatGrid;
 
     fn fake(bpm: f64, duration: f64, intro_bars: f64, outro_bars: f64, camelot: &str) -> TrackAnalysis {
         let p = 60.0 / bpm;
@@ -326,6 +414,10 @@ mod tests {
             beats_per_bar: 4,
             residual: 0.003,
             coverage: 0.95,
+            inliers: (duration / p) as u32,
+            windows: (0..(duration / (8.0 * bar)) as usize).map(|i| ((i as f64 + 0.5) * 8.0 * bar, 0.0)).collect(),
+            lock: 1.0,
+            validated: false,
         };
         TrackAnalysis {
             version: 1,
@@ -374,11 +466,20 @@ mod tests {
     }
 
     #[test]
-    fn too_different_falls_back() {
+    fn too_different_echoes_out_on_the_bar() {
+        // 90 → 128 BPM: não casa; A ecoa num compasso e B entra no 1º tempo.
         let a = fake(90.0, 240.0, 16.0, 16.0, "8A");
         let b = fake(128.0, 240.0, 16.0, 16.0, "8A");
         let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
         assert!(!p.beatmatched);
+        assert_eq!(p.style, MixStyle::Echo);
+        let bar_a = 4.0 * 60.0 / 90.0;
+        assert!((p.duration - 2.0 * bar_a).abs() < 1e-9);
+        assert!(((p.from_start / bar_a) - (p.from_start / bar_a).round()).abs() < 1e-6, "{p:?}");
+        assert!((p.to_start - 0.0).abs() < 1e-9, "B entra no primeiro compasso");
+        // Quem escolheu "mistura" continua com a transição simples.
+        let s = AutomixSettings { style: MixStyle::Blend, ..Default::default() };
+        let p = plan(&a, &b, &s, 30.0);
         assert_eq!(p.style, MixStyle::Blend);
         assert!((p.duration - 8.0).abs() < 1e-6);
     }
@@ -400,6 +501,42 @@ mod tests {
         let p = plan(&a, &b, &s, 30.0);
         assert!(p.duration <= 20.0, "{p:?}");
         assert_eq!(p.bars, 8);
+    }
+
+    #[test]
+    fn local_phase_shifts_both_entry_points() {
+        // Ataques de A 6 ms depois da grade no fim; os de B 4 ms antes no começo.
+        let mut a = fake(128.0, 240.0, 16.0, 16.0, "8A");
+        let mut b = fake(128.0, 240.0, 16.0, 16.0, "8A");
+        b.first_sound = 1.0; // batida de B longe de t=0 (sem o atraso de borda)
+        let base = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        a.grids[0].windows.iter_mut().for_each(|w| w.1 = 0.006);
+        b.grids[0].windows.iter_mut().for_each(|w| w.1 = -0.004);
+        let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        assert!(p.beatmatched);
+        assert!((p.from_start - (base.from_start + 0.006)).abs() < 1e-9, "{p:?} {base:?}");
+        assert!((p.to_start - (base.to_start - 0.004)).abs() < 1e-9, "{p:?} {base:?}");
+    }
+
+    #[test]
+    fn phase_far_off_at_mix_point_falls_back() {
+        let a = fake(128.0, 240.0, 16.0, 16.0, "8A");
+        let mut b = fake(128.0, 240.0, 16.0, 16.0, "8A");
+        b.grids[0].windows.iter_mut().for_each(|w| w.1 = 0.028);
+        let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        assert!(!p.beatmatched, "{p:?}");
+    }
+
+    #[test]
+    fn seamless_album_detection() {
+        let mut a = fake(120.0, 240.0, 16.0, 16.0, "8A");
+        let mut b = fake(120.0, 240.0, 16.0, 16.0, "8A");
+        (a.last_sound, b.first_sound) = (239.9, 0.0);
+        assert!(seamless(&a, &b), "ao vivo/mixado: emenda contínua");
+        a.last_sound = 238.5;
+        assert!(!seamless(&a, &b), "silêncio no fim de A: álbum comum");
+        (a.last_sound, b.first_sound) = (239.9, 0.8);
+        assert!(!seamless(&a, &b), "silêncio no começo de B: álbum comum");
     }
 
     #[test]

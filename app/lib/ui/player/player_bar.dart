@@ -267,17 +267,20 @@ class _MixChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final (mix, planned) = ref.watch(playerProvider.select((s) => (s.mix, s.plannedMix)));
+    final (mix, planned, synced) = ref.watch(playerProvider.select((s) => (s.mix, s.plannedMix, s.plannedSynced)));
     if (mix == null && planned == null) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     final active = mix != null;
+    final kind = synced ? l10n.mixSynced : l10n.mixSimple;
     return Tooltip(
-      message: active ? '${l10n.mixing}: ${mix.summary}' : '${l10n.nextMix}: $planned',
+      message: active ? '${l10n.mixing}: ${mix.summary}' : '${l10n.nextMix} ($kind): $planned',
       child: Padding(
         padding: const EdgeInsets.only(right: 4),
         child: Chip(
           visualDensity: VisualDensity.compact,
-          avatar: Icon(Icons.auto_awesome, size: 16, color: active ? scheme.onPrimary : scheme.primary),
+          // Batidas casadas: ícone de sincronia; transição simples: o de troca.
+          avatar: Icon(active || synced ? Icons.auto_awesome : Icons.swap_horiz,
+              size: 16, color: active ? scheme.onPrimary : scheme.primary),
           label: Text(active ? l10n.mixing : 'AutoMix'),
           labelStyle: TextStyle(color: active ? scheme.onPrimary : null, fontSize: 12),
           backgroundColor: active ? scheme.primary : null,

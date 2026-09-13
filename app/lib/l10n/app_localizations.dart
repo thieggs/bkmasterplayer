@@ -965,7 +965,7 @@ abstract class AppLocalizations {
   /// No description provided for @automixAlbumsHint.
   ///
   /// In pt, this message translates to:
-  /// **'Faixas seguidas do mesmo álbum tocam sem pausa, sem mixar.'**
+  /// **'Em álbuns contínuos (ao vivo, mixados, conceituais), faixas seguidas emendam sem pausa, sem mixar. Álbuns com silêncio entre as faixas são mixados normalmente.'**
   String get automixAlbumsHint;
 
   /// No description provided for @automixPreAnalyze.
@@ -1542,6 +1542,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado.'**
   String get downloadsHint;
+
+  /// No description provided for @mixSynced.
+  ///
+  /// In pt, this message translates to:
+  /// **'sincronizada'**
+  String get mixSynced;
+
+  /// No description provided for @mixSimple.
+  ///
+  /// In pt, this message translates to:
+  /// **'simples'**
+  String get mixSimple;
 }
 
 class _AppLocalizationsDelegate

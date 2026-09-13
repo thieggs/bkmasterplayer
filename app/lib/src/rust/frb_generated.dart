@@ -1362,6 +1362,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         return TransitionMode_Cut();
       case 3:
         return TransitionMode_Automix();
+      case 4:
+        return TransitionMode_AutomixAlbum();
       default:
         throw Exception("unreachable");
     }
@@ -1878,6 +1880,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         return TransitionMode_Cut();
       case 3:
         return TransitionMode_Automix();
+      case 4:
+        return TransitionMode_AutomixAlbum();
       default:
         throw UnimplementedError('');
     }
@@ -2361,6 +2365,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_i_32(2, serializer);
       case TransitionMode_Automix():
         sse_encode_i_32(3, serializer);
+      case TransitionMode_AutomixAlbum():
+        sse_encode_i_32(4, serializer);
     }
   }
 
