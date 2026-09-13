@@ -1,6 +1,7 @@
 //! Motor de áudio. Independente do Flutter: recebe comandos e emite eventos
 //! por callback. A camada `api` só adapta isso para o flutter_rust_bridge.
 
+pub mod analysis;
 pub mod deck;
 pub mod decoder;
 pub mod mixer;
