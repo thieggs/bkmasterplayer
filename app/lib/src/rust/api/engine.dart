@@ -57,6 +57,19 @@ Future<List<OutputDevice>> playerOutputDevices() =>
 Future<void> playerSetOutputDevice({String? deviceId}) => RustLib.instance.api
     .crateApiEnginePlayerSetOutputDevice(deviceId: deviceId);
 
+/// Baixa faixas para ouvir offline (uma de cada vez, em segundo plano).
+Future<void> playerDownloadOffline({required List<TrackSource> tracks}) =>
+    RustLib.instance.api.crateApiEnginePlayerDownloadOffline(tracks: tracks);
+
+Future<void> playerRemoveOffline({required List<String> cacheKeys}) => RustLib
+    .instance
+    .api
+    .crateApiEnginePlayerRemoveOffline(cacheKeys: cacheKeys);
+
+/// Quais dessas faixas já estão no disco.
+Future<List<bool>> playerCachedState({required List<String> cacheKeys}) =>
+    RustLib.instance.api.crateApiEnginePlayerCachedState(cacheKeys: cacheKeys);
+
 Future<bool> playerIsCached({required String cacheKey}) =>
     RustLib.instance.api.crateApiEnginePlayerIsCached(cacheKey: cacheKey);
 

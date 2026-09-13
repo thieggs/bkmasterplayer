@@ -440,6 +440,7 @@ fn replay_gain(gain_db: f32, peak: Option<f32>) -> f32 {
 impl Engine {
     pub fn new(config: EngineConfig, callback: Option<EventCallback>) -> Result<Self> {
         let downloads = Arc::new(DownloadManager::new(config.cache_dir.join("audio"), config.cache_limit_bytes)?);
+        downloads.start_offline_worker();
         let covers_dir = config.cache_dir.join("covers");
         std::fs::create_dir_all(&covers_dir)?;
 
@@ -647,6 +648,15 @@ impl Engine {
         if let Some(key) = &req.cache_key {
             self.inner.downloads.prefetch(key, &req.url);
         }
+    }
+
+    /// Baixa para ouvir offline (fica fora da limpeza do cache).
+    pub fn download_offline(&self, tracks: Vec<(String, String)>) {
+        self.inner.downloads.pin(tracks);
+    }
+
+    pub fn remove_offline(&self, keys: &[String]) {
+        self.inner.downloads.unpin(keys);
     }
 
     pub fn is_cached(&self, key: &str) -> bool {

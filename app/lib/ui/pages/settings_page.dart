@@ -245,6 +245,19 @@ class SettingsPage extends ConsumerWidget {
         if (isDesktop) ...[
           section(l10n.desktop),
           SwitchListTile(
+            secondary: const Icon(Icons.web_asset),
+            title: Text(l10n.trayIcon),
+            value: s.trayIcon,
+            onChanged: (v) => set((x) => x.copyWith(trayIcon: v)),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.close_fullscreen),
+            title: Text(l10n.closeToTray),
+            subtitle: Text(l10n.closeToTrayHint),
+            value: s.closeToTray,
+            onChanged: s.trayIcon ? (v) => set((x) => x.copyWith(closeToTray: v)) : null,
+          ),
+          SwitchListTile(
             secondary: const Icon(Icons.notifications_outlined),
             title: Text(l10n.trackNotifications),
             subtitle: Text(l10n.trackNotificationsHint),

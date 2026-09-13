@@ -228,5 +228,16 @@
  "profileImported": "Profile applied",
  "profileInvalid": "The clipboard doesn't contain a valid profile",
  "resetAppearance": "Restore default appearance",
- "volume": "Volume"
+ "volume": "Volume",
+ "trayIcon": "System tray icon",
+ "closeToTray": "Close to tray",
+ "closeToTrayHint": "Closing the window keeps the music playing; quit from the tray menu.",
+ "miniPlayer": "Mini player",
+ "expand": "Expand",
+ "downloadOffline": "Download for offline",
+ "availableOffline": "Available offline (tap to remove)",
+ "downloadingCount": "Downloading {done} of {total}",
+ "removeOfflineQuestion": "Remove from downloads?",
+ "downloads": "Downloads",
+ "downloadsHint": "Downloaded albums and playlists play even without internet or with the server off."
 }

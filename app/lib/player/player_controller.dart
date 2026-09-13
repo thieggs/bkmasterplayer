@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import '../core/providers.dart';
 import '../data/settings.dart';
 import '../domain/models.dart';
+import '../data/offline_store.dart';
 import '../domain/music_provider.dart';
 import '../src/rust/api/engine.dart' as engine;
 
@@ -572,21 +573,26 @@ class PlayerController extends Notifier<PlayerState> {
     return ((gain ?? rg.fallbackGain ?? 0) + (rg.baseGain ?? 0) + s.replayGainPreampDb, peak);
   }
 
-  engine.TrackSource? _source(QueueItem item) {
+  engine.TrackSource? _source(QueueItem item) => sourceFor(item.song, uid: item.uid, gain: _replayGain(item));
+
+  /// Fonte de uma música para o motor. Músicas baixadas para ouvir offline
+  /// sempre usam o arquivo original ("raw"), para achar o download mesmo que
+  /// a qualidade de streaming mude depois.
+  engine.TrackSource? sourceFor(Song song, {String? uid, (double, double?)? gain, bool offline = false}) {
     final p = _provider;
     if (p == null) return null;
     final s = ref.read(settingsProvider);
-    final song = item.song;
-    final (gain, peak) = _replayGain(item);
-    final format = s.transcodeFormat;
-    final bitrate = s.maxBitRate > 0 ? s.maxBitRate : null;
+    final raw = offline || ref.read(offlineProvider.notifier).songIds.contains(song.id);
+    final format = raw ? null : s.transcodeFormat;
+    final bitrate = raw ? null : (s.maxBitRate > 0 ? s.maxBitRate : null);
+    final (g, peak) = gain ?? (0.0, null);
     return engine.TrackSource(
-      id: item.uid,
+      id: uid ?? song.id,
       url: p.streamUri(song, format: format, maxBitRate: bitrate).toString(),
       cacheKey: p.streamCacheKey(song, format: format, maxBitRate: bitrate),
       formatHint: format ?? song.suffix,
       durationMs: song.duration?.inMilliseconds,
-      gainDb: gain,
+      gainDb: g,
       peak: peak,
       title: song.title,
       artist: song.displayArtist,

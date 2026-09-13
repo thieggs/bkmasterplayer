@@ -1476,6 +1476,72 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Volume'**
   String get volume;
+
+  /// No description provided for @trayIcon.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ícone na bandeja do sistema'**
+  String get trayIcon;
+
+  /// No description provided for @closeToTray.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar para a bandeja'**
+  String get closeToTray;
+
+  /// No description provided for @closeToTrayHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar a janela deixa a música tocando; sair pelo menu da bandeja.'**
+  String get closeToTrayHint;
+
+  /// No description provided for @miniPlayer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mini player'**
+  String get miniPlayer;
+
+  /// No description provided for @expand.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expandir'**
+  String get expand;
+
+  /// No description provided for @downloadOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar para ouvir offline'**
+  String get downloadOffline;
+
+  /// No description provided for @availableOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponível offline (toque para remover)'**
+  String get availableOffline;
+
+  /// No description provided for @downloadingCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando {done} de {total}'**
+  String downloadingCount(int done, int total);
+
+  /// No description provided for @removeOfflineQuestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover das músicas baixadas?'**
+  String get removeOfflineQuestion;
+
+  /// No description provided for @downloads.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixadas'**
+  String get downloads;
+
+  /// No description provided for @downloadsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado.'**
+  String get downloadsHint;
 }
 
 class _AppLocalizationsDelegate

@@ -349,6 +349,11 @@ pub struct DownloadManager {
     agent: ureq::Agent,
     active: Mutex<HashMap<String, Arc<Download>>>,
     limit_bytes: AtomicU64,
+    /// Faixas baixadas para ouvir offline: nunca saem do cache.
+    pinned: Mutex<std::collections::HashSet<String>>,
+    /// Fila de downloads offline (um de cada vez).
+    offline_queue: Mutex<std::collections::VecDeque<(String, String)>>,
+    offline_cond: Condvar,
 }
 
 impl DownloadManager {
@@ -368,12 +373,92 @@ impl DownloadManager {
             .timeout_recv_response(Some(Duration::from_secs(30)))
             .user_agent(concat!("player_musica/", env!("CARGO_PKG_VERSION")))
             .build();
+        let pinned: std::collections::HashSet<String> = fs::read(cache_dir.join("pinned.json"))
+            .ok()
+            .and_then(|b| serde_json::from_slice(&b).ok())
+            .unwrap_or_default();
         Ok(Self {
             cache_dir,
             agent: config.into(),
             active: Mutex::new(HashMap::new()),
             limit_bytes: AtomicU64::new(limit_bytes),
+            pinned: Mutex::new(pinned),
+            offline_queue: Mutex::new(std::collections::VecDeque::new()),
+            offline_cond: Condvar::new(),
         })
+    }
+
+    fn save_pinned(&self) {
+        let list: Vec<String> = self.pinned.lock().iter().cloned().collect();
+        if let Ok(json) = serde_json::to_vec(&list) {
+            let _ = fs::write(self.cache_dir.join("pinned.json"), json);
+        }
+    }
+
+    /// Marca faixas para ouvir offline e enfileira os downloads.
+    pub fn pin(self: &Arc<Self>, tracks: Vec<(String, String)>) {
+        {
+            let mut pinned = self.pinned.lock();
+            for (k, _) in &tracks {
+                pinned.insert(k.clone());
+            }
+        }
+        self.save_pinned();
+        let mut q = self.offline_queue.lock();
+        for t in tracks {
+            if !self.is_cached(&t.0) && !q.iter().any(|(k, _)| *k == t.0) {
+                q.push_back(t);
+            }
+        }
+        self.offline_cond.notify_all();
+    }
+
+    /// Remove das offline e apaga os arquivos.
+    pub fn unpin(&self, keys: &[String]) {
+        {
+            let mut pinned = self.pinned.lock();
+            for k in keys {
+                pinned.remove(k);
+            }
+        }
+        self.save_pinned();
+        self.offline_queue.lock().retain(|(k, _)| !keys.contains(k));
+        for k in keys {
+            let _ = fs::remove_file(self.paths(k).1);
+        }
+    }
+
+    pub fn is_pinned(&self, key: &str) -> bool {
+        self.pinned.lock().contains(key)
+    }
+
+    /// Thread que baixa a fila offline, uma faixa por vez.
+    pub fn start_offline_worker(self: &Arc<Self>) {
+        let me = Arc::downgrade(self);
+        let _ = std::thread::Builder::new().name("offline".into()).spawn(move || loop {
+            let Some(mgr) = me.upgrade() else { return };
+            let job = {
+                let mut q = mgr.offline_queue.lock();
+                if q.is_empty() {
+                    mgr.offline_cond.wait_for(&mut q, Duration::from_secs(2));
+                }
+                q.pop_front()
+            };
+            let Some((key, url)) = job else { continue };
+            if mgr.is_cached(&key) || !mgr.is_pinned(&key) {
+                continue;
+            }
+            if let Some(dl) = mgr.ensure_download(&key, &url) {
+                drop(mgr);
+                // Espera terminar (ou falhar) antes do próximo.
+                loop {
+                    if dl.is_complete() || dl.error().is_some() {
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(300));
+                }
+            }
+        });
     }
 
     pub fn set_limit(&self, bytes: u64) {
@@ -505,9 +590,11 @@ impl DownloadManager {
 
     pub fn evict(&self, keep: &[String]) {
         let limit = self.limit_bytes.load(Ordering::Relaxed);
+        let pinned: Vec<String> = self.pinned.lock().iter().cloned().collect();
         let protected: Vec<PathBuf> = keep
             .iter()
             .chain(self.active.lock().keys())
+            .chain(pinned.iter())
             .map(|k| self.paths(k).1)
             .collect();
         let mut files: Vec<(PathBuf, u64, SystemTime)> = match fs::read_dir(&self.cache_dir) {
@@ -521,7 +608,8 @@ impl DownloadManager {
                 .collect(),
             Err(_) => return,
         };
-        let mut total: u64 = files.iter().map(|f| f.1).sum();
+        // O limite vale para o cache comum; as offline não contam.
+        let mut total: u64 = files.iter().filter(|f| !protected.contains(&f.0)).map(|f| f.1).sum();
         if total <= limit {
             return;
         }
@@ -544,11 +632,14 @@ impl DownloadManager {
         dir_size(&self.cache_dir)
     }
 
+    /// Limpa o cache comum (mantém downloads em andamento e as offline).
     pub fn clear(&self) {
-        let active: Vec<PathBuf> = self.active.lock().keys().map(|k| self.paths(k).0).collect();
+        let mut keep: Vec<PathBuf> = self.active.lock().keys().map(|k| self.paths(k).0).collect();
+        keep.extend(self.pinned.lock().iter().map(|k| self.paths(k).1));
+        keep.push(self.cache_dir.join("pinned.json"));
         if let Ok(rd) = fs::read_dir(&self.cache_dir) {
             for e in rd.flatten() {
-                if !active.contains(&e.path()) {
+                if !keep.contains(&e.path()) {
                     let _ = fs::remove_file(e.path());
                 }
             }

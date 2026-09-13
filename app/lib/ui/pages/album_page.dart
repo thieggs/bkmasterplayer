@@ -11,6 +11,7 @@ import '../actions.dart';
 import '../widgets/async_view.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/song_tile.dart';
+import 'offline_page.dart';
 
 class AlbumPage extends ConsumerWidget {
   const AlbumPage({super.key, required this.id});
@@ -102,6 +103,14 @@ class _AlbumView extends ConsumerWidget {
                       tooltip: l10n.addToPlaylist,
                       icon: const Icon(Icons.playlist_add),
                       onPressed: () => LibraryActions.addToPlaylist(context, ref, songs),
+                    ),
+                    OfflineButton(
+                      type: 'album',
+                      id: album.id,
+                      name: album.name,
+                      artist: album.displayArtist,
+                      coverArt: album.coverArt,
+                      songs: songs,
                     ),
                   ],
                 ),

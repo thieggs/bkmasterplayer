@@ -19,7 +19,7 @@ class UiPrefs {
     this.startPage = '/',
     this.showQueue = false,
     this.cardSize = 'medium',
-    this.playerButtons = const ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'volume'],
+    this.playerButtons = const ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'mini', 'volume'],
     this.homeSections = const ['newest', 'recent', 'frequent', 'random'],
     this.songTap = 'playFromHere',
     this.customColor,
@@ -63,7 +63,7 @@ class UiPrefs {
   /// Cor de destaque livre (ARGB), além da paleta.
   final int? customColor;
 
-  static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'volume'];
+  static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'mini', 'volume'];
   static const allHomeSections = ['newest', 'recent', 'frequent', 'random', 'starred', 'highest'];
 
   double get cardWidth => switch (cardSize) {

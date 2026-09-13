@@ -766,4 +766,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get volume => 'Volume';
+
+  @override
+  String get trayIcon => 'System tray icon';
+
+  @override
+  String get closeToTray => 'Close to tray';
+
+  @override
+  String get closeToTrayHint =>
+      'Closing the window keeps the music playing; quit from the tray menu.';
+
+  @override
+  String get miniPlayer => 'Mini player';
+
+  @override
+  String get expand => 'Expand';
+
+  @override
+  String get downloadOffline => 'Download for offline';
+
+  @override
+  String get availableOffline => 'Available offline (tap to remove)';
+
+  @override
+  String downloadingCount(int done, int total) {
+    return 'Downloading $done of $total';
+  }
+
+  @override
+  String get removeOfflineQuestion => 'Remove from downloads?';
+
+  @override
+  String get downloads => 'Downloads';
+
+  @override
+  String get downloadsHint =>
+      'Downloaded albums and playlists play even without internet or with the server off.';
 }

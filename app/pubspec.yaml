@@ -51,6 +51,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: any
+  tray_manager: ^0.5.3
 
 dev_dependencies:
   flutter_test:
@@ -73,6 +74,7 @@ flutter:
   generate: true
   assets:
     - assets/models/
+    - assets/icon/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

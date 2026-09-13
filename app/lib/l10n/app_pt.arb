@@ -299,5 +299,26 @@
  "profileImported": "Perfil aplicado",
  "profileInvalid": "A área de transferência não tem um perfil válido",
  "resetAppearance": "Restaurar aparência padrão",
- "volume": "Volume"
+ "volume": "Volume",
+ "trayIcon": "Ícone na bandeja do sistema",
+ "closeToTray": "Fechar para a bandeja",
+ "closeToTrayHint": "Fechar a janela deixa a música tocando; sair pelo menu da bandeja.",
+ "miniPlayer": "Mini player",
+ "expand": "Expandir",
+ "downloadOffline": "Baixar para ouvir offline",
+ "availableOffline": "Disponível offline (toque para remover)",
+ "downloadingCount": "Baixando {done} de {total}",
+ "@downloadingCount": {
+  "placeholders": {
+   "done": {
+    "type": "int"
+   },
+   "total": {
+    "type": "int"
+   }
+  }
+ },
+ "removeOfflineQuestion": "Remover das músicas baixadas?",
+ "downloads": "Baixadas",
+ "downloadsHint": "Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado."
 }

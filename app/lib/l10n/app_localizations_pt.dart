@@ -767,4 +767,41 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get volume => 'Volume';
+
+  @override
+  String get trayIcon => 'Ícone na bandeja do sistema';
+
+  @override
+  String get closeToTray => 'Fechar para a bandeja';
+
+  @override
+  String get closeToTrayHint =>
+      'Fechar a janela deixa a música tocando; sair pelo menu da bandeja.';
+
+  @override
+  String get miniPlayer => 'Mini player';
+
+  @override
+  String get expand => 'Expandir';
+
+  @override
+  String get downloadOffline => 'Baixar para ouvir offline';
+
+  @override
+  String get availableOffline => 'Disponível offline (toque para remover)';
+
+  @override
+  String downloadingCount(int done, int total) {
+    return 'Baixando $done de $total';
+  }
+
+  @override
+  String get removeOfflineQuestion => 'Remover das músicas baixadas?';
+
+  @override
+  String get downloads => 'Baixadas';
+
+  @override
+  String get downloadsHint =>
+      'Álbuns e playlists baixados tocam mesmo sem internet ou com o servidor desligado.';
 }

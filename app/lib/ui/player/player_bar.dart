@@ -7,6 +7,7 @@ import '../../core/providers.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
+import '../../desktop/desktop_integration.dart';
 import '../actions.dart';
 import '../widgets/cover_art.dart';
 
@@ -241,6 +242,11 @@ class PlayerBar extends ConsumerWidget {
                           onPressed: onToggleQueue,
                         ),
                       'volume' => const VolumeControl(),
+                      'mini' => IconButton(
+                          tooltip: l10n.miniPlayer,
+                          icon: const Icon(Icons.picture_in_picture_alt_outlined),
+                          onPressed: () => ref.read(miniModeProvider.notifier).enter(),
+                        ),
                       _ => const SizedBox.shrink(),
                     },
                   const SizedBox(width: 12),

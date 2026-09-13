@@ -10,6 +10,7 @@ import '../actions.dart';
 import '../widgets/async_view.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/song_tile.dart';
+import 'offline_page.dart';
 
 class PlaylistsPage extends ConsumerWidget {
   const PlaylistsPage({super.key});
@@ -110,6 +111,7 @@ class PlaylistPage extends ConsumerWidget {
                             label: Text(l10n.shuffle),
                             onPressed: p.songs.isEmpty ? null : () => player.playSongs(p.songs, shuffle: true),
                           ),
+                          OfflineButton(type: 'playlist', id: p.id, name: p.name, coverArt: p.coverArt, songs: p.songs),
                           IconButton.outlined(
                             tooltip: l10n.rename,
                             icon: const Icon(Icons.edit),

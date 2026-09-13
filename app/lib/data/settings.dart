@@ -47,6 +47,8 @@ class AppSettings {
     this.eqPreamp = 0,
     this.eqGains = const [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     this.eqPreset = 'flat',
+    this.trayIcon = true,
+    this.closeToTray = false,
   });
 
   final ThemeMode themeMode;
@@ -87,6 +89,10 @@ class AppSettings {
   final List<double> eqGains;
   final String eqPreset;
 
+  // Desktop
+  final bool trayIcon;
+  final bool closeToTray;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     int? seedColor,
@@ -122,6 +128,8 @@ class AppSettings {
     double? eqPreamp,
     List<double>? eqGains,
     String? eqPreset,
+    bool? trayIcon,
+    bool? closeToTray,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -155,6 +163,8 @@ class AppSettings {
         eqPreamp: eqPreamp ?? this.eqPreamp,
         eqGains: eqGains ?? this.eqGains,
         eqPreset: eqPreset ?? this.eqPreset,
+        trayIcon: trayIcon ?? this.trayIcon,
+        closeToTray: closeToTray ?? this.closeToTray,
       );
 
   Map<String, dynamic> toJson() => {
@@ -189,6 +199,8 @@ class AppSettings {
         'eqPreamp': eqPreamp,
         'eqGains': eqGains,
         'eqPreset': eqPreset,
+        'trayIcon': trayIcon,
+        'closeToTray': closeToTray,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -226,6 +238,8 @@ class AppSettings {
       eqPreamp: (j['eqPreamp'] as num?)?.toDouble() ?? d.eqPreamp,
       eqGains: (j['eqGains'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? d.eqGains,
       eqPreset: j['eqPreset'] as String? ?? d.eqPreset,
+      trayIcon: pick('trayIcon', d.trayIcon),
+      closeToTray: pick('closeToTray', d.closeToTray),
     );
   }
 

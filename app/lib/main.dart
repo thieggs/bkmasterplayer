@@ -9,20 +9,13 @@ import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'core/providers.dart';
 import 'data/settings.dart';
+import 'desktop/desktop_integration.dart';
 import 'player/automix.dart';
 import 'src/rust/api/engine.dart' as engine;
 import 'src/rust/frb_generated.dart';
 
 const appId = 'player_musica';
 const appName = 'Player de Música';
-
-class _CloseListener with WindowListener {
-  @override
-  void onWindowClose() {
-    engine.playerStop();
-    exit(0);
-  }
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,10 +33,6 @@ Future<void> main() async {
       await windowManager.show();
       await windowManager.focus();
     });
-    // Fechar a janela encerra o app na hora (o desligamento padrão do Flutter
-    // no Linux às vezes aborta ao liberar o contexto OpenGL).
-    await windowManager.setPreventClose(true);
-    windowManager.addListener(_CloseListener());
   }
 
   await RustLib.init();
@@ -75,12 +64,15 @@ Future<void> main() async {
   applyEq(settings);
   engine.playerSetNotifications(enabled: settings.notifications && isDesktop);
 
-  runApp(ProviderScope(
-    overrides: [
-      prefsProvider.overrideWithValue(prefs),
-      cacheDirProvider.overrideWithValue(cacheDir),
-      supportDirProvider.overrideWithValue(supportDir),
-    ],
-    child: const PlayerApp(),
-  ));
+  final container = ProviderContainer(overrides: [
+    prefsProvider.overrideWithValue(prefs),
+    cacheDirProvider.overrideWithValue(cacheDir),
+    supportDirProvider.overrideWithValue(supportDir),
+  ]);
+  if (isDesktop) {
+    // Bandeja e fechar janela (fechar encerra na hora ou esconde na bandeja;
+    // o desligamento padrão do Flutter no Linux às vezes aborta no OpenGL).
+    await DesktopIntegration(container).init();
+  }
+  runApp(UncontrolledProviderScope(container: container, child: const PlayerApp()));
 }

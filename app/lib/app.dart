@@ -15,6 +15,7 @@ import 'ui/pages/equalizer_page.dart';
 import 'ui/pages/genres_page.dart';
 import 'ui/pages/home_page.dart';
 import 'ui/pages/login_page.dart';
+import 'ui/pages/offline_page.dart';
 import 'ui/pages/playlists_page.dart';
 import 'ui/pages/search_page.dart';
 import 'ui/pages/settings_page.dart';
@@ -76,6 +77,8 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
           GoRoute(path: '/equalizer', builder: (_, _) => const EqualizerPage()),
           GoRoute(path: '/customize', builder: (_, _) => const CustomizePage()),
+          GoRoute(path: '/offline', builder: (_, _) => const OfflinePage()),
+          GoRoute(path: '/offline/:id', builder: (_, state) => OfflineCollectionPage(id: state.pathParameters['id']!)),
         ],
       ),
     ],

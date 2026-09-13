@@ -50,6 +50,7 @@ class CustomizePage extends ConsumerWidget {
       'eq': l10n.equalizer,
       'lyrics': l10n.lyrics,
       'queue': l10n.queue,
+      'mini': l10n.miniPlayer,
       'volume': l10n.volume,
     };
     final sectionNames = {

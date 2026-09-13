@@ -271,6 +271,27 @@ pub fn player_set_output_device(device_id: Option<String>) -> Result<()> {
     engine()?.set_device(device_id)
 }
 
+/// Baixa faixas para ouvir offline (uma de cada vez, em segundo plano).
+pub fn player_download_offline(tracks: Vec<TrackSource>) -> Result<()> {
+    let list = tracks
+        .into_iter()
+        .filter_map(|t| t.cache_key.map(|k| (k, t.url)))
+        .collect();
+    engine()?.download_offline(list);
+    Ok(())
+}
+
+pub fn player_remove_offline(cache_keys: Vec<String>) -> Result<()> {
+    engine()?.remove_offline(&cache_keys);
+    Ok(())
+}
+
+/// Quais dessas faixas já estão no disco.
+pub fn player_cached_state(cache_keys: Vec<String>) -> Result<Vec<bool>> {
+    let e = engine()?;
+    Ok(cache_keys.iter().map(|k| e.is_cached(k)).collect())
+}
+
 pub fn player_is_cached(cache_key: String) -> Result<bool> {
     Ok(engine()?.is_cached(&cache_key))
 }

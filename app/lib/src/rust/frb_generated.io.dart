@@ -78,6 +78,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<bool> dco_decode_list_bool(dynamic raw);
+
+  @protected
   List<OutputDevice> dco_decode_list_output_device(dynamic raw);
 
   @protected
@@ -88,6 +94,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<TrackSource> dco_decode_list_track_source(dynamic raw);
 
   @protected
   MediaAction dco_decode_media_action(dynamic raw);
@@ -197,6 +206,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<bool> sse_decode_list_bool(SseDeserializer deserializer);
+
+  @protected
   List<OutputDevice> sse_decode_list_output_device(
     SseDeserializer deserializer,
   );
@@ -209,6 +224,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<TrackSource> sse_decode_list_track_source(SseDeserializer deserializer);
 
   @protected
   MediaAction sse_decode_media_action(SseDeserializer deserializer);
@@ -336,6 +354,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_bool(List<bool> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_output_device(
     List<OutputDevice> self,
     SseSerializer serializer,
@@ -356,6 +380,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_track_source(
+    List<TrackSource> self,
     SseSerializer serializer,
   );
 

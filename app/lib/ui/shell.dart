@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers.dart';
+import '../desktop/desktop_integration.dart';
 import '../l10n/l10n.dart';
 import '../player/player_controller.dart';
 import 'actions.dart';
 import 'player/player_bar.dart';
 import 'player/queue_panel.dart';
+import 'player/mini_window.dart';
 
 class _Dest {
   const _Dest(this.path, this.icon, this.selectedIcon, this.label);
@@ -26,6 +28,7 @@ final _dests = [
   _Dest('/playlists', Icons.queue_music_outlined, Icons.queue_music, (l) => l.playlists),
   _Dest('/genres', Icons.sell_outlined, Icons.sell, (l) => l.genres),
   _Dest('/favorites', Icons.favorite_border, Icons.favorite, (l) => l.favorites),
+  _Dest('/offline', Icons.download_outlined, Icons.download_done, (l) => l.downloads),
 ];
 
 /// Layout principal: barra lateral + conteúdo + fila opcional + player embaixo.
@@ -83,6 +86,10 @@ class _AppShellState extends ConsumerState<AppShell> {
           ref.read(playerProvider.notifier).seekBy(const Duration(seconds: -10)),
       const SingleActivator(LogicalKeyboardKey.keyF, control: true): () => context.go('/search'),
     };
+
+    if (ref.watch(miniModeProvider)) {
+      return const Scaffold(body: MiniWindow());
+    }
 
     if (!wide) {
       final sel = _selected;

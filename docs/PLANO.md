@@ -13,6 +13,51 @@ A pasta do projeto está vazia. Este arquivo é o documento central: na Fase 0 e
 
 ---
 
+## Status (13/09/2026): versão PC (Linux) completa
+
+Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
+
+| Fase | Status |
+|---|---|
+| 0. Setup | ✅ repo, licença GPL-3.0, Navidrome de teste em Docker, gerador de músicas com gabarito |
+| 1. MVP Linux | ✅ login, biblioteca, busca, streaming com cache, fila, gapless, MPRIS com capa |
+| 2. Player completo | ✅ ReplayGain, EQ, crossfade, letras, favoritos, playlists, fila salva/sincronizada, offline, mini player, bandeja, atalhos |
+| 3. AudioMuse | ✅ via Navidrome (Mix instantâneo, rádio sônica, caminho sônico, rádio infinita) · ⏳ API direta (busca por texto/CLAP, Alchemy, Music Map) |
+| 4. Customização | ✅ tema, capas, 4 layouts do tocando agora (incl. vinil), layout, botões, seções, comportamento, perfis JSON |
+| 5. AutoMix DJ | ✅ análise (Beat This!), grade, tom, estrutura, planejador, time-stretch, estilos, configurações, modelo por potência |
+| 6. Windows | ⏳ |
+| 7. Android | ⏳ |
+| 8. iOS/macOS | ⏳ |
+
+### Medições (testes automatizados)
+- **Gapless:** saída idêntica, amostra por amostra, à concatenação dos arquivos (FLAC e MP3). Com conversão 44,1→48 kHz, sem emenda (o conversor passa de uma faixa para a outra).
+- **Análise:** BPM exato nas faixas confiáveis; fase da grade com erro de até 7 ms; intro/outro no compasso certo. Faixas duvidosas são marcadas como não confiáveis e não são sincronizadas.
+- **AutoMix:** bumbos da faixa que entra alinhados aos da que sai em ~1 ms, com e sem time-stretch.
+- **Equalizador:** ganho medido a ±0,7 dB do pedido em cada banda.
+
+### Pedidos do usuário atendidos
+- Capa em qualquer controle de mídia: MPRIS com `file://`, testado com KDE Connect ligado.
+- Notificação de troca de música que nunca empilha e sempre aparece (KDE Plasma testado).
+- AutoMix totalmente configurável, com os padrões já no melhor ajuste.
+- Duração da transição quando a música não é clara.
+- Modelo de análise escolhido pela potência do aparelho.
+- Segue a saída padrão do sistema (Bluetooth), sem travadas.
+
+### Limitações conhecidas
+- **Opus:** o symphonia não decodifica; use "qualidade de streaming" com transcodificação para MP3 ou deixe o servidor converter.
+- **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.
+- **Análise:** decodifica a faixa inteira na memória (~130 MB por faixa de 4 min). No Android será feita só nas regiões usadas.
+- **Mixer do KDE:** mostra o stream como "cpal-pulseaudio-PID" (o nome do cliente vem do cpal).
+- **Letras:** mostradas por linha; karaokê palavra por palavra (letras v2 do Navidrome 0.63) ⏳.
+
+### Próximos passos
+1. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
+2. **Android:** audio_service (serviço em primeiro plano, MediaSession com capa → carro/Android Auto), layouts de celular, análise econômica.
+3. **AudioMuse API direta** (precisa do token): busca por texto, Alchemy, Music Map.
+4. **Jellyfin** como segundo provedor; cache da biblioteca para navegar offline; karaokê palavra por palavra; editor de smart playlist; estatísticas/retrospectiva; Chromecast/DLNA; controle remoto pelo celular.
+
+---
+
 ## 1. Decisão de stack (recomendada)
 
 **Flutter (UI em todas as plataformas) + núcleo de áudio em Rust** (ligados pelo `flutter_rust_bridge` v2).
