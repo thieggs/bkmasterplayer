@@ -1,0 +1,37 @@
+[package]
+name = "player_engine"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Motor de áudio do player: streaming com cache, decodificação, 2 decks, mixer e (futuro) AutoMix DJ"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.13.0"
+anyhow = "1.0"
+log = "0.4"
+parking_lot = "0.12"
+rtrb = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+symphonia = { version = "0.6.1", default-features = false, features = [
+    "aac", "alac", "flac", "mp3", "pcm", "vorbis", "adpcm",
+    "isomp4", "mkv", "ogg", "wav", "aiff", "caf",
+    "id3v1", "id3v2", "ape",
+] }
+cpal = "0.18.2"
+rubato = { version = "5.0", default-features = false }
+audioadapter-buffers = "5.2"
+ureq = "3.4"
+
+[target.'cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))'.dependencies]
+souvlaki = { version = "0.8.3", default-features = false, features = ["use_zbus"] }
+notify-rust = "4.18"
+
+[dev-dependencies]
+hound = "3.5"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

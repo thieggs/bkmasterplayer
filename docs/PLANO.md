@@ -1,0 +1,231 @@
+# Plano — Player de Música Multiplataforma (nome a definir)
+
+## Contexto
+
+Queremos um player de música próprio, open source, que:
+- rode em **PC (Linux primeiro, Windows depois)**, depois **Android** e mais pra frente **iOS/macOS** (quando tiver um Mac);
+- toque de **servidores de streaming open source**, principalmente o **Navidrome** (API Subsonic/OpenSubsonic), e depois outros (Gonic, Ampache, LMS, Jellyfin...);
+- seja compatível com o **AudioMuse-AI** (análise sônica por IA) pelo plugin do Navidrome, e também pela API direta dele;
+- tenha **customização completa** (tema, layout, comportamento, áudio);
+- tenha **transição automática estilo DJ** (beatmatching por BPM, alinhamento de compasso/frase, tom harmônico, time-stretch sem mudar o tom), igual ao AutoMix da Apple Music, só que aberto e configurável.
+
+A pasta do projeto está vazia. Este arquivo é o documento central: na Fase 0 ele vira `docs/PLANO.md` no repositório.
+
+---
+
+## 1. Decisão de stack (recomendada)
+
+**Flutter (UI em todas as plataformas) + núcleo de áudio em Rust** (ligados pelo `flutter_rust_bridge` v2).
+
+Por quê:
+- **Flutter**: uma base de código para Linux, Windows, Android, iOS e macOS. Portar do PC pro Android vira "adaptar layout e integração com o sistema", não reescrever. O sistema de temas facilita a customização completa.
+- **Motor em Rust** (em vez de só usar mpv/media_kit): o AutoMix DJ precisa de **2 decks tocando ao mesmo tempo, time-stretch em tempo real, EQ por deck e alinhamento no nível da amostra**, e o mpv não faz isso (ele toca um arquivo por vez). Além disso o `media_kit` está em "manutenção limitada" desde nov/2025. Em Rust temos bibliotecas maduras e com licença permissiva:
+  - `symphonia` (decodificação MP3/FLAC/AAC/ALAC/Vorbis/WAV), `cpal` (saída de áudio: ALSA/PipeWire, WASAPI, AAudio, CoreAudio), `rubato` (resample), `rustfft` (visualizador), `ebur128` (loudness).
+  - `beat-this` (MIT, Rust puro, sem dependência de sistema): detecção de batida e downbeat, estado da arte (ISMIR 2024). Leva ~4,6 s por faixa de 4,5 min em CPU (M4).
+  - `signalsmith-stretch` (MIT): time-stretch que preserva o tom, leve o bastante para rodar em celular (o Rubber Band é pesado demais pra mobile e o SoundTouch lida mal com transientes).
+- Alternativas descartadas: Tauri 2 (áudio em segundo plano no mobile é frágil), Compose Multiplatform (áudio no desktop JVM é fraco), Electron (pesado, sem mobile).
+
+**Dart/Flutter:** Riverpod (estado), go_router (rotas), drift/SQLite (cache da biblioteca, análises, configurações), dio (HTTP), window_manager, tray_manager, hotkey_manager, audio_service (mídia em segundo plano no Android/iOS).
+**Rust:** motor, streaming e cache de arquivo, DSP, análise e AutoMix. Controles de mídia no desktop pelo `souvlaki` (MPRIS no Linux, SMTC no Windows, macOS).
+**Licença:** GPL-3.0 (padrão do ecossistema, a mesma do Feishin). As dependências são MIT/Apache/MPL e são compatíveis.
+
+---
+
+## 2. Arquitetura
+
+```
+player-musica/
+├─ docs/PLANO.md                  ← este plano
+├─ app/                           ← Flutter
+│  └─ lib/
+│     ├─ core/        (DI, config, logs, i18n pt-BR/en)
+│     ├─ domain/      (Song, Album, Artist, Playlist, Queue, ServerCapabilities)
+│     ├─ data/
+│     │  ├─ providers/subsonic/   (OpenSubsonic: auth, browse, search, stream URL, lyrics, playQueue, playbackReport, sonicSimilarity)
+│     │  ├─ providers/audiomuse/  (API direta, opcional)
+│     │  ├─ providers/jellyfin/   (futuro)
+│     │  └─ db/                   (drift: cache da biblioteca, análises, settings, temas)
+│     ├─ features/    (library, player, queue, search, lyrics, playlists, audiomuse, automix, settings, customization, stats)
+│     └─ ui/          (theme engine, layout engine, widgets)
+└─ native/                        ← crate Rust "engine"
+   └─ src/
+      ├─ api.rs              (funções expostas ao Flutter via FRB)
+      ├─ stream.rs           (download HTTP progressivo → arquivo de cache, com range requests)
+      ├─ decoder.rs          (symphonia; Opus: libopus ou transcodificação no servidor)
+      ├─ deck.rs             (Deck A/B: posição, velocidade, EQ, ganho)
+      ├─ mixer.rs            (soma dos decks, curvas de crossfade equal-power, limiter)
+      ├─ dsp/                (EQ paramétrico biquad, ReplayGain, preamp, limiter, filtros HPF/LPF, eco)
+      ├─ stretch.rs          (signalsmith-stretch)
+      ├─ output.rs           (cpal, escolha de dispositivo)
+      ├─ analysis/           (beats, downbeats, BPM, tom, energia, loudness, intro/outro, frases)
+      └─ automix/            (planner de transição + executor)
+```
+
+**Interface de servidor (adapter):** `MusicServerProvider` com as capacidades detectadas em tempo de execução. Para OpenSubsonic, chamar `getOpenSubsonicExtensions` (não exige autenticação) no login e ligar/desligar recursos da UI conforme o que o servidor suporta: `sonicSimilarity`, `songLyrics`, `playbackReport`, `transcoding`, `apiKeyAuthentication`, `indexBasedQueue`, `formPost`.
+
+**Fluxo de reprodução:** o Flutter manda (URL de stream + auth) → o Rust baixa pro cache enquanto toca → decodifica → deck → mixer → saída. Esse mesmo arquivo em cache alimenta a análise do AutoMix. O motor já nasce com **2 decks**, mesmo antes do AutoMix existir, pra não precisar refatorar depois.
+
+---
+
+## 3. Integração Navidrome + AudioMuse-AI
+
+**Nível 1: pelo Navidrome (sem configuração extra)**
+- Requisitos: Navidrome **≥ 0.62** (a versão atual é 0.64) com o plugin **AudioMuse-AI-NV-plugin** ativo.
+- `getSimilarSongs2`: Instant Mix / rádio a partir de uma música.
+- `getArtistInfo2`: artistas parecidos.
+- Extensão `sonicSimilarity`:
+  - `getSonicSimilarTracks(id, count)`: retorna `sonicMatch[] { entry, similarity 0–1 }`.
+  - `findSonicPath(startSongId, endSongId, count=25)`: um "caminho sônico" entre 2 músicas (começa na primeira e termina na segunda).
+  - Se a extensão não for anunciada, o servidor responde 404, então a UI esconde esses recursos.
+- **Rádio infinita:** quando a fila está acabando, completa com `getSonicSimilarTracks` (sem repetir e respeitando os filtros do usuário).
+
+**Nível 2: API direta do AudioMuse-AI (opcional, recursos avançados)**
+- Configuração: URL do AudioMuse + `API_TOKEN` (header `Authorization: Bearer <token>`).
+- Recursos: busca por texto/CLAP ("piano calmo", "rock energético"), Song Alchemy (somar/subtrair músicas), Music Map (mapa 2D da biblioteca), Sonic Fingerprint (playlist pelo seu gosto), busca por letra/tema.
+- Tarefa da Fase 3: levantar os endpoints exatos no Swagger da sua instância (`http://<audiomuse>:8000/apidocs/`) e confirmar como os IDs do AudioMuse mapeiam para os IDs de música do Navidrome.
+- O AudioMuse também guarda tempo, tom e energia por faixa. Se houver endpoint pra ler isso, usar como **dica inicial** pro AutoMix.
+
+---
+
+## 4. AutoMix DJ: transição automática sincronizada por BPM
+
+**Referências:** Apple Music AutoMix (iOS 26: beatmatching + time-stretch + escolha do momento no downbeat), Auto DJ do Mixxx (intro/outro como seções), sistema de auto-DJ de Vande Veire & De Bie (batida → downbeat → segmentação → cue → transição com EQ).
+
+### 4.1 Análise por faixa (Rust, em segundo plano, com cache no SQLite)
+| Dado | Como |
+|---|---|
+| Batidas + downbeats | `beat-this` (modelo pequeno de 10 MB por padrão; completo de 83 MB como opção no desktop) |
+| BPM + confiança, grade de batidas | derivados das batidas (mediana dos intervalos), com detecção de meio tempo/tempo dobrado |
+| Frases (8/16/32 compassos) | contagem a partir dos downbeats + curva de novidade/energia por compasso |
+| Tom (key) + Camelot | cromagrama + perfis Krumhansl-Schmuckler em Rust (ou tom do AudioMuse/tags como dica) |
+| Loudness (LUFS) | `ebur128`, para igualar o volume dos 2 decks |
+| Energia por compasso | RMS/espectro, usado pra achar intro, outro, drops e quedas |
+| Primeiro/último som | detecção de silêncio (corta silêncio no começo e no fim) |
+
+- Tabela `track_analysis`: `server_id+song_id`, `analyzer_version`, bpm, beats/downbeats (f32 comprimido), key, camelot, lufs, energy_per_bar, intro_end, outro_start, phrases, first/last_sound.
+- **Quando analisar:** as próximas N músicas da fila assim que forem pré-carregadas. Opcionalmente, varredura da biblioteca quando o PC estiver ocioso. No Android, só no Wi-Fi e carregando (opção).
+- Dicas grátis: o campo `bpm` do OpenSubsonic (tags) e os dados do AudioMuse.
+
+### 4.2 Planner de transição (decide o "como" e o "quando")
+1. **Ponto de saída da faixa A:** início da frase de outro (queda de energia), ou a última frase antes de um outro longo, sempre em limite de 8/16/32 compassos.
+2. **Ponto de entrada da faixa B:** primeiro downbeat do intro. A duração é `min(outro A, intro B)`, arredondada pra 8/16/32 compassos.
+3. **Tempo:**
+   - Diferença de BPM ≤ limite (padrão **±8%**, configurável): time-stretch em B até o BPM de A durante a mixagem, depois **rampa suave** de volta ao BPM original de B em 8–16 compassos.
+   - Relação 2:1 (ex.: 87 ↔ 174): mixa em meio tempo/tempo dobrado.
+   - Diferença grande demais: fallback sem beatmatch (eco, filtro ou corte seco no downbeat).
+4. **Harmonia (roda Camelot):**
+   - Mesmo tom, ±1 número, ou troca maior/menor: blend longo.
+   - Tons incompatíveis: transição curta com filtro/bass-swap pra esconder o choque.
+5. **Fase:** alinhar o downbeat de B com o downbeat de A no nível da amostra. Durante a mixagem, corrigir a deriva a cada batida usando as duas grades (micro-ajuste da taxa de stretch).
+
+### 4.3 Estilos de transição (o executor no mixer)
+- **Blend com bass swap** (padrão pra música eletrônica/dançante): o grave de B começa cortado. No downbeat do meio da mixagem, troca em 1 batida (corta o grave de A e libera o de B). Volumes em curva equal-power.
+- **Filter sweep:** HPF subindo em A, LPF abrindo em B.
+- **Echo out:** eco/delay sincronizado ao BPM no final de A, B entra no downbeat.
+- **Corte no downbeat:** troca seca e precisa.
+- **Crossfade inteligente:** para gêneros sem batida clara ou quando a análise não está pronta (corta silêncio + curva equal-power).
+- **Auto:** escolhe o estilo pelo ΔBPM, pela compatibilidade de tom, pela energia e pela confiança da análise.
+
+### 4.4 Regras e UI
+- **Não mixar** em álbum gapless tocado em ordem, em álbuns ao vivo, música clássica, podcast ou audiobook (detectado automaticamente e configurável).
+- **Modo "DJ set" (opcional):** reordena a fila futura pra fluir em BPM/tom/energia, combinado com o AudioMuse (músicas similares e mixáveis).
+- Configurações: liga/desliga, estilo, stretch máximo, tamanho preferido (8/16/32 compassos), mixagem harmônica sim/não, exceções por gênero/álbum.
+- UI: indicador "Mixando…", waveform dos 2 decks com a grade de batidas (tela "nerd" opcional), BPM e tom na tela Tocando Agora.
+
+---
+
+## 5. Customização completa
+
+- **Motor de temas por tokens (JSON):** cores, fontes, tamanhos, cantos, espaçamento, blur, opacidade e animações. Presets claro/escuro/AMOLED. **Cor dinâmica extraída da capa.** Importar/exportar `.json`; no futuro, uma galeria de temas da comunidade.
+- **Layout:**
+  - Painéis encaixáveis e reordenáveis no desktop (sidebar, fila, letra, tocando agora, visualizador).
+  - Escolher quais botões aparecem na barra do player e em que ordem.
+  - Presets da tela Tocando Agora: capa grande, letra ao lado, vinil, minimalista, visualizador.
+  - Densidade da grade, formato da capa, escala da interface, mini player.
+- **Comportamento:** atalhos de teclado remapeáveis, gestos, ação do duplo clique, tela inicial, ordem padrão de ordenação.
+- **Áudio:** EQ gráfico e paramétrico com presets (perfis AutoEQ no futuro), modo ReplayGain (faixa/álbum/off), crossfade/AutoMix, dispositivo de saída.
+- **Perfis:** salvar a configuração inteira como perfil, exportar e importar.
+
+---
+
+## 6. Outras ideias (para você aprovar; marcadas por prioridade)
+
+**MVP** = primeira versão usável · **v1** = versão completa no PC · **Futuro**
+
+- **Reprodução:** gapless (MVP), ReplayGain (v1), sleep timer (v1), velocidade de reprodução (v1), histórico da fila (v1), shuffle inteligente sem repetir artista seguido (v1).
+- **Biblioteca:** álbuns, artistas, gêneros, anos, gravadoras e moods (MVP/v1); work/movement pra clássica (OpenSubsonic, v1); favoritos e notas (MVP); playlists com CRUD (MVP); editor de smart playlist do Navidrome (v1); busca com filtros (MVP); tocadas recentes e mais tocadas (v1).
+- **Letras:** sincronizadas LRC (v1), karaokê palavra por palavra e múltiplas vozes (letras v2 do OpenSubsonic, Navidrome 0.63+, v1), tela cheia (v1).
+- **Sincronização:** fila entre dispositivos via `savePlayQueue`/`getPlayQueue` ("continuar no celular", v1); `playbackReport` para scrobble e "tocando agora" (v1); vários servidores e contas (v1).
+- **Offline:** cache automático e download de álbuns/playlists com limite de espaço; transcodificação diferente pra Wi-Fi e dados móveis (v1 no PC, essencial no Android).
+- **Integração desktop:** MPRIS e teclas de mídia (MVP), bandeja do sistema e mini player "sempre no topo" (v1), Discord Rich Presence (v1), atalhos globais (v1), notificações (v1).
+- **Capa do álbum em qualquer controle de mídia (pedido do usuário, MVP):** a capa precisa aparecer em tudo que controla o player:
+  - **Linux:** MPRIS com `mpris:artUrl` apontando para um **arquivo local** (`file://…`, capa baixada num cache). É isso que KDE Connect/GSConnect enviam pro celular, e também aparece nos widgets do KDE/GNOME. Bluetooth PC→carro via BlueZ `mpris-proxy`, onde o suporte de capa depende do BlueZ/carro.
+  - **Windows:** miniatura no SMTC (Phone Link, overlay de volume).
+  - **Android:** `MediaSession` com o bitmap da capa, que chega ao carro via Bluetooth AVRCP 1.6 e ao Android Auto, além da tela de bloqueio e do relógio.
+  - **iOS:** `MPNowPlayingInfoCenter` com artwork (CarPlay).
+- **Notificação de troca de música no PC (pedido do usuário, MVP):**
+  - Opção liga/desliga nas configurações; mostra título, artista e capa.
+  - **Não empilha:** trocando várias vezes seguidas, fica só 1 notificação, sempre atualizada. Linux: `org.freedesktop.Notifications` com `replaces_id` da anterior. Windows: toast com a mesma tag/grupo.
+- **Mobile:** tocar em segundo plano e controles na tela de bloqueio (Fase Android), Android Auto, widgets, Chromecast/DLNA (Futuro).
+- **Visual:** visualizador de espectro, seekbar em forma de waveform, fundo animado com blur da capa (v1).
+- **Estatísticas:** estatísticas de escuta e "Retrospectiva" anual (Futuro).
+- **Controle remoto:** controlar o player do PC pelo celular na rede local (Futuro).
+- **Extras:** rádios online e podcasts (endpoints Subsonic, Futuro), compartilhar via `createShare` (Futuro), arquivos locais sem servidor (Futuro), Jellyfin nativo (Futuro), acessibilidade e i18n pt-BR/en desde o início.
+
+---
+
+## 7. Roadmap por fases
+
+| Fase | Entrega |
+|---|---|
+| **0. Setup** | Instalar Flutter, Rust e flutter_rust_bridge, mais as dependências Linux (`clang cmake ninja-build pkg-config libgtk-3-dev libasound2-dev`). `git init`, licença, CI simples. `docker-compose` de teste com Navidrome 0.64 + AudioMuse-AI + biblioteca de músicas livres (CC). Copiar este plano pra `docs/PLANO.md`. |
+| **1. MVP Linux** | Login no Navidrome (token salt+md5 e extensão API key), navegar pela biblioteca, buscar, tocar pelo motor Rust (streaming + cache), fila, gapless, MPRIS e teclas de mídia, tema claro/escuro, configurações salvas. |
+| **2. Player completo** | ReplayGain, EQ, crossfade simples (2 decks), letras, favoritos e notas, playlists, `playbackReport`, sincronizar fila, offline/cache, mini player, bandeja, atalhos. |
+| **3. AudioMuse** | Instant Mix, músicas sonicamente similares, tela de "caminho sônico" (escolher 2 músicas), rádio infinita. Conexão direta: busca por texto (CLAP), Alchemy, Music Map. |
+| **4. Customização** | Motor de temas e de layout, presets, importar/exportar, cor dinâmica, perfis. |
+| **5. AutoMix DJ** | Pipeline de análise + cache, planner, estilos de transição, regras, UI. Ajuste fino com o conjunto de testes (seção 9). |
+| **6. Windows** | Build, SMTC, instalador (MSIX ou Inno Setup), testes com WASAPI. |
+| **7. Android** | Layouts responsivos, audio_service (serviço em primeiro plano + MediaSession), cpal/AAudio, downloads, economia de bateria na análise, Android Auto. |
+| **8. iOS/macOS** | Quando tiver o Mac: build, AVAudioSession, conta Apple Developer. |
+
+---
+
+## 8. Riscos e cuidados
+
+- **Análise no celular é mais lenta:** usar o modelo pequeno, analisar antes da hora, manter cache e usar dicas de BPM/tom das tags e do AudioMuse. O fallback é o crossfade inteligente.
+- **Pra analisar a próxima faixa é preciso baixá-la inteira antes:** tranquilo no Wi-Fi. Em dados móveis, deixar configurável.
+- **Opus não é suportado nativamente pelo symphonia:** usar binding do libopus ou pedir transcodificação ao servidor.
+- **Endpoints da API direta do AudioMuse:** confirmar no Swagger antes de implementar (podem mudar entre versões).
+- **iOS:** exige Mac, e a conta Apple Developer paga pra distribuir.
+- **Compatibilidade:** testar também com Gonic e Ampache pra não depender de coisas específicas do Navidrome.
+
+---
+
+## 9. Verificação (como testar de ponta a ponta)
+
+- **Ambiente:** `docker compose up` (Navidrome + AudioMuse). Conferir `curl '<navidrome>/rest/getOpenSubsonicExtensions?f=json'` e ver se `sonicSimilarity` aparece.
+- **Rust (`cargo test`):**
+  - crossfade com precisão de amostra;
+  - resposta em frequência do EQ;
+  - ReplayGain;
+  - precisão das batidas num conjunto anotado (`beat_this_annotations` ou um subconjunto próprio);
+  - regras da roda Camelot;
+  - planner com casos fixos: 120→124 BPM, 87→174, tons incompatíveis, faixa sem batida.
+- **Métrica objetiva do AutoMix:** erro de alinhamento de batida durante a mixagem (correlação cruzada dos onsets dos 2 decks), meta **< 10 ms**, e ausência de clipping (pico ≤ -1 dBTP).
+- **Flutter (`flutter test`):** cliente Subsonic com fixtures gravadas + testes de integração contra o Navidrome local; widget tests da customização.
+- **Manual (`flutter run -d linux`):**
+  - login, tocar, álbum gapless sem clique entre faixas;
+  - MPRIS via `playerctl status/next`;
+  - Instant Mix e caminho sônico;
+  - sessão de escuta de 1 h com AutoMix ligado, anotando transições ruins.
+
+---
+
+## 10. Fontes principais
+
+- OpenSubsonic, extensões: https://opensubsonic.netlify.app/docs/extensions/ · findSonicPath: https://opensubsonic.netlify.app/docs/endpoints/findsonicpath/
+- Navidrome, PR sonicSimilarity (0.62): https://github.com/navidrome/navidrome/pull/5419 · release 0.63: https://github.com/navidrome/navidrome/releases/tag/v0.63.0 · plugins: https://www.navidrome.org/docs/usage/features/plugins/
+- AudioMuse-AI: https://github.com/NeptuneHub/AudioMuse-AI · plugin do Navidrome: https://github.com/NeptuneHub/AudioMuse-AI-NV-plugin · autenticação: https://neptunehub.github.io/AudioMuse-AI/AUTH/ · algoritmo: https://neptunehub.github.io/AudioMuse-AI/ALGORITHM/
+- AutoMix / DJ: https://musictech.com/news/gear/apple-music-automix-ai/ · https://mixxx.org/news/2020-07-09-intro-outro-sections/ · https://lenvdv.github.io/2018-03-20-autodj/
+- Bibliotecas: https://github.com/danigb/beat-this-rs · https://github.com/CPJKU/beat_this · https://crates.io/crates/signalsmith-stretch · https://pub.dev/packages/audio_service · https://pub.dev/packages/media_kit
+- Players de referência: Feishin https://github.com/jeffvli/feishin · Musly https://github.com/dddevid/musly · Finamp https://github.com/finamp-app/finamp · Symfonium https://docs.symfonium.app/wiki/

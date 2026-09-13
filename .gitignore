@@ -1,0 +1,9 @@
+# Biblioteca de teste gerada (dev/tools/gen_test_music.py) e dados do Navidrome de teste
+dev/music/
+dev/navidrome-data/
+
+# Configurações locais do Claude Code
+.claude/settings.local.json
+
+# Python
+__pycache__/

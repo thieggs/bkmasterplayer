@@ -1,0 +1,17 @@
+# Ambiente de teste local: Navidrome com a biblioteca sintética de dev/music.
+# Uso: ./dev/setup_navidrome.sh (sobe o container e cria o admin dev/dev).
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: player-dev-navidrome
+    ports:
+      - "4534:4533"
+    environment:
+      ND_LOGLEVEL: info
+      ND_SCANSCHEDULE: "0"          # sem varredura agendada; o setup dispara a varredura manualmente
+      ND_SESSIONTIMEOUT: 168h
+      ND_ENABLEINSIGHTSCOLLECTOR: "false"
+    volumes:
+      - ./navidrome-data:/data
+      - ./music:/music:ro
+    restart: unless-stopped
