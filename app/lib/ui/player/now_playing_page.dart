@@ -69,7 +69,18 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
                 ),
             ],
           ),
-        if (song != null) _TechInfo(song: song),
+        if (song != null) _TechInfo(song: song, insight: ref.watch(playerProvider.select((s) => s.insights[item?.uid]))),
+        Builder(builder: (context) {
+          final mix = ref.watch(playerProvider.select((s) => s.mix));
+          if (mix == null) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Chip(
+              avatar: const Icon(Icons.auto_awesome, size: 16),
+              label: Text('${l10n.mixing}: ${mix.summary}'),
+            ),
+          );
+        }),
         const SizedBox(height: 12),
         const SizedBox(width: 520, child: SeekBar()),
         const TransportControls(big: true),
@@ -175,8 +186,9 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
 }
 
 class _TechInfo extends StatelessWidget {
-  const _TechInfo({required this.song});
+  const _TechInfo({required this.song, this.insight});
   final Song song;
+  final TrackInsight? insight;
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +197,11 @@ class _TechInfo extends StatelessWidget {
       if (song.bitDepth != null && song.bitDepth! > 0) '${song.bitDepth} bit',
       if (song.sampleRate != null) '${(song.sampleRate! / 1000).toStringAsFixed(song.sampleRate! % 1000 == 0 ? 0 : 1)} kHz',
       if (song.bitRate != null && song.bitRate! > 0) '${song.bitRate} kbps',
-      if (song.bpm != null) '${song.bpm} BPM',
+      if (insight?.bpm != null && insight!.reliable)
+        '${insight!.bpm!.toStringAsFixed(insight!.bpm! % 1 == 0 ? 0 : 1)} BPM'
+      else if (song.bpm != null)
+        '${song.bpm} BPM',
+      if (insight?.key != null) '${insight!.key} (${insight!.camelot})',
     ];
     if (parts.isEmpty) return const SizedBox.shrink();
     return Text(parts.join(' • '), style: Theme.of(context).textTheme.labelSmall);

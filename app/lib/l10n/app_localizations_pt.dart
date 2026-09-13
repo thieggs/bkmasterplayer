@@ -414,4 +414,147 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get outputDeviceFailed =>
       'Não foi possível usar esse dispositivo; continuando no anterior.';
+
+  @override
+  String get automix => 'AutoMix (transição de DJ)';
+
+  @override
+  String get automixEnable => 'Ativar AutoMix';
+
+  @override
+  String get automixEnableHint =>
+      'Analisa as músicas (batida, compasso, tom) e faz transições sincronizadas como um DJ. Sem batida clara, faz uma transição suave.';
+
+  @override
+  String get automixStyle => 'Estilo da transição';
+
+  @override
+  String get mixAuto => 'Automático (recomendado)';
+
+  @override
+  String get mixBassSwap => 'Troca de grave';
+
+  @override
+  String get mixBlend => 'Mistura suave';
+
+  @override
+  String get mixFilter => 'Filtro';
+
+  @override
+  String get mixEcho => 'Eco';
+
+  @override
+  String get mixCut => 'Corte no compasso';
+
+  @override
+  String get automixBars => 'Duração preferida (compassos)';
+
+  @override
+  String get automixBarsHint =>
+      'Quanto as duas músicas tocam juntas quando a estrutura permite.';
+
+  @override
+  String get automixMaxSeconds => 'Duração máxima da transição';
+
+  @override
+  String get automixUnclear => 'Transição quando a música não é clara';
+
+  @override
+  String get automixUnclearHint =>
+      'Quanto da música usar na transição quando não há batida confiável ou intro/outro definidas.';
+
+  @override
+  String get automixMaxTempo => 'Mudança máxima de velocidade';
+
+  @override
+  String get automixMaxTempoHint =>
+      'Até quanto a próxima música pode acelerar/desacelerar para as batidas casarem (sem mudar o tom).';
+
+  @override
+  String get automixRamp => 'Volta ao tempo original (compassos)';
+
+  @override
+  String get automixRampKeep => 'mantém';
+
+  @override
+  String get automixRampHint =>
+      'Depois da transição, a música volta devagar à velocidade original.';
+
+  @override
+  String get automixHarmonic => 'Mixagem harmônica';
+
+  @override
+  String get automixHarmonicHint =>
+      'Quando os tons não combinam (roda Camelot), faz uma transição curta com filtro.';
+
+  @override
+  String get automixTrim => 'Cortar silêncio no começo e no fim';
+
+  @override
+  String get automixAlbums => 'Respeitar álbuns';
+
+  @override
+  String get automixAlbumsHint =>
+      'Faixas seguidas do mesmo álbum tocam sem pausa, sem mixar.';
+
+  @override
+  String get automixPreAnalyze => 'Pré-analisar a fila';
+
+  @override
+  String get automixPreAnalyzeHint =>
+      'Analisa as próximas músicas com antecedência, em segundo plano e com prioridade baixa.';
+
+  @override
+  String get automixDefaults => 'Restaurar padrões do AutoMix';
+
+  @override
+  String get analysisModel => 'Modelo de análise';
+
+  @override
+  String get modelAuto => 'Automático';
+
+  @override
+  String get modelSmall => 'Pequeno';
+
+  @override
+  String get modelFull => 'Completo';
+
+  @override
+  String get noAvx2 => 'sem AVX2';
+
+  @override
+  String modelDeviceInfo(
+    int cores,
+    String simd,
+    String recommended,
+    String active,
+  ) {
+    return 'Este aparelho: $cores núcleos, $simd. Recomendado: $recommended. Em uso: $active.';
+  }
+
+  @override
+  String get modelHint =>
+      'O pequeno (10 MB) é rápido e vem com o app. O completo (83 MB) é mais preciso e indicado para PCs fortes.';
+
+  @override
+  String get downloadFullModel => 'Baixar modelo completo (83 MB)';
+
+  @override
+  String get modelDownloaded => 'Modelo completo baixado e ativado';
+
+  @override
+  String get modelDownloadFailed => 'Falha ao baixar o modelo';
+
+  @override
+  String get mixing => 'Mixando';
+
+  @override
+  String get nextMix => 'Próxima transição';
+
+  @override
+  String get analyzedBpm => 'BPM analisado';
+
+  @override
+  String get crossfadeAutomixNote =>
+      'Com o AutoMix ligado, o crossfade só vale quando ele está desativado.';
 }

@@ -215,6 +215,7 @@ class PlayerBar extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  const _MixChip(),
                   IconButton(
                     tooltip: l10n.lyrics,
                     icon: const Icon(Icons.lyrics_outlined),
@@ -232,6 +233,34 @@ class PlayerBar extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Indicador de transição de DJ: pulsa enquanto mixa; mostra a próxima quando planejada.
+class _MixChip extends ConsumerWidget {
+  const _MixChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final (mix, planned) = ref.watch(playerProvider.select((s) => (s.mix, s.plannedMix)));
+    if (mix == null && planned == null) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    final active = mix != null;
+    return Tooltip(
+      message: active ? '${l10n.mixing}: ${mix.summary}' : '${l10n.nextMix}: $planned',
+      child: Padding(
+        padding: const EdgeInsets.only(right: 4),
+        child: Chip(
+          visualDensity: VisualDensity.compact,
+          avatar: Icon(Icons.auto_awesome, size: 16, color: active ? scheme.onPrimary : scheme.primary),
+          label: Text(active ? l10n.mixing : 'AutoMix'),
+          labelStyle: TextStyle(color: active ? scheme.onPrimary : null, fontSize: 12),
+          backgroundColor: active ? scheme.primary : null,
+          side: BorderSide.none,
         ),
       ),
     );

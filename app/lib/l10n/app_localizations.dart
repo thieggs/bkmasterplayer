@@ -817,6 +817,263 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível usar esse dispositivo; continuando no anterior.'**
   String get outputDeviceFailed;
+
+  /// No description provided for @automix.
+  ///
+  /// In pt, this message translates to:
+  /// **'AutoMix (transição de DJ)'**
+  String get automix;
+
+  /// No description provided for @automixEnable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar AutoMix'**
+  String get automixEnable;
+
+  /// No description provided for @automixEnableHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisa as músicas (batida, compasso, tom) e faz transições sincronizadas como um DJ. Sem batida clara, faz uma transição suave.'**
+  String get automixEnableHint;
+
+  /// No description provided for @automixStyle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estilo da transição'**
+  String get automixStyle;
+
+  /// No description provided for @mixAuto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Automático (recomendado)'**
+  String get mixAuto;
+
+  /// No description provided for @mixBassSwap.
+  ///
+  /// In pt, this message translates to:
+  /// **'Troca de grave'**
+  String get mixBassSwap;
+
+  /// No description provided for @mixBlend.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mistura suave'**
+  String get mixBlend;
+
+  /// No description provided for @mixFilter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtro'**
+  String get mixFilter;
+
+  /// No description provided for @mixEcho.
+  ///
+  /// In pt, this message translates to:
+  /// **'Eco'**
+  String get mixEcho;
+
+  /// No description provided for @mixCut.
+  ///
+  /// In pt, this message translates to:
+  /// **'Corte no compasso'**
+  String get mixCut;
+
+  /// No description provided for @automixBars.
+  ///
+  /// In pt, this message translates to:
+  /// **'Duração preferida (compassos)'**
+  String get automixBars;
+
+  /// No description provided for @automixBarsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto as duas músicas tocam juntas quando a estrutura permite.'**
+  String get automixBarsHint;
+
+  /// No description provided for @automixMaxSeconds.
+  ///
+  /// In pt, this message translates to:
+  /// **'Duração máxima da transição'**
+  String get automixMaxSeconds;
+
+  /// No description provided for @automixUnclear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transição quando a música não é clara'**
+  String get automixUnclear;
+
+  /// No description provided for @automixUnclearHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto da música usar na transição quando não há batida confiável ou intro/outro definidas.'**
+  String get automixUnclearHint;
+
+  /// No description provided for @automixMaxTempo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mudança máxima de velocidade'**
+  String get automixMaxTempo;
+
+  /// No description provided for @automixMaxTempoHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Até quanto a próxima música pode acelerar/desacelerar para as batidas casarem (sem mudar o tom).'**
+  String get automixMaxTempoHint;
+
+  /// No description provided for @automixRamp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Volta ao tempo original (compassos)'**
+  String get automixRamp;
+
+  /// No description provided for @automixRampKeep.
+  ///
+  /// In pt, this message translates to:
+  /// **'mantém'**
+  String get automixRampKeep;
+
+  /// No description provided for @automixRampHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Depois da transição, a música volta devagar à velocidade original.'**
+  String get automixRampHint;
+
+  /// No description provided for @automixHarmonic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mixagem harmônica'**
+  String get automixHarmonic;
+
+  /// No description provided for @automixHarmonicHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando os tons não combinam (roda Camelot), faz uma transição curta com filtro.'**
+  String get automixHarmonicHint;
+
+  /// No description provided for @automixTrim.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cortar silêncio no começo e no fim'**
+  String get automixTrim;
+
+  /// No description provided for @automixAlbums.
+  ///
+  /// In pt, this message translates to:
+  /// **'Respeitar álbuns'**
+  String get automixAlbums;
+
+  /// No description provided for @automixAlbumsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faixas seguidas do mesmo álbum tocam sem pausa, sem mixar.'**
+  String get automixAlbumsHint;
+
+  /// No description provided for @automixPreAnalyze.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pré-analisar a fila'**
+  String get automixPreAnalyze;
+
+  /// No description provided for @automixPreAnalyzeHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisa as próximas músicas com antecedência, em segundo plano e com prioridade baixa.'**
+  String get automixPreAnalyzeHint;
+
+  /// No description provided for @automixDefaults.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restaurar padrões do AutoMix'**
+  String get automixDefaults;
+
+  /// No description provided for @analysisModel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modelo de análise'**
+  String get analysisModel;
+
+  /// No description provided for @modelAuto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Automático'**
+  String get modelAuto;
+
+  /// No description provided for @modelSmall.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pequeno'**
+  String get modelSmall;
+
+  /// No description provided for @modelFull.
+  ///
+  /// In pt, this message translates to:
+  /// **'Completo'**
+  String get modelFull;
+
+  /// No description provided for @noAvx2.
+  ///
+  /// In pt, this message translates to:
+  /// **'sem AVX2'**
+  String get noAvx2;
+
+  /// No description provided for @modelDeviceInfo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este aparelho: {cores} núcleos, {simd}. Recomendado: {recommended}. Em uso: {active}.'**
+  String modelDeviceInfo(
+    int cores,
+    String simd,
+    String recommended,
+    String active,
+  );
+
+  /// No description provided for @modelHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O pequeno (10 MB) é rápido e vem com o app. O completo (83 MB) é mais preciso e indicado para PCs fortes.'**
+  String get modelHint;
+
+  /// No description provided for @downloadFullModel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar modelo completo (83 MB)'**
+  String get downloadFullModel;
+
+  /// No description provided for @modelDownloaded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modelo completo baixado e ativado'**
+  String get modelDownloaded;
+
+  /// No description provided for @modelDownloadFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha ao baixar o modelo'**
+  String get modelDownloadFailed;
+
+  /// No description provided for @mixing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mixando'**
+  String get mixing;
+
+  /// No description provided for @nextMix.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próxima transição'**
+  String get nextMix;
+
+  /// No description provided for @analyzedBpm.
+  ///
+  /// In pt, this message translates to:
+  /// **'BPM analisado'**
+  String get analyzedBpm;
+
+  /// No description provided for @crossfadeAutomixNote.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com o AutoMix ligado, o crossfade só vale quando ele está desativado.'**
+  String get crossfadeAutomixNote;
 }
 
 class _AppLocalizationsDelegate

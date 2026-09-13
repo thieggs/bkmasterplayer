@@ -9,6 +9,7 @@ import '../data/subsonic/subsonic_client.dart';
 import '../data/subsonic/subsonic_provider.dart';
 import '../domain/models.dart';
 import '../domain/music_provider.dart';
+import '../player/automix.dart';
 import '../src/rust/api/engine.dart' as engine;
 
 /// Sobrescritos no `main` com as instâncias reais.
@@ -41,6 +42,16 @@ class SettingsNotifier extends Notifier<AppSettings> {
     if (old.cacheLimitMb != s.cacheLimitMb) {
       engine.playerSetCacheLimit(limitMb: s.cacheLimitMb);
     }
+    final automixChanged = old.automixStyle != s.automixStyle ||
+        old.automixMaxTempo != s.automixMaxTempo ||
+        old.automixBars != s.automixBars ||
+        old.automixMaxSeconds != s.automixMaxSeconds ||
+        old.automixUnclearSeconds != s.automixUnclearSeconds ||
+        old.automixHarmonic != s.automixHarmonic ||
+        old.automixRampBars != s.automixRampBars ||
+        old.automixTrimSilence != s.automixTrimSilence ||
+        old.analysisModel != s.analysisModel;
+    if (automixChanged) applyAutomix(s);
   }
 }
 

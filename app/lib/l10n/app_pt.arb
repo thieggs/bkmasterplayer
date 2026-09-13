@@ -174,5 +174,63 @@
    }
   }
  },
- "outputDeviceFailed": "Não foi possível usar esse dispositivo; continuando no anterior."
+ "outputDeviceFailed": "Não foi possível usar esse dispositivo; continuando no anterior.",
+ "automix": "AutoMix (transição de DJ)",
+ "automixEnable": "Ativar AutoMix",
+ "automixEnableHint": "Analisa as músicas (batida, compasso, tom) e faz transições sincronizadas como um DJ. Sem batida clara, faz uma transição suave.",
+ "automixStyle": "Estilo da transição",
+ "mixAuto": "Automático (recomendado)",
+ "mixBassSwap": "Troca de grave",
+ "mixBlend": "Mistura suave",
+ "mixFilter": "Filtro",
+ "mixEcho": "Eco",
+ "mixCut": "Corte no compasso",
+ "automixBars": "Duração preferida (compassos)",
+ "automixBarsHint": "Quanto as duas músicas tocam juntas quando a estrutura permite.",
+ "automixMaxSeconds": "Duração máxima da transição",
+ "automixUnclear": "Transição quando a música não é clara",
+ "automixUnclearHint": "Quanto da música usar na transição quando não há batida confiável ou intro/outro definidas.",
+ "automixMaxTempo": "Mudança máxima de velocidade",
+ "automixMaxTempoHint": "Até quanto a próxima música pode acelerar/desacelerar para as batidas casarem (sem mudar o tom).",
+ "automixRamp": "Volta ao tempo original (compassos)",
+ "automixRampKeep": "mantém",
+ "automixRampHint": "Depois da transição, a música volta devagar à velocidade original.",
+ "automixHarmonic": "Mixagem harmônica",
+ "automixHarmonicHint": "Quando os tons não combinam (roda Camelot), faz uma transição curta com filtro.",
+ "automixTrim": "Cortar silêncio no começo e no fim",
+ "automixAlbums": "Respeitar álbuns",
+ "automixAlbumsHint": "Faixas seguidas do mesmo álbum tocam sem pausa, sem mixar.",
+ "automixPreAnalyze": "Pré-analisar a fila",
+ "automixPreAnalyzeHint": "Analisa as próximas músicas com antecedência, em segundo plano e com prioridade baixa.",
+ "automixDefaults": "Restaurar padrões do AutoMix",
+ "analysisModel": "Modelo de análise",
+ "modelAuto": "Automático",
+ "modelSmall": "Pequeno",
+ "modelFull": "Completo",
+ "noAvx2": "sem AVX2",
+ "modelDeviceInfo": "Este aparelho: {cores} núcleos, {simd}. Recomendado: {recommended}. Em uso: {active}.",
+ "@modelDeviceInfo": {
+  "placeholders": {
+   "cores": {
+    "type": "int"
+   },
+   "simd": {
+    "type": "String"
+   },
+   "recommended": {
+    "type": "String"
+   },
+   "active": {
+    "type": "String"
+   }
+  }
+ },
+ "modelHint": "O pequeno (10 MB) é rápido e vem com o app. O completo (83 MB) é mais preciso e indicado para PCs fortes.",
+ "downloadFullModel": "Baixar modelo completo (83 MB)",
+ "modelDownloaded": "Modelo completo baixado e ativado",
+ "modelDownloadFailed": "Falha ao baixar o modelo",
+ "mixing": "Mixando",
+ "nextMix": "Próxima transição",
+ "analyzedBpm": "BPM analisado",
+ "crossfadeAutomixNote": "Com o AutoMix ligado, o crossfade só vale quando ele está desativado."
 }

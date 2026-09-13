@@ -8,6 +8,7 @@ import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
 import '../actions.dart';
+import 'automix_settings.dart';
 
 final outputDevicesProvider = FutureProvider.autoDispose<List<engine.OutputDevice>>((ref) => engine.playerOutputDevices());
 final cacheSizeProvider = FutureProvider.autoDispose<int>((ref) => engine.playerCacheSize());
@@ -148,7 +149,8 @@ class SettingsPage extends ConsumerWidget {
                 label: l10n.seconds(s.crossfadeSeconds),
                 onChanged: (v) => set((x) => x.copyWith(crossfadeSeconds: v.round())),
               ),
-              Text(l10n.crossfadeHint, style: theme.textTheme.bodySmall),
+              Text(s.automixEnabled ? '${l10n.crossfadeHint} ${l10n.crossfadeAutomixNote}' : l10n.crossfadeHint,
+                  style: theme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -211,6 +213,10 @@ class SettingsPage extends ConsumerWidget {
             ),
           );
         }),
+
+        // ---- AutoMix ----
+        section(l10n.automix),
+        const AutomixSettingsSection(),
 
         // ---- Desktop ----
         if (isDesktop) ...[

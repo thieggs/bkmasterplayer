@@ -9,6 +9,7 @@ import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'core/providers.dart';
 import 'data/settings.dart';
+import 'player/automix.dart';
 import 'src/rust/api/engine.dart' as engine;
 import 'src/rust/frb_generated.dart';
 
@@ -50,6 +51,12 @@ Future<void> main() async {
   final settings = AppSettings.load(prefs);
   final cacheDir = await getApplicationCacheDirectory();
   await Directory('${cacheDir.path}/ui_covers').create(recursive: true);
+  Directory? modelDir;
+  try {
+    modelDir = await prepareModels();
+  } catch (e) {
+    debugPrint('modelos de análise indisponíveis: $e');
+  }
 
   await engine.playerInit(
     config: engine.PlayerConfig(
@@ -59,8 +66,11 @@ Future<void> main() async {
       appId: appId,
       appName: appName,
       mediaControls: isDesktop,
+      modelDir: modelDir?.path,
+      analysisModel: 'small',
     ),
   );
+  await applyAutomix(settings);
   engine.playerSetNotifications(enabled: settings.notifications && isDesktop);
 
   runApp(ProviderScope(

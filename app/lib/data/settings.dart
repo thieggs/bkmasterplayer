@@ -7,6 +7,10 @@ enum ReplayGainMode { off, track, album, auto }
 
 enum LoopMode { off, all, one }
 
+enum MixStyleSetting { auto, bassSwap, blend, filter, echo, cut }
+
+enum AnalysisModelSetting { auto, small, full }
+
 /// Configurações do app (persistidas como JSON). A customização visual
 /// completa (tokens de tema e layout) cresce aqui na Fase 4.
 @immutable
@@ -26,6 +30,18 @@ class AppSettings {
     this.maxBitRate = 0,
     this.volume = 1.0,
     this.locale,
+    this.automixEnabled = true,
+    this.automixStyle = MixStyleSetting.auto,
+    this.automixMaxTempo = 8,
+    this.automixBars = 16,
+    this.automixMaxSeconds = 40,
+    this.automixUnclearSeconds = 8,
+    this.automixHarmonic = true,
+    this.automixRampBars = 16,
+    this.automixTrimSilence = true,
+    this.automixRespectAlbums = true,
+    this.analysisModel = AnalysisModelSetting.auto,
+    this.preAnalyze = true,
   });
 
   final ThemeMode themeMode;
@@ -42,6 +58,20 @@ class AppSettings {
   final int maxBitRate;
   final double volume;
   final String? locale;
+
+  // AutoMix (transição de DJ)
+  final bool automixEnabled;
+  final MixStyleSetting automixStyle;
+  final double automixMaxTempo;
+  final int automixBars;
+  final double automixMaxSeconds;
+  final double automixUnclearSeconds;
+  final bool automixHarmonic;
+  final int automixRampBars;
+  final bool automixTrimSilence;
+  final bool automixRespectAlbums;
+  final AnalysisModelSetting analysisModel;
+  final bool preAnalyze;
 
   AppSettings copyWith({
     ThemeMode? themeMode,
@@ -61,6 +91,18 @@ class AppSettings {
     double? volume,
     String? locale,
     bool clearLocale = false,
+    bool? automixEnabled,
+    MixStyleSetting? automixStyle,
+    double? automixMaxTempo,
+    int? automixBars,
+    double? automixMaxSeconds,
+    double? automixUnclearSeconds,
+    bool? automixHarmonic,
+    int? automixRampBars,
+    bool? automixTrimSilence,
+    bool? automixRespectAlbums,
+    AnalysisModelSetting? analysisModel,
+    bool? preAnalyze,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -77,6 +119,18 @@ class AppSettings {
         maxBitRate: maxBitRate ?? this.maxBitRate,
         volume: volume ?? this.volume,
         locale: clearLocale ? null : (locale ?? this.locale),
+        automixEnabled: automixEnabled ?? this.automixEnabled,
+        automixStyle: automixStyle ?? this.automixStyle,
+        automixMaxTempo: automixMaxTempo ?? this.automixMaxTempo,
+        automixBars: automixBars ?? this.automixBars,
+        automixMaxSeconds: automixMaxSeconds ?? this.automixMaxSeconds,
+        automixUnclearSeconds: automixUnclearSeconds ?? this.automixUnclearSeconds,
+        automixHarmonic: automixHarmonic ?? this.automixHarmonic,
+        automixRampBars: automixRampBars ?? this.automixRampBars,
+        automixTrimSilence: automixTrimSilence ?? this.automixTrimSilence,
+        automixRespectAlbums: automixRespectAlbums ?? this.automixRespectAlbums,
+        analysisModel: analysisModel ?? this.analysisModel,
+        preAnalyze: preAnalyze ?? this.preAnalyze,
       );
 
   Map<String, dynamic> toJson() => {
@@ -94,6 +148,18 @@ class AppSettings {
         'maxBitRate': maxBitRate,
         'volume': volume,
         'locale': locale,
+        'automixEnabled': automixEnabled,
+        'automixStyle': automixStyle.name,
+        'automixMaxTempo': automixMaxTempo,
+        'automixBars': automixBars,
+        'automixMaxSeconds': automixMaxSeconds,
+        'automixUnclearSeconds': automixUnclearSeconds,
+        'automixHarmonic': automixHarmonic,
+        'automixRampBars': automixRampBars,
+        'automixTrimSilence': automixTrimSilence,
+        'automixRespectAlbums': automixRespectAlbums,
+        'analysisModel': analysisModel.name,
+        'preAnalyze': preAnalyze,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -114,6 +180,18 @@ class AppSettings {
       maxBitRate: pick('maxBitRate', d.maxBitRate),
       volume: (j['volume'] as num?)?.toDouble() ?? d.volume,
       locale: j['locale'] as String?,
+      automixEnabled: pick('automixEnabled', d.automixEnabled),
+      automixStyle: MixStyleSetting.values.asNameMap()[j['automixStyle']] ?? d.automixStyle,
+      automixMaxTempo: (j['automixMaxTempo'] as num?)?.toDouble() ?? d.automixMaxTempo,
+      automixBars: pick('automixBars', d.automixBars),
+      automixMaxSeconds: (j['automixMaxSeconds'] as num?)?.toDouble() ?? d.automixMaxSeconds,
+      automixUnclearSeconds: (j['automixUnclearSeconds'] as num?)?.toDouble() ?? d.automixUnclearSeconds,
+      automixHarmonic: pick('automixHarmonic', d.automixHarmonic),
+      automixRampBars: pick('automixRampBars', d.automixRampBars),
+      automixTrimSilence: pick('automixTrimSilence', d.automixTrimSilence),
+      automixRespectAlbums: pick('automixRespectAlbums', d.automixRespectAlbums),
+      analysisModel: AnalysisModelSetting.values.asNameMap()[j['analysisModel']] ?? d.analysisModel,
+      preAnalyze: pick('preAnalyze', d.preAnalyze),
     );
   }
 

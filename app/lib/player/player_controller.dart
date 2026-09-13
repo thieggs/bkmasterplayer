@@ -12,6 +12,23 @@ import '../domain/models.dart';
 import '../domain/music_provider.dart';
 import '../src/rust/api/engine.dart' as engine;
 
+/// Resultado da análise (BPM/tom) de uma entrada da fila.
+class TrackInsight {
+  const TrackInsight({this.bpm, this.key, this.camelot, this.reliable = false});
+  final double? bpm;
+  final String? key;
+  final String? camelot;
+  final bool reliable;
+}
+
+/// Transição de DJ em andamento (para o indicador "Mixando…").
+class MixInfo {
+  const MixInfo({required this.summary, required this.style, required this.until});
+  final String summary;
+  final String style;
+  final DateTime until;
+}
+
 class QueueItem {
   const QueueItem(this.uid, this.song);
 
@@ -34,6 +51,9 @@ class PlayerState {
     this.shuffle = false,
     this.volume = 1.0,
     this.message,
+    this.insights = const {},
+    this.mix,
+    this.plannedMix,
   });
 
   final List<QueueItem> queue;
@@ -49,6 +69,15 @@ class PlayerState {
 
   /// Mensagem para o usuário (erro ao tocar etc.). O shell mostra e limpa.
   final String? message;
+
+  /// BPM/tom analisados, por uid da fila.
+  final Map<String, TrackInsight> insights;
+
+  /// Transição de DJ tocando agora.
+  final MixInfo? mix;
+
+  /// Resumo da próxima transição planejada.
+  final String? plannedMix;
 
   QueueItem? get current => index >= 0 && index < queue.length ? queue[index] : null;
   bool get hasNext => index + 1 < queue.length || repeat != LoopMode.off;
@@ -66,6 +95,11 @@ class PlayerState {
     double? volume,
     String? message,
     bool clearMessage = false,
+    Map<String, TrackInsight>? insights,
+    MixInfo? mix,
+    bool clearMix = false,
+    String? plannedMix,
+    bool clearPlanned = false,
   }) =>
       PlayerState(
         queue: queue ?? this.queue,
@@ -79,6 +113,9 @@ class PlayerState {
         shuffle: shuffle ?? this.shuffle,
         volume: volume ?? this.volume,
         message: clearMessage ? null : (message ?? this.message),
+        insights: insights ?? this.insights,
+        mix: clearMix ? null : (mix ?? this.mix),
+        plannedMix: clearPlanned ? null : (plannedMix ?? this.plannedMix),
       );
 }
 
@@ -105,7 +142,9 @@ class PlayerController extends Notifier<PlayerState> {
     ref.listen(settingsProvider, (prev, next) {
       if (prev?.crossfadeSeconds != next.crossfadeSeconds ||
           prev?.replayGainMode != next.replayGainMode ||
-          prev?.replayGainPreampDb != next.replayGainPreampDb) {
+          prev?.replayGainPreampDb != next.replayGainPreampDb ||
+          prev?.automixEnabled != next.automixEnabled ||
+          prev?.automixRespectAlbums != next.automixRespectAlbums) {
         _scheduledKey = null;
         _scheduleNext();
       }
@@ -323,7 +362,12 @@ class PlayerController extends Notifier<PlayerState> {
         (a.disc ?? 1) == (b.disc ?? 1) &&
         a.track != null &&
         b.track == a.track! + 1;
-    // Faixas seguidas do mesmo álbum sempre sem pausa e sem crossfade (álbuns ao vivo, conceituais).
+    // Faixas seguidas do mesmo álbum: sem pausa e sem mixagem (álbuns ao vivo,
+    // conceituais, mixados) — a menos que o usuário desligue essa proteção.
+    final protectAlbum = albumSequence && s.automixRespectAlbums;
+    if (s.automixEnabled && !protectAlbum && cur.uid != next.uid) {
+      return const engine.TransitionMode.automix();
+    }
     if (s.crossfadeSeconds > 0 && !albumSequence) {
       return engine.TransitionMode.crossfade(ms: s.crossfadeSeconds * 1000);
     }
@@ -369,6 +413,7 @@ class PlayerController extends Notifier<PlayerState> {
       album: song.album ?? '',
       coverUrl: p.coverUri(song.coverArt, size: 600)?.toString(),
       coverKey: p.coverCacheKey(song.coverArt, size: 600),
+      analysisKey: '${p.accountId}:song:${song.id}',
     );
   }
 
@@ -385,6 +430,7 @@ class PlayerController extends Notifier<PlayerState> {
           );
           _scheduleNext();
           _beginScrobble(item);
+          _preAnalyze(i);
         }
       case engine.PlayerEvent_TrackEnded(:final id, :final error):
         if (error != null) {
@@ -413,6 +459,30 @@ class PlayerController extends Notifier<PlayerState> {
         break;
       case engine.PlayerEvent_Error(:final message):
         state = state.copyWith(message: message);
+      case engine.PlayerEvent_Analysis(:final id, :final bpm, :final key, :final camelot, :final reliable):
+        state = state.copyWith(insights: {
+          ...state.insights,
+          id: TrackInsight(bpm: bpm, key: key, camelot: camelot, reliable: reliable),
+        });
+      case engine.PlayerEvent_MixPlanned(:final summary):
+        state = state.copyWith(plannedMix: summary);
+      case engine.PlayerEvent_MixStarted(:final summary, :final style, :final durationMs):
+        final until = DateTime.now().add(Duration(milliseconds: durationMs));
+        state = state.copyWith(mix: MixInfo(summary: summary, style: style, until: until), clearPlanned: true);
+        _mixTimer?.cancel();
+        _mixTimer = Timer(Duration(milliseconds: durationMs), () => state = state.copyWith(clearMix: true));
+    }
+  }
+
+  Timer? _mixTimer;
+
+  /// Pré-análise das próximas faixas da fila (AutoMix pronto na hora da troca).
+  void _preAnalyze(int index) {
+    final s = ref.read(settingsProvider);
+    if (!s.automixEnabled || !s.preAnalyze) return;
+    for (var j = index + 2; j < state.queue.length && j <= index + 3; j++) {
+      final src = _source(state.queue[j]);
+      if (src != null) engine.playerAnalyze(track: src);
     }
   }
 

@@ -277,6 +277,9 @@ impl Inner {
             *slot.lock() = opened.download.clone();
             Decoder::open(opened.source, ext.as_deref(), opened.content_type.as_deref())
         });
+        // Posição provisória até a produtora fazer o seek exato (a UI e o
+        // planejador do AutoMix já veem a posição certa logo após um seek).
+        src.shared.start_frame.store(start_ms * rate as u64 / 1000, std::sync::atomic::Ordering::Relaxed);
         self.tracks.lock().insert(token, Track { req, deck: src.shared.clone(), download: dl_slot });
         Box::new(src)
     }
@@ -404,7 +407,8 @@ impl Inner {
                 .map(|t| t.req.id.clone())
                 .collect();
             let next_id = self.ctl.lock().next.as_ref().and_then(|(r, _)| (r.analysis_key.as_deref() == Some(key)).then(|| r.id.clone()));
-            for id in ids.into_iter().chain(next_id) {
+            let mut seen = std::collections::HashSet::new();
+            for id in ids.into_iter().chain(next_id).filter(|id| seen.insert(id.clone())) {
                 self.emit(EngineEvent::Analysis {
                     id,
                     bpm: a.bpm,
