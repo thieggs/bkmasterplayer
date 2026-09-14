@@ -1003,12 +1003,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String jamRequestTitle(String name) {
-    return '$name wants to join your Jam';
+    return '$name wants to join your Party';
   }
 
   @override
   String jamRequestBody(String via) {
-    return 'Request $via. People in the Jam can add songs and control playback.';
+    return 'Request $via. People in the Party can add songs and control playback.';
   }
 
   @override
@@ -1027,7 +1027,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reject => 'Decline';
 
   @override
-  String get startJam => 'Start a Jam';
+  String get startJam => 'Start a Party';
 
   @override
   String get startJamHint =>
@@ -1035,32 +1035,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String jamWaiting(String name) {
-    return 'Asking to join $name\'s Jam… Wait for them to accept.';
+    return 'Asking to join $name\'s Party… Wait for them to accept.';
   }
 
   @override
   String get jamRejected => 'The request wasn\'t accepted.';
 
   @override
-  String get jamEnded => 'The Jam ended.';
+  String get jamEnded => 'The Party ended.';
 
   @override
-  String get jamsNearby => 'Jams nearby';
+  String get jamsNearby => 'Parties nearby';
 
   @override
   String get jamSearching =>
-      'Searching… Ask whoever is playing to open a Jam in BKplayer.';
+      'Searching… Ask whoever is playing to open a Party in BKplayer.';
 
   @override
   String jamOf(String name) {
-    return '$name\'s Jam';
+    return '$name\'s Party';
   }
 
   @override
   String get join => 'Join';
 
   @override
-  String get jamOpen => 'Your Jam is open';
+  String get jamOpen => 'Your Party is open';
 
   @override
   String jamOpenHint(String name) {
@@ -1075,9 +1075,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count people in the Jam',
-      one: '1 person in the Jam',
-      zero: 'Nobody in the Jam',
+      other: '$count people in the Party',
+      one: '1 person in the Party',
+      zero: 'Nobody in the Party',
     );
     return '$_temp0';
   }
@@ -1107,7 +1107,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get jamSearchHost => 'Search the Jam\'s music';
+  String get jamSearchHost => 'Search the Party\'s music';
 
   @override
   String jamAdded(String title) {
@@ -1119,7 +1119,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get jamSendFileHint =>
-      'Pick a song on this device to play in the Jam.';
+      'Pick a song on this device to play in the Party.';
 
   @override
   String get jamSearchMine => 'Search your music to send';
@@ -1130,19 +1130,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get jamSent => 'In the Jam\'s queue';
+  String get jamSent => 'In the Party\'s queue';
 
   @override
   String get jamSendFailed => 'Couldn\'t send it';
 
   @override
-  String get jamInOne => 'You\'re in a Jam';
+  String get jamInOne => 'You\'re in a Party';
 
   @override
   String get jamMenuHint => 'Play together with people nearby';
 
   @override
-  String get jamAllowlist => 'Auto-accepted in the Jam';
+  String get jamAllowlist => 'Auto-accepted in the Party';
 
   @override
   String get jamAllowlistEmpty =>
@@ -1150,17 +1150,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get jamAllowlistHint =>
-      'These people join your Jam without asking. Tap X to remove.';
+      'These people join your Party without asking. Tap X to remove.';
 
   @override
-  String get jamNearbyAlerts => 'Notify me when there\'s a Jam nearby';
+  String get jamNearbyAlerts => 'Notify me when there\'s a Party nearby';
 
   @override
   String get jamNearbyAlertsHint =>
       'Uses Bluetooth in low-power mode, even with the app closed.';
 
   @override
-  String get joinJamNoAccount => 'Join a Jam nearby (no account)';
+  String get joinJamNoAccount => 'Join a Party nearby (no account)';
 
   @override
   String get downloadAll => 'Download every song on the server';
@@ -1248,7 +1248,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSources => 'Lyrics, covers and Last.fm';
 
   @override
-  String get settingsDevices => 'Devices and Jam';
+  String get settingsDevices => 'Devices and Party';
 
   @override
   String get language => 'Language';
@@ -1645,4 +1645,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backToOriginalHint =>
       'The BKplayer theme, as the app ships (the current look goes to automatic backups if not saved).';
+
+  @override
+  String get party => 'Party';
 }

@@ -1876,7 +1876,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamRequestTitle.
   ///
   /// In pt, this message translates to:
-  /// **'{name} quer entrar na sua Jam'**
+  /// **'{name} quer entrar na sua Festa'**
   String jamRequestTitle(String name);
 
   /// No description provided for @jamRequestBody.
@@ -1918,7 +1918,7 @@ abstract class AppLocalizations {
   /// No description provided for @startJam.
   ///
   /// In pt, this message translates to:
-  /// **'Começar uma Jam'**
+  /// **'Começar uma Festa'**
   String get startJam;
 
   /// No description provided for @startJamHint.
@@ -1930,7 +1930,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamWaiting.
   ///
   /// In pt, this message translates to:
-  /// **'Pedindo para entrar na Jam de {name}… Espere a pessoa aceitar.'**
+  /// **'Pedindo para entrar na Festa de {name}… Espere a pessoa aceitar.'**
   String jamWaiting(String name);
 
   /// No description provided for @jamRejected.
@@ -1942,25 +1942,25 @@ abstract class AppLocalizations {
   /// No description provided for @jamEnded.
   ///
   /// In pt, this message translates to:
-  /// **'A Jam acabou.'**
+  /// **'A Festa acabou.'**
   String get jamEnded;
 
   /// No description provided for @jamsNearby.
   ///
   /// In pt, this message translates to:
-  /// **'Jams por perto'**
+  /// **'Festas por perto'**
   String get jamsNearby;
 
   /// No description provided for @jamSearching.
   ///
   /// In pt, this message translates to:
-  /// **'Procurando… Peça para quem está tocando abrir uma Jam no BKplayer.'**
+  /// **'Procurando… Peça para quem está tocando abrir uma Festa no BKplayer.'**
   String get jamSearching;
 
   /// No description provided for @jamOf.
   ///
   /// In pt, this message translates to:
-  /// **'Jam de {name}'**
+  /// **'Festa de {name}'**
   String jamOf(String name);
 
   /// No description provided for @join.
@@ -1972,7 +1972,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamOpen.
   ///
   /// In pt, this message translates to:
-  /// **'Sua Jam está aberta'**
+  /// **'Sua Festa está aberta'**
   String get jamOpen;
 
   /// No description provided for @jamOpenHint.
@@ -1990,7 +1990,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamPeople.
   ///
   /// In pt, this message translates to:
-  /// **'{count, plural, =0{Ninguém na Jam} =1{1 pessoa na Jam} other{{count} pessoas na Jam}}'**
+  /// **'{count, plural, =0{Ninguém na Festa} =1{1 pessoa na Festa} other{{count} pessoas na Festa}}'**
   String jamPeople(int count);
 
   /// No description provided for @jamNobodyYet.
@@ -2038,7 +2038,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamSearchHost.
   ///
   /// In pt, this message translates to:
-  /// **'Buscar nas músicas da Jam'**
+  /// **'Buscar nas músicas da Festa'**
   String get jamSearchHost;
 
   /// No description provided for @jamAdded.
@@ -2056,7 +2056,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamSendFileHint.
   ///
   /// In pt, this message translates to:
-  /// **'Escolha uma música deste aparelho para tocar na Jam.'**
+  /// **'Escolha uma música deste aparelho para tocar na Festa.'**
   String get jamSendFileHint;
 
   /// No description provided for @jamSearchMine.
@@ -2074,7 +2074,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamSent.
   ///
   /// In pt, this message translates to:
-  /// **'Na fila da Jam'**
+  /// **'Na fila da Festa'**
   String get jamSent;
 
   /// No description provided for @jamSendFailed.
@@ -2086,7 +2086,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamInOne.
   ///
   /// In pt, this message translates to:
-  /// **'Você está numa Jam'**
+  /// **'Você está numa Festa'**
   String get jamInOne;
 
   /// No description provided for @jamMenuHint.
@@ -2098,7 +2098,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamAllowlist.
   ///
   /// In pt, this message translates to:
-  /// **'Aceitos automaticamente na Jam'**
+  /// **'Aceitos automaticamente na Festa'**
   String get jamAllowlist;
 
   /// No description provided for @jamAllowlistEmpty.
@@ -2110,13 +2110,13 @@ abstract class AppLocalizations {
   /// No description provided for @jamAllowlistHint.
   ///
   /// In pt, this message translates to:
-  /// **'Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar.'**
+  /// **'Estas pessoas entram na sua Festa sem pedir. Toque no X para tirar.'**
   String get jamAllowlistHint;
 
   /// No description provided for @jamNearbyAlerts.
   ///
   /// In pt, this message translates to:
-  /// **'Avisar quando houver uma Jam por perto'**
+  /// **'Avisar quando houver uma Festa por perto'**
   String get jamNearbyAlerts;
 
   /// No description provided for @jamNearbyAlertsHint.
@@ -2128,7 +2128,7 @@ abstract class AppLocalizations {
   /// No description provided for @joinJamNoAccount.
   ///
   /// In pt, this message translates to:
-  /// **'Entrar numa Jam por perto (sem conta)'**
+  /// **'Entrar numa Festa por perto (sem conta)'**
   String get joinJamNoAccount;
 
   /// No description provided for @downloadAll.
@@ -2278,7 +2278,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsDevices.
   ///
   /// In pt, this message translates to:
-  /// **'Aparelhos e Jam'**
+  /// **'Aparelhos e Festa'**
   String get settingsDevices;
 
   /// No description provided for @language.
@@ -3036,6 +3036,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'O tema BKplayer, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).'**
   String get backToOriginalHint;
+
+  /// No description provided for @party.
+  ///
+  /// In pt, this message translates to:
+  /// **'Festa'**
+  String get party;
 }
 
 class _AppLocalizationsDelegate

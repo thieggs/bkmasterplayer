@@ -20,7 +20,7 @@ seguir.
 - **AudioMuse-AI (via Navidrome):** Mix instantâneo, rádio sônica, caminho sônico entre duas músicas e rádio infinita.
 - **Modo DJ:** a partir de uma música, o AudioMuse e o AutoMix escolhem cada próxima pelo melhor encaixe (parecença, BPM e tom).
 - **Sem servidor:** toca as músicas do aparelho (pastas escolhidas); o Last.fm dá as parecidas quando não há AudioMuse.
-- **Jam:** quem está perto entra na sua música, adiciona (da sua biblioteca ou das dele) e controla. Pela rede local ou, no Android, por Bluetooth/Wi-Fi Direct; cada pessoa só entra com a sua aprovação (ou se estiver na lista de aceitos).
+- **Festa:** quem está perto entra na sua música, adiciona (da sua biblioteca ou das dele) e controla. Pela rede local ou, no Android, por Bluetooth/Wi-Fi Direct; cada pessoa só entra com a sua aprovação (ou se estiver na lista de aceitos).
 - **Fila:** salva no disco e sincronizada com o servidor (continuar em outro aparelho).
 - **Connect:** escolher em qual aparelho tocar e controlá-lo (PC, notebook, celular da mesma conta), como no Spotify Connect.
 - **Endereço de casa:** usa o endereço da rede local quando ele responde (mais rápido) e o principal fora de casa.

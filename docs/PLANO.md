@@ -13,7 +13,7 @@ A pasta do projeto está vazia. Este arquivo é o documento central: na Fase 0 e
 
 ---
 
-## Status (14/09/2026): PC (Linux) completo · Android completo (com Android Auto e Jam)
+## Status (14/09/2026): PC (Linux) completo · Android completo (com Android Auto e Festa)
 
 Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 
@@ -26,7 +26,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 | 4. Customização | ✅ Personalização gráfica total: cores (paleta, contraste, cores à mão), fontes, formas, fundo (gradiente/capa/imagem), estrutura das telas (abas, player flutuante), animações; galeria com 8 temas prontos, temas próprios, arquivos de tema/backup e backups automáticos. O padrão continua idêntico ao visual original |
 | 5. AutoMix DJ | ✅ análise (Beat This!), grade, tom, estrutura, planejador, time-stretch, estilos, configurações, modelo por potência |
 | 6. Windows | ⏳ |
-| 7. Android | ✅ APK arm64 (Android 8+): tudo do PC menos bandeja/mini player, com notificação de mídia, botões do fone/Bluetooth, foco de áudio, AutoMix, Jam por Bluetooth e Android Auto; instalado no celular (Galaxy M35, Android 16) · ⏳ Jam entre dois celulares reais, Android Auto num carro/DHU, análise econômica |
+| 7. Android | ✅ APK arm64 (Android 8+): tudo do PC menos bandeja/mini player, com notificação de mídia, botões do fone/Bluetooth, foco de áudio, AutoMix, Festa por Bluetooth e Android Auto; instalado no celular (Galaxy M35, Android 16) · ⏳ Festa entre dois celulares reais, Android Auto num carro/DHU, análise econômica |
 | 8. iOS/macOS | ⏳ |
 
 ### Medições (testes automatizados)
@@ -71,13 +71,14 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - **Sem servidor:** no login, "Usar só as músicas do aparelho" (ou pastas nos Ajustes). O motor lê tags, duração, ReplayGain e capa (embutida ou da pasta) com índice incremental (76 faixas reais em 2,7 s; 1 ms na releitura). `LocalProvider` (`lib/data/local/`) monta álbuns, artistas, gêneros, busca sem acento, favoritos, execuções, playlists e letras `.lrc`.
 - **Last.fm** (chave grátis do usuário, Ajustes): músicas e artistas parecidos para o mix e a rádio quando não há AudioMuse (casados com o servidor ou com as músicas do aparelho), mais tocadas e bio do artista (`lib/data/lastfm.dart`, `similar.dart`).
 
-### Jam (14/09)
+### Festa (14/09; chamada de "Jam" no código)
+Nome trocado de "Jam" para "Festa" (em inglês, "Party") para não confundir com a marca do Spotify. No código continua `jam` (arquivos, rotas, protocolo), que não aparece para quem usa.
 Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o que toca no aparelho do dono (`lib/jam/`).
 - **Entrada só com aprovação:** cada pedido aparece em qualquer tela ou na notificação (Recusar / Aceitar / "Aceitar sempre"). Ninguém entra sozinho, a não ser quem está na lista de aceitos automaticamente (editável nos Ajustes).
 - **Meios:** rede local (anúncio UDP + WebSocket `/jam` e upload `/jam/upload` no servidor do Connect) e, no Android, Bluetooth/Wi-Fi Direct (Nearby Connections, `JamNearby.kt`), que dispensa Wi-Fi em comum (convidado no 4G). A lógica é a mesma nos dois (`JamLink`).
 - **Músicas:** "Adicionar" busca nas músicas do dono pelo próprio dono (o convidado não precisa de conta no servidor dele); "Minhas" manda do servidor do convidado (MP3 320), do aparelho ou de um arquivo, como arquivo, pelo meio mais rápido que o Nearby negociar. O dono só toca o que ele mesmo mostrou ou recebeu como arquivo (nunca um caminho vindo do convidado).
-- **Beacon:** com a Jam aberta, o dono anuncia por Bluetooth LE; o convidado tem um scan econômico registrado no sistema (funciona com o app fechado) e recebe "Tem uma Jam do BKplayer perto de você" (no máximo a cada 30 min).
-- **Sem conta:** "Entrar numa Jam por perto" direto no login.
+- **Beacon:** com a Festa aberta, o dono anuncia por Bluetooth LE; o convidado tem um scan econômico registrado no sistema (funciona com o app fechado) e recebe "Tem uma Festa do BKplayer perto de você" (no máximo a cada 30 min).
+- **Sem conta:** "Entrar numa Festa por perto" direto no login.
 - **Testado:** no emulador e na instância de teste do PC, com scripts no papel do outro lado (recusar, aceitar, aceitar sempre, busca, adicionar, controlar, arquivo de 3,5 MB). Falta testar entre dois celulares reais (Nearby e beacon).
 
 ### Modo DJ (14/09)
@@ -102,7 +103,7 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 
 ### Ajustes em telas e Personalização gráfica (14/09)
 Pedido do usuário: cada tipo de configuração na própria tela e tudo da aparência modificável, com o visual original como padrão (*"gostei da aparência original, só quero ter como modificar tudo se alguém quiser"*).
-- **Ajustes** (`lib/ui/pages/settings/`): lista de categorias com resumo (Conta e servidor, Personalização gráfica, Reprodução, AutoMix, Downloads e cache, Letras/capas/Last.fm, Aparelhos e Jam, Comportamento, Computador, Sobre); cada uma abre em `/settings/<categoria>` com a seta de voltar. Comportamento ganhou o idioma (Sistema/Português/English); Sobre mostra as licenças (inclusive das fontes).
+- **Ajustes** (`lib/ui/pages/settings/`): lista de categorias com resumo (Conta e servidor, Personalização gráfica, Reprodução, AutoMix, Downloads e cache, Letras/capas/Last.fm, Aparelhos e Festa, Comportamento, Computador, Sobre); cada uma abre em `/settings/<categoria>` com a seta de voltar. Comportamento ganhou o idioma (Sistema/Português/English); Sobre mostra as licenças (inclusive das fontes).
 - **Tema = aparência + estrutura** (`UiPrefs.themeJson()`, `lib/data/ui_prefs.dart`); comportamento (toque na música, tela inicial) fica de fora. Migração única dos campos que ficavam nas configurações gerais (modo, cor, cor da capa, escala).
 - **Editores** (`look_page.dart`, 7 áreas): cores (modo, AMOLED, capa ou fixa, cor base com seletor HSV/hex, 9 estilos de paleta do Material, contraste, cores à mão), fontes de título e texto (Nunito, Space Grotesk, JetBrains Mono, Playfair Display, Bebas Neue — OFL, embutidas), formas e tamanhos, fundo (liso, gradiente, capa desfocada, imagem própria + cor do tema por cima), tocando agora, estrutura (abas do celular 2–4 + Ajustes, abas da barra lateral, rótulos, player grudado/flutuante, botões, seções do Início) e animações. Cada escolha marca a opção original.
 - **Galeria** (`theme_gallery.dart`): miniaturas desenhadas com cada tema; 8 prontos (BKplayer original, AMOLED, Vinil, Neon, Papel, Terminal, Alto contraste, Automático) e os do usuário (salvar, duplicar, renomear, salvar mudanças, exportar, excluir); ✓ no tema em uso e ✱ quando foi mexido.
@@ -120,7 +121,7 @@ Pedido do usuário: cada tipo de configuração na própria tela e tudo da apar�
 - **Modelo completo x pequeno:** na música real, os dois têm confiabilidade parecida (cada um erra em faixas diferentes); o completo não é automaticamente melhor.
 
 ### Próximos passos
-1. **Testes com aparelhos reais:** Jam entre dois celulares (Nearby e beacon; o Bluetooth do PC ajuda), Android Auto no DHU ou no carro.
+1. **Testes com aparelhos reais:** Festa entre dois celulares (Nearby e beacon; o Bluetooth do PC ajuda), Android Auto no DHU ou no carro.
 2. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
 3. **Android:** análise econômica (só Wi-Fi/carregando, só as regiões usadas); Opus local.
 4. **AudioMuse API direta** (precisa do token): busca por texto, Alchemy, Music Map.

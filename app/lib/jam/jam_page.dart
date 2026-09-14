@@ -87,7 +87,7 @@ class _JamPageState extends ConsumerState<JamPage> {
     final host = ref.watch(jamHostProvider);
     final guest = ref.watch(jamGuestProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Jam')),
+      appBar: AppBar(title: Text(context.l10n.party)),
       body: SafeArea(
         child: host.active
             ? const _HostView()

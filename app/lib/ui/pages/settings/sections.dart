@@ -461,7 +461,7 @@ Future<void> _editLastFmKey(BuildContext context, WidgetRef ref, String? current
   if (context.mounted) showSnack(context, ok ? l10n.lastFmKeyOk : l10n.lastFmKeyBad);
 }
 
-// ---- Aparelhos e Jam ----
+// ---- Aparelhos e Festa (a "Jam" do código) ----
 
 class DevicesSettingsPage extends ConsumerWidget {
   const DevicesSettingsPage({super.key});
@@ -499,7 +499,7 @@ class DevicesSettingsPage extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => showDevicesSheet(context),
         ),
-        const SettingsSection('Jam'),
+        SettingsSection(l10n.party),
         if (Platform.isAndroid)
           SwitchListTile(
             secondary: const Icon(Icons.bluetooth_searching),

@@ -324,7 +324,7 @@ class JamNearby(private val context: Context, messenger: BinaryMessenger) :
     private fun showJoinRequest(key: String, name: String, title: String, accept: String, reject: String, always: String) {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && nm.getNotificationChannel(CHANNEL_REQUESTS) == null) {
-            nm.createNotificationChannel(NotificationChannel(CHANNEL_REQUESTS, "Jam", NotificationManager.IMPORTANCE_HIGH))
+            nm.createNotificationChannel(NotificationChannel(CHANNEL_REQUESTS, if (java.util.Locale.getDefault().language == "pt") "Festa" else "Party", NotificationManager.IMPORTANCE_HIGH))
         }
         fun action(what: String, code: Int): PendingIntent {
             val i = Intent(context, JamActionReceiver::class.java).putExtra("key", key).putExtra("what", what)
@@ -373,7 +373,7 @@ class JamBeaconReceiver : BroadcastReceiver() {
         val pt = java.util.Locale.getDefault().language == "pt"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && nm.getNotificationChannel(JamNearby.CHANNEL_NEARBY) == null) {
             nm.createNotificationChannel(
-                NotificationChannel(JamNearby.CHANNEL_NEARBY, if (pt) "Jams por perto" else "Jams nearby", NotificationManager.IMPORTANCE_DEFAULT)
+                NotificationChannel(JamNearby.CHANNEL_NEARBY, if (pt) "Festas por perto" else "Parties nearby", NotificationManager.IMPORTANCE_DEFAULT)
             )
         }
         val open = PendingIntent.getActivity(context, 7102,
@@ -381,7 +381,7 @@ class JamBeaconReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val n = NotificationCompat.Builder(context, JamNearby.CHANNEL_NEARBY)
             .setSmallIcon(R.drawable.ic_stat_bk)
-            .setContentTitle(if (pt) "Tem uma Jam do BKplayer perto de você" else "There's a BKplayer Jam near you")
+            .setContentTitle(if (pt) "Tem uma Festa do BKplayer perto de você" else "There's a BKplayer Party near you")
             .setContentText(if (pt) "Toque para pedir para entrar e mandar suas músicas" else "Tap to ask to join and add your songs")
             .setAutoCancel(true)
             .setContentIntent(open)

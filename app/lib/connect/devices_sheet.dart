@@ -240,7 +240,7 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
               final guest = ref.watch(jamGuestProvider.select((g) => g.phase == JamPhase.joined));
               return ListTile(
                 leading: Icon(Icons.groups_outlined, color: jam.active || guest ? theme.colorScheme.primary : null),
-                title: const Text('Jam'),
+                title: Text(l10n.party),
                 subtitle: Text(jam.active
                     ? l10n.jamPeople(jam.participants.length)
                     : guest

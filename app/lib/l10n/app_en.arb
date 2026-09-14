@@ -337,7 +337,7 @@
  "lastFmKeyBad": "Last.fm rejected that key (check that you copied the right API key)",
  "lastFmForRadio": "Use Last.fm for similar songs",
  "lastFmForRadioHint": "In instant mix and radio, when the server has no AudioMuse, and for this device's music.",
- "jamRequestTitle": "{name} wants to join your Jam",
+ "jamRequestTitle": "{name} wants to join your Party",
  "@jamRequestTitle": {
   "placeholders": {
    "name": {
@@ -345,7 +345,7 @@
    }
   }
  },
- "jamRequestBody": "Request {via}. People in the Jam can add songs and control playback.",
+ "jamRequestBody": "Request {via}. People in the Party can add songs and control playback.",
  "@jamRequestBody": {
   "placeholders": {
    "via": {
@@ -358,9 +358,9 @@
  "jamAlwaysAccept": "Always accept this person",
  "accept": "Accept",
  "reject": "Decline",
- "startJam": "Start a Jam",
+ "startJam": "Start a Party",
  "startJamHint": "People nearby with BKplayer can ask to join, add songs and control playback. You approve each person.",
- "jamWaiting": "Asking to join {name}'s Jam… Wait for them to accept.",
+ "jamWaiting": "Asking to join {name}'s Party… Wait for them to accept.",
  "@jamWaiting": {
   "placeholders": {
    "name": {
@@ -369,10 +369,10 @@
   }
  },
  "jamRejected": "The request wasn't accepted.",
- "jamEnded": "The Jam ended.",
- "jamsNearby": "Jams nearby",
- "jamSearching": "Searching… Ask whoever is playing to open a Jam in BKplayer.",
- "jamOf": "{name}'s Jam",
+ "jamEnded": "The Party ended.",
+ "jamsNearby": "Parties nearby",
+ "jamSearching": "Searching… Ask whoever is playing to open a Party in BKplayer.",
+ "jamOf": "{name}'s Party",
  "@jamOf": {
   "placeholders": {
    "name": {
@@ -381,7 +381,7 @@
   }
  },
  "join": "Join",
- "jamOpen": "Your Jam is open",
+ "jamOpen": "Your Party is open",
  "jamOpenHint": "Shows up as \"{name}\" to people nearby.",
  "@jamOpenHint": {
   "placeholders": {
@@ -391,7 +391,7 @@
   }
  },
  "endJam": "End",
- "jamPeople": "{count, plural, =0{Nobody in the Jam} =1{1 person in the Jam} other{{count} people in the Jam}}",
+ "jamPeople": "{count, plural, =0{Nobody in the Party} =1{1 person in the Party} other{{count} people in the Party}}",
  "@jamPeople": {
   "placeholders": {
    "count": {
@@ -413,7 +413,7 @@
    }
   }
  },
- "jamSearchHost": "Search the Jam's music",
+ "jamSearchHost": "Search the Party's music",
  "jamAdded": "\"{title}\" was queued",
  "@jamAdded": {
   "placeholders": {
@@ -423,7 +423,7 @@
   }
  },
  "jamSendFile": "Send a file from this device",
- "jamSendFileHint": "Pick a song on this device to play in the Jam.",
+ "jamSendFileHint": "Pick a song on this device to play in the Party.",
  "jamSearchMine": "Search your music to send",
  "jamSending": "Sending \"{title}\"…",
  "@jamSending": {
@@ -433,16 +433,16 @@
    }
   }
  },
- "jamSent": "In the Jam's queue",
+ "jamSent": "In the Party's queue",
  "jamSendFailed": "Couldn't send it",
- "jamInOne": "You're in a Jam",
+ "jamInOne": "You're in a Party",
  "jamMenuHint": "Play together with people nearby",
- "jamAllowlist": "Auto-accepted in the Jam",
+ "jamAllowlist": "Auto-accepted in the Party",
  "jamAllowlistEmpty": "Nobody: every request waits for you to accept.",
- "jamAllowlistHint": "These people join your Jam without asking. Tap X to remove.",
- "jamNearbyAlerts": "Notify me when there's a Jam nearby",
+ "jamAllowlistHint": "These people join your Party without asking. Tap X to remove.",
+ "jamNearbyAlerts": "Notify me when there's a Party nearby",
  "jamNearbyAlertsHint": "Uses Bluetooth in low-power mode, even with the app closed.",
- "joinJamNoAccount": "Join a Jam nearby (no account)",
+ "joinJamNoAccount": "Join a Party nearby (no account)",
  "downloadAll": "Download every song on the server",
  "downloadAllHint": "To listen to everything offline. Takes a lot of space.",
  "readingLibrary": "Reading the library… {count} songs",
@@ -484,7 +484,7 @@
  "settingsLookHint": "Themes, colors, fonts, background and screen layout",
  "settingsStorage": "Downloads and cache",
  "settingsSources": "Lyrics, covers and Last.fm",
- "settingsDevices": "Devices and Jam",
+ "settingsDevices": "Devices and Party",
  "language": "Language",
  "languageSystem": "System",
  "licenses": "Open source licenses",
@@ -614,5 +614,6 @@
  "deleteThemeConfirm": "Delete theme \"{name}\"?",
  "@deleteThemeConfirm": {"placeholders": {"name": {"type": "String"}}},
  "backToOriginal": "Back to the original look",
- "backToOriginalHint": "The BKplayer theme, as the app ships (the current look goes to automatic backups if not saved)."
+ "backToOriginalHint": "The BKplayer theme, as the app ships (the current look goes to automatic backups if not saved).",
+ "party": "Party"
 }

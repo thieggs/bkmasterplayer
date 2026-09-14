@@ -418,7 +418,7 @@
  "lastFmKeyBad": "O Last.fm recusou essa chave (confira se copiou a API key certa)",
  "lastFmForRadio": "Usar o Last.fm para músicas parecidas",
  "lastFmForRadioHint": "No mix instantâneo e na rádio, quando o servidor não tem o AudioMuse e nas músicas do aparelho.",
- "jamRequestTitle": "{name} quer entrar na sua Jam",
+ "jamRequestTitle": "{name} quer entrar na sua Festa",
  "@jamRequestTitle": {
   "placeholders": {
    "name": {
@@ -439,9 +439,9 @@
  "jamAlwaysAccept": "Aceitar sempre esta pessoa",
  "accept": "Aceitar",
  "reject": "Recusar",
- "startJam": "Começar uma Jam",
+ "startJam": "Começar uma Festa",
  "startJamHint": "Quem estiver perto com o BKplayer pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.",
- "jamWaiting": "Pedindo para entrar na Jam de {name}… Espere a pessoa aceitar.",
+ "jamWaiting": "Pedindo para entrar na Festa de {name}… Espere a pessoa aceitar.",
  "@jamWaiting": {
   "placeholders": {
    "name": {
@@ -450,10 +450,10 @@
   }
  },
  "jamRejected": "O pedido não foi aceito.",
- "jamEnded": "A Jam acabou.",
- "jamsNearby": "Jams por perto",
- "jamSearching": "Procurando… Peça para quem está tocando abrir uma Jam no BKplayer.",
- "jamOf": "Jam de {name}",
+ "jamEnded": "A Festa acabou.",
+ "jamsNearby": "Festas por perto",
+ "jamSearching": "Procurando… Peça para quem está tocando abrir uma Festa no BKplayer.",
+ "jamOf": "Festa de {name}",
  "@jamOf": {
   "placeholders": {
    "name": {
@@ -462,7 +462,7 @@
   }
  },
  "join": "Entrar",
- "jamOpen": "Sua Jam está aberta",
+ "jamOpen": "Sua Festa está aberta",
  "jamOpenHint": "Aparece como \"{name}\" para quem está perto.",
  "@jamOpenHint": {
   "placeholders": {
@@ -472,7 +472,7 @@
   }
  },
  "endJam": "Encerrar",
- "jamPeople": "{count, plural, =0{Ninguém na Jam} =1{1 pessoa na Jam} other{{count} pessoas na Jam}}",
+ "jamPeople": "{count, plural, =0{Ninguém na Festa} =1{1 pessoa na Festa} other{{count} pessoas na Festa}}",
  "@jamPeople": {
   "placeholders": {
    "count": {
@@ -494,7 +494,7 @@
    }
   }
  },
- "jamSearchHost": "Buscar nas músicas da Jam",
+ "jamSearchHost": "Buscar nas músicas da Festa",
  "jamAdded": "\"{title}\" entrou na fila",
  "@jamAdded": {
   "placeholders": {
@@ -504,7 +504,7 @@
   }
  },
  "jamSendFile": "Mandar um arquivo do aparelho",
- "jamSendFileHint": "Escolha uma música deste aparelho para tocar na Jam.",
+ "jamSendFileHint": "Escolha uma música deste aparelho para tocar na Festa.",
  "jamSearchMine": "Buscar nas suas músicas para mandar",
  "jamSending": "Mandando \"{title}\"…",
  "@jamSending": {
@@ -514,16 +514,16 @@
    }
   }
  },
- "jamSent": "Na fila da Jam",
+ "jamSent": "Na fila da Festa",
  "jamSendFailed": "Não deu para mandar",
- "jamInOne": "Você está numa Jam",
+ "jamInOne": "Você está numa Festa",
  "jamMenuHint": "Tocar junto com quem está perto",
- "jamAllowlist": "Aceitos automaticamente na Jam",
+ "jamAllowlist": "Aceitos automaticamente na Festa",
  "jamAllowlistEmpty": "Ninguém: todo pedido espera você aceitar.",
- "jamAllowlistHint": "Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar.",
- "jamNearbyAlerts": "Avisar quando houver uma Jam por perto",
+ "jamAllowlistHint": "Estas pessoas entram na sua Festa sem pedir. Toque no X para tirar.",
+ "jamNearbyAlerts": "Avisar quando houver uma Festa por perto",
  "jamNearbyAlertsHint": "Usa o Bluetooth em modo econômico, mesmo com o app fechado.",
- "joinJamNoAccount": "Entrar numa Jam por perto (sem conta)",
+ "joinJamNoAccount": "Entrar numa Festa por perto (sem conta)",
  "downloadAll": "Baixar todas as músicas do servidor",
  "downloadAllHint": "Para ouvir tudo sem internet. Ocupa bastante espaço.",
  "readingLibrary": "Lendo a biblioteca… {count} músicas",
@@ -565,7 +565,7 @@
  "settingsLookHint": "Temas, cores, fontes, fundo e estrutura das telas",
  "settingsStorage": "Downloads e cache",
  "settingsSources": "Letras, capas e Last.fm",
- "settingsDevices": "Aparelhos e Jam",
+ "settingsDevices": "Aparelhos e Festa",
  "language": "Idioma",
  "languageSystem": "Do sistema",
  "licenses": "Licenças de código aberto",
@@ -695,5 +695,6 @@
  "deleteThemeConfirm": "Excluir o tema \"{name}\"?",
  "@deleteThemeConfirm": {"placeholders": {"name": {"type": "String"}}},
  "backToOriginal": "Voltar à aparência original",
- "backToOriginalHint": "O tema BKplayer, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo)."
+ "backToOriginalHint": "O tema BKplayer, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).",
+ "party": "Festa"
 }
