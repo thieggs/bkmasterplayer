@@ -1229,4 +1229,43 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get djModeOff =>
       'Modo DJ: deixar o AudioMuse e o AutoMix escolherem as próximas';
+
+  @override
+  String get settingsAccount => 'Conta e servidor';
+
+  @override
+  String get settingsLook => 'Personalização gráfica';
+
+  @override
+  String get settingsLookHint =>
+      'Temas, cores, fontes, fundo e estrutura das telas';
+
+  @override
+  String get settingsStorage => 'Downloads e cache';
+
+  @override
+  String get settingsSources => 'Letras, capas e Last.fm';
+
+  @override
+  String get settingsDevices => 'Aparelhos e Jam';
+
+  @override
+  String get language => 'Idioma';
+
+  @override
+  String get languageSystem => 'Do sistema';
+
+  @override
+  String get licenses => 'Licenças de código aberto';
+
+  @override
+  String get fontCredits =>
+      'Fontes dos temas: Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (SIL Open Font License).';
+
+  @override
+  String get openDownloads => 'Abrir os downloads';
+
+  @override
+  String get openDownloadsHint =>
+      'Álbuns, playlists e a biblioteca inteira para ouvir sem internet';
 }

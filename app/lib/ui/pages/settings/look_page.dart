@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers.dart';
-import '../../data/ui_prefs.dart';
-import '../../l10n/l10n.dart';
-import '../actions.dart';
+import '../../../core/providers.dart';
+import '../../../data/ui_prefs.dart';
+import '../../../l10n/l10n.dart';
+import '../../actions.dart';
+import 'common.dart';
 
-/// Personalização completa: tema, capas, "tocando agora", layout, barra do
-/// player, Início, comportamento e perfis (exportar/importar).
-class CustomizePage extends ConsumerWidget {
-  const CustomizePage({super.key});
+/// Personalização gráfica: tema, capas, "tocando agora", layout, barra do
+/// player, Início e perfis (exportar/importar).
+class LookPage extends ConsumerWidget {
+  const LookPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,14 +62,9 @@ class CustomizePage extends ConsumerWidget {
       'highest': l10n.topRated,
     };
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 40),
+    return SettingsScaffold(
+      title: l10n.settingsLook,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-          child: Text(l10n.customize, style: theme.textTheme.headlineMedium),
-        ),
-
         // ---- Tema ----
         section(l10n.theme),
         choice<String>(l10n.theme, ui.themeMode, {
@@ -152,20 +148,6 @@ class CustomizePage extends ConsumerWidget {
           'medium': l10n.sizeMedium,
           'large': l10n.sizeLarge,
         }, (v) => setUi((p) => p.copyWith(cardSize: v)), icon: Icons.grid_view),
-        choice<String>(l10n.startPage, ui.startPage, {
-          '/': l10n.home,
-          '/albums': l10n.albums,
-          '/artists': l10n.artists,
-          '/playlists': l10n.playlists,
-          '/search': l10n.search,
-        }, (v) => setUi((p) => p.copyWith(startPage: v)), icon: Icons.home_outlined),
-        SwitchListTile(
-          secondary: const Icon(Icons.queue_music),
-          title: Text(l10n.showQueueOnStart),
-          value: ui.showQueue,
-          onChanged: (v) => setUi((p) => p.copyWith(showQueue: v)),
-        ),
-
         // ---- Barra do player ----
         section(l10n.playerBarButtons),
         _OrderedToggles(
@@ -182,19 +164,6 @@ class CustomizePage extends ConsumerWidget {
           enabled: ui.homeSections,
           names: sectionNames,
           onChanged: (list) => setUi((p) => p.copyWith(homeSections: list)),
-        ),
-
-        // ---- Comportamento ----
-        section(l10n.behavior),
-        choice<String>(l10n.songTap, ui.songTap, {
-          'playFromHere': l10n.tapPlayFromHere,
-          'playOne': l10n.tapPlayOne,
-          'enqueue': l10n.addToQueue,
-        }, (v) => setUi((p) => p.copyWith(songTap: v)), icon: Icons.touch_app_outlined),
-        ListTile(
-          leading: const Icon(Icons.keyboard_outlined),
-          title: Text(l10n.shortcuts),
-          subtitle: Text(l10n.shortcutsList),
         ),
 
         // ---- Perfis ----
@@ -225,7 +194,7 @@ class CustomizePage extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.restart_alt),
           title: Text(l10n.resetAppearance),
-          onTap: () => setUi((_) => const UiPrefs()),
+          onTap: () => setUi((p) => p.withTheme(const UiPrefs().themeJson())),
         ),
       ],
     );

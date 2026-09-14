@@ -559,5 +559,17 @@
  "onlineCoversHint": "Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer.",
  "djModeFrom": "Modo DJ a partir desta música",
  "djModeOn": "Modo DJ ligado: o AudioMuse e o AutoMix escolhem a próxima pelo melhor encaixe (toque para desligar)",
- "djModeOff": "Modo DJ: deixar o AudioMuse e o AutoMix escolherem as próximas"
+ "djModeOff": "Modo DJ: deixar o AudioMuse e o AutoMix escolherem as próximas",
+ "settingsAccount": "Conta e servidor",
+ "settingsLook": "Personalização gráfica",
+ "settingsLookHint": "Temas, cores, fontes, fundo e estrutura das telas",
+ "settingsStorage": "Downloads e cache",
+ "settingsSources": "Letras, capas e Last.fm",
+ "settingsDevices": "Aparelhos e Jam",
+ "language": "Idioma",
+ "languageSystem": "Do sistema",
+ "licenses": "Licenças de código aberto",
+ "fontCredits": "Fontes dos temas: Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (SIL Open Font License).",
+ "openDownloads": "Abrir os downloads",
+ "openDownloadsHint": "Álbuns, playlists e a biblioteca inteira para ouvir sem internet"
 }

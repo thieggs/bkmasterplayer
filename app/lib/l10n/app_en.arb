@@ -478,5 +478,17 @@
  "onlineCoversHint": "For this device's music without covers: looks the album up on iTunes and Deezer.",
  "djModeFrom": "DJ mode from this song",
  "djModeOn": "DJ mode on: AudioMuse and AutoMix pick the next song by the best fit (tap to turn off)",
- "djModeOff": "DJ mode: let AudioMuse and AutoMix pick the next songs"
+ "djModeOff": "DJ mode: let AudioMuse and AutoMix pick the next songs",
+ "settingsAccount": "Account and server",
+ "settingsLook": "Look and feel",
+ "settingsLookHint": "Themes, colors, fonts, background and screen layout",
+ "settingsStorage": "Downloads and cache",
+ "settingsSources": "Lyrics, covers and Last.fm",
+ "settingsDevices": "Devices and Jam",
+ "language": "Language",
+ "languageSystem": "System",
+ "licenses": "Open source licenses",
+ "fontCredits": "Theme fonts: Nunito, Space Grotesk, JetBrains Mono, Playfair Display and Bebas Neue (SIL Open Font License).",
+ "openDownloads": "Open downloads",
+ "openDownloadsHint": "Albums, playlists and the whole library to listen offline"
 }

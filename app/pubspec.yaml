@@ -81,6 +81,8 @@ flutter:
   assets:
     - assets/models/
     - assets/icon/
+    # Só os textos das licenças (as fontes em si vão pela seção fonts).
+    - assets/fonts/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

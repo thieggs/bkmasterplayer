@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +24,18 @@ const appName = 'BKplayer 🎵';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Licenças das fontes dos temas (aparecem em Ajustes → Sobre → Licenças).
+  LicenseRegistry.addLicense(() async* {
+    for (final (name, file) in const [
+      ('Nunito', 'nunito'),
+      ('Space Grotesk', 'spacegrotesk'),
+      ('JetBrains Mono', 'jetbrainsmono'),
+      ('Playfair Display', 'playfairdisplay'),
+      ('Bebas Neue', 'bebasneue'),
+    ]) {
+      yield LicenseEntryWithLineBreaks([name], await rootBundle.loadString('assets/fonts/OFL-$file.txt'));
+    }
+  });
   final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
   if (isDesktop) {

@@ -2244,6 +2244,78 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Modo DJ: deixar o AudioMuse e o AutoMix escolherem as próximas'**
   String get djModeOff;
+
+  /// No description provided for @settingsAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta e servidor'**
+  String get settingsAccount;
+
+  /// No description provided for @settingsLook.
+  ///
+  /// In pt, this message translates to:
+  /// **'Personalização gráfica'**
+  String get settingsLook;
+
+  /// No description provided for @settingsLookHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temas, cores, fontes, fundo e estrutura das telas'**
+  String get settingsLookHint;
+
+  /// No description provided for @settingsStorage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Downloads e cache'**
+  String get settingsStorage;
+
+  /// No description provided for @settingsSources.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letras, capas e Last.fm'**
+  String get settingsSources;
+
+  /// No description provided for @settingsDevices.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aparelhos e Jam'**
+  String get settingsDevices;
+
+  /// No description provided for @language.
+  ///
+  /// In pt, this message translates to:
+  /// **'Idioma'**
+  String get language;
+
+  /// No description provided for @languageSystem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Do sistema'**
+  String get languageSystem;
+
+  /// No description provided for @licenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Licenças de código aberto'**
+  String get licenses;
+
+  /// No description provided for @fontCredits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fontes dos temas: Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (SIL Open Font License).'**
+  String get fontCredits;
+
+  /// No description provided for @openDownloads.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir os downloads'**
+  String get openDownloads;
+
+  /// No description provided for @openDownloadsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Álbuns, playlists e a biblioteca inteira para ouvir sem internet'**
+  String get openDownloadsHint;
 }
 
 class _AppLocalizationsDelegate

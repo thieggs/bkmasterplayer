@@ -16,7 +16,6 @@ import 'player/player_controller.dart';
 import 'ui/pages/album_page.dart';
 import 'ui/pages/albums_page.dart';
 import 'ui/pages/artists_page.dart';
-import 'ui/pages/customize_page.dart';
 import 'ui/pages/equalizer_page.dart';
 import 'ui/pages/genres_page.dart';
 import 'ui/pages/home_page.dart';
@@ -25,7 +24,9 @@ import 'ui/pages/login_page.dart';
 import 'ui/pages/offline_page.dart';
 import 'ui/pages/playlists_page.dart';
 import 'ui/pages/search_page.dart';
-import 'ui/pages/settings_page.dart';
+import 'ui/pages/settings/look_page.dart';
+import 'ui/pages/settings/sections.dart';
+import 'ui/pages/settings/settings_page.dart';
 import 'ui/pages/songs_page.dart';
 import 'ui/player/now_playing_page.dart';
 import 'ui/shell.dart';
@@ -87,9 +88,16 @@ final _routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/favorites', builder: (_, _) => const FavoritesPage()),
           GoRoute(path: '/search', builder: (_, state) => SearchPage(initial: state.uri.queryParameters['q'] ?? '')),
-          GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+          GoRoute(
+            path: '/settings',
+            builder: (_, _) => const SettingsPage(),
+            routes: [
+              GoRoute(path: 'look', builder: (_, _) => const LookPage()),
+              GoRoute(path: ':section', builder: (_, state) => settingsSectionPage(state.pathParameters['section']!)),
+            ],
+          ),
           GoRoute(path: '/equalizer', builder: (_, _) => const EqualizerPage()),
-          GoRoute(path: '/customize', builder: (_, _) => const CustomizePage()),
+          GoRoute(path: '/customize', redirect: (_, _) => '/settings/look'),
           GoRoute(path: '/offline', builder: (_, _) => const OfflinePage()),
           GoRoute(path: '/offline/:id', builder: (_, state) => OfflineCollectionPage(id: state.pathParameters['id']!)),
         ],
