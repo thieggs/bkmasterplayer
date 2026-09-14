@@ -23,7 +23,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 | 1. MVP Linux | ✅ login, biblioteca, busca, streaming com cache, fila, gapless, MPRIS com capa |
 | 2. Player completo | ✅ ReplayGain, EQ, crossfade, letras, favoritos, playlists, fila salva/sincronizada, offline, mini player, bandeja, atalhos |
 | 3. AudioMuse | ✅ via Navidrome (Mix instantâneo, rádio sônica, caminho sônico, rádio infinita) · ⏳ API direta (busca por texto/CLAP, Alchemy, Music Map) |
-| 4. Customização | ✅ tema, capas, 4 layouts do tocando agora (incl. vinil), layout, botões, seções, comportamento, perfis JSON |
+| 4. Customização | ✅ Personalização gráfica total: cores (paleta, contraste, cores à mão), fontes, formas, fundo (gradiente/capa/imagem), estrutura das telas (abas, player flutuante), animações; galeria com 8 temas prontos, temas próprios, arquivos de tema/backup e backups automáticos. O padrão continua idêntico ao visual original |
 | 5. AutoMix DJ | ✅ análise (Beat This!), grade, tom, estrutura, planejador, time-stretch, estilos, configurações, modelo por potência |
 | 6. Windows | ⏳ |
 | 7. Android | ✅ APK arm64 (Android 8+): tudo do PC menos bandeja/mini player, com notificação de mídia, botões do fone/Bluetooth, foco de áudio, AutoMix, Jam por Bluetooth e Android Auto; instalado no celular (Galaxy M35, Android 16) · ⏳ Jam entre dois celulares reais, Android Auto num carro/DHU, análise econômica |
@@ -100,6 +100,15 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 - **Letras e capas que faltam:** letras do LRCLIB (sincronizadas), do Musixmatch (API oficial, com a chave do usuário) e do lyrics.ovh; capas do iTunes e do Deezer para as músicas do aparelho. Cache no disco; liga/desliga nos Ajustes.
 - **Opus e outros formatos que o motor não decodifica:** o servidor converte para MP3 automaticamente, também no download offline.
 
+### Ajustes em telas e Personalização gráfica (14/09)
+Pedido do usuário: cada tipo de configuração na própria tela e tudo da aparência modificável, com o visual original como padrão (*"gostei da aparência original, só quero ter como modificar tudo se alguém quiser"*).
+- **Ajustes** (`lib/ui/pages/settings/`): lista de categorias com resumo (Conta e servidor, Personalização gráfica, Reprodução, AutoMix, Downloads e cache, Letras/capas/Last.fm, Aparelhos e Jam, Comportamento, Computador, Sobre); cada uma abre em `/settings/<categoria>` com a seta de voltar. Comportamento ganhou o idioma (Sistema/Português/English); Sobre mostra as licenças (inclusive das fontes).
+- **Tema = aparência + estrutura** (`UiPrefs.themeJson()`, `lib/data/ui_prefs.dart`); comportamento (toque na música, tela inicial) fica de fora. Migração única dos campos que ficavam nas configurações gerais (modo, cor, cor da capa, escala).
+- **Editores** (`look_page.dart`, 7 áreas): cores (modo, AMOLED, capa ou fixa, cor base com seletor HSV/hex, 9 estilos de paleta do Material, contraste, cores à mão), fontes de título e texto (Nunito, Space Grotesk, JetBrains Mono, Playfair Display, Bebas Neue — OFL, embutidas), formas e tamanhos, fundo (liso, gradiente, capa desfocada, imagem própria + cor do tema por cima), tocando agora, estrutura (abas do celular 2–4 + Ajustes, abas da barra lateral, rótulos, player grudado/flutuante, botões, seções do Início) e animações. Cada escolha marca a opção original.
+- **Galeria** (`theme_gallery.dart`): miniaturas desenhadas com cada tema; 8 prontos (BKplayer original, AMOLED, Vinil, Neon, Papel, Terminal, Alto contraste, Automático) e os do usuário (salvar, duplicar, renomear, salvar mudanças, exportar, excluir); ✓ no tema em uso e ✱ quando foi mexido.
+- **Backup** (`lib/data/theme_library.dart`): tema em `.bktheme.json` e backup completo em `.bkbackup.json` (imagens de fundo dentro, em base64), pelo seletor de arquivos do sistema; backups automáticos (os 10 últimos) antes de trocas grandes; tudo validado ao importar.
+- **Garantia do visual original:** teste compara o tema padrão com o antigo campo a campo (`test/app_theme_test.dart`) e as telas no emulador ficaram iguais pixel a pixel.
+
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.
@@ -111,12 +120,11 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 - **Modelo completo x pequeno:** na música real, os dois têm confiabilidade parecida (cada um erra em faixas diferentes); o completo não é automaticamente melhor.
 
 ### Próximos passos
-1. **Ajustes em telas por categoria + personalização gráfica total** (temas completos, arquivos de backup): aguardando o usuário confirmar o entendimento.
-2. **Testes com aparelhos reais:** Jam entre dois celulares (Nearby e beacon; o Bluetooth do PC ajuda), Android Auto no DHU ou no carro.
-3. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
-4. **Android:** análise econômica (só Wi-Fi/carregando, só as regiões usadas); Opus local.
-5. **AudioMuse API direta** (precisa do token): busca por texto, Alchemy, Music Map.
-6. **CarPlay** (com o Mac), **Jellyfin** como segundo provedor; karaokê palavra por palavra; editor de smart playlist; estatísticas/retrospectiva; Chromecast/DLNA.
+1. **Testes com aparelhos reais:** Jam entre dois celulares (Nearby e beacon; o Bluetooth do PC ajuda), Android Auto no DHU ou no carro.
+2. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
+3. **Android:** análise econômica (só Wi-Fi/carregando, só as regiões usadas); Opus local.
+4. **AudioMuse API direta** (precisa do token): busca por texto, Alchemy, Music Map.
+5. **CarPlay** (com o Mac), **Jellyfin** como segundo provedor; karaokê palavra por palavra; editor de smart playlist; estatísticas/retrospectiva; Chromecast/DLNA.
 
 ---
 

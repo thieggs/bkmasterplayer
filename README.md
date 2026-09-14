@@ -30,7 +30,8 @@ seguir.
   - Bandeja do sistema, mini player, atalhos de teclado.
   - Segue a saída padrão do sistema (Bluetooth incluso).
 - **Android:** notificação de mídia com capa, tela de bloqueio, botões do fone e da caixa Bluetooth, pausa em ligações, **Android Auto** (biblioteca, busca e voz no carro), layouts para celular deitado e tablet, baixar a biblioteca inteira.
-- **Personalização:** tema, cores (inclusive da capa), AMOLED, cantos, densidade, capas, 4 layouts do "tocando agora" (vinil incluso), barra lateral, botões do player, seções do Início, perfis exportáveis.
+- **Personalização gráfica total** (o padrão é o visual original): cores (da capa ou fixa, 9 estilos de paleta, contraste, cores à mão), fontes de título e texto, formas, fundo (gradiente, capa desfocada ou imagem), estrutura das telas (abas, player flutuante, botões, seções) e animações. Galeria com 8 temas prontos, temas próprios, exportar/importar tema e backup completo em arquivo, backups automáticos.
+- **Ajustes em telas por categoria**, com idioma (português/inglês).
 - **Idiomas:** português e inglês.
 
 ## Compilar e rodar no Linux
@@ -72,6 +73,7 @@ cd app && flutter test                 # app
 - Beat This! (CPJKU/JKU Linz, pesos MIT) via [beat-this-rs](https://github.com/danigb/beat-this-rs).
 - [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) (MIT).
 - [symphonia](https://github.com/pdeljanov/Symphonia), [cpal](https://github.com/RustAudio/cpal), [rubato](https://github.com/HEnquist/rubato).
+- Fontes dos temas (SIL Open Font License): Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (licenças em `app/assets/fonts/`).
 
 ## Licença
 
