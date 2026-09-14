@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'BK Music Player 🎵';
+  String get appTitle => 'BKmasterplayer 🎵';
 
   @override
   String get about => 'About';
@@ -889,7 +889,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noDevicesFound =>
-      'No other devices found. Open BK Music Player on the other device, with the same account and on the same network.';
+      'No other devices found. Open BKmasterplayer on the other device, with the same account and on the same network.';
 
   @override
   String get addDeviceByAddress => 'Add by address';
@@ -900,7 +900,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceNotFound =>
-      'No BK Music Player of this account answered at that address';
+      'No BKmasterplayer of this account answered at that address';
 
   @override
   String connectFailed(String device) {
@@ -935,7 +935,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicFolderHint =>
-      'BK Music Player reads the music in this folder and its subfolders.';
+      'BKmasterplayer reads the music in this folder and its subfolders.';
 
   @override
   String get chooseOtherFolder => 'Choose another';
@@ -945,7 +945,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get musicPermissionDenied =>
-      'No permission to read this device\'s music. Allow it in Android Settings → Apps → BK Music Player → Permissions.';
+      'No permission to read this device\'s music. Allow it in Android Settings → Apps → BKmasterplayer → Permissions.';
 
   @override
   String get noLocalSongs => 'No music found in that folder.';
@@ -1031,7 +1031,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startJamHint =>
-      'People nearby with BK Music Player can ask to join, add songs and control playback. You approve each person.';
+      'People nearby with BKmasterplayer can ask to join, add songs and control playback. You approve each person.';
 
   @override
   String jamWaiting(String name) {
@@ -1049,7 +1049,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get jamSearching =>
-      'Searching… Ask whoever is playing to open a Party in BK Music Player.';
+      'Searching… Ask whoever is playing to open a Party in BKmasterplayer.';
 
   @override
   String jamOf(String name) {
@@ -1536,7 +1536,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themesHint => 'Tap to apply; long-press (or ⋮) for more options.';
 
   @override
-  String get themeOriginal => 'BK Music Player (original)';
+  String get themeOriginal => 'BKmasterplayer (original)';
 
   @override
   String get themeVinyl => 'Vinyl';
@@ -1630,7 +1630,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidThemeFile =>
-      'Invalid file: not a BK Music Player theme or backup';
+      'Invalid file: not a BKmasterplayer theme or backup';
 
   @override
   String get textProfiles => 'As text (clipboard)';
@@ -1645,7 +1645,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToOriginalHint =>
-      'The BK Music Player theme, as the app ships (the current look goes to automatic backups if not saved).';
+      'The BKmasterplayer theme, as the app ships (the current look goes to automatic backups if not saved).';
 
   @override
   String get party => 'Party';

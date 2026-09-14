@@ -94,7 +94,7 @@ class AppSettings {
   final bool trayIcon;
   final bool closeToTray;
 
-  /// Aparece para os outros aparelhos da mesma conta (BK Music Player Connect) e
+  /// Aparece para os outros aparelhos da mesma conta (BKmasterplayer Connect) e
   /// aceita ser controlado por eles.
   final bool connectEnabled;
 

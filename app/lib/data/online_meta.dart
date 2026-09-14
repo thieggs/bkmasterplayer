@@ -13,7 +13,7 @@ final _dio = Dio(BaseOptions(
   connectTimeout: const Duration(seconds: 8),
   receiveTimeout: const Duration(seconds: 15),
   // Só ASCII: o HttpClient recusa acento em cabeçalho.
-  headers: {'User-Agent': 'BKMusicPlayer/1.0 (open source music player)'},
+  headers: {'User-Agent': 'BKmasterplayer/1.0 (open source music player)'},
   validateStatus: (_) => true,
 ));
 

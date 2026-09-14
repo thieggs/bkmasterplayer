@@ -99,7 +99,7 @@ class PlayerState {
   /// Modo DJ: a próxima é escolhida pelo melhor encaixe (AudioMuse + AutoMix).
   final bool dj;
 
-  /// Controlando outro aparelho (BK Music Player Connect): nome e id dele. O estado
+  /// Controlando outro aparelho (BKmasterplayer Connect): nome e id dele. O estado
   /// acima é o de lá.
   final String? remoteDevice;
   final String? remoteDeviceId;
@@ -991,7 +991,7 @@ class PlayerController extends Notifier<PlayerState> {
     return [for (final e in items) e.uid];
   }
 
-  // ---- Tocar em outro aparelho (BK Music Player Connect) ----
+  // ---- Tocar em outro aparelho (BKmasterplayer Connect) ----
 
   ConnectLink? _remote;
   StreamSubscription<Map<String, dynamic>>? _remoteSub;

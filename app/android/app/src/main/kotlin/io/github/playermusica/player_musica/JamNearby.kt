@@ -381,7 +381,7 @@ class JamBeaconReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val n = NotificationCompat.Builder(context, JamNearby.CHANNEL_NEARBY)
             .setSmallIcon(R.drawable.ic_stat_bk)
-            .setContentTitle(if (pt) "Tem uma Festa do BK Music Player perto de você" else "There's a BK Music Player Party near you")
+            .setContentTitle(if (pt) "Tem uma Festa do BKmasterplayer perto de você" else "There's a BKmasterplayer Party near you")
             .setContentText(if (pt) "Toque para pedir para entrar e mandar suas músicas" else "Tap to ask to join and add your songs")
             .setAutoCancel(true)
             .setContentIntent(open)

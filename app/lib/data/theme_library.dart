@@ -45,7 +45,7 @@ class BkTheme {
 
 /// Temas prontos. Só o que muda em relação ao original; o resto vem do padrão.
 const builtInThemes = <BkTheme>[
-  BkTheme(id: 'builtin:original', name: 'BK Music Player', builtIn: true, theme: {}),
+  BkTheme(id: 'builtin:original', name: 'BKmasterplayer', builtIn: true, theme: {}),
   BkTheme(id: 'builtin:amoled', name: 'AMOLED', builtIn: true, theme: {'amoled': true}),
   BkTheme(id: 'builtin:vinyl', name: 'Vinil', builtIn: true, theme: {
     'titleFont': 'playfair',
@@ -248,7 +248,7 @@ class ThemeLibrary {
   Future<(Map<String, dynamic>, Map<String, String>)> _read(String text) async {
     if (text.length > maxThemeFileBytes) throw const FormatException('arquivo grande demais');
     final j = jsonDecode(text);
-    if (j is! Map || j['app'] != 'bkplayer') throw const FormatException('não é um arquivo do BK Music Player');
+    if (j is! Map || j['app'] != 'bkplayer') throw const FormatException('não é um arquivo do BKmasterplayer');
     final renamed = <String, String>{};
     final images = j['images'];
     if (images is Map) {

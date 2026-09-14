@@ -105,7 +105,7 @@ class AutoBrowser {
     return (songs, i.clamp(0, songs.length - 1));
   }
 
-  /// Pedido de voz ("tocar X no BK Music Player"). O Android manda o foco (música,
+  /// Pedido de voz ("tocar X no BKmasterplayer"). O Android manda o foco (música,
   /// álbum, artista) e os campos quando entende; senão, só o texto.
   Future<List<Song>> voice(String query, Map<String, dynamic>? extras) async {
     final p = provider();

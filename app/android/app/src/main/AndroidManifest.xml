@@ -25,7 +25,7 @@
 
     <!-- usesCleartextTraffic: servidores Navidrome na rede local costumam ser http://. -->
     <application
-        android:label="BK Music Player 🎵"
+        android:label="BKmasterplayer 🎵"
         android:name=".BkApplication"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

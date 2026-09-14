@@ -1,4 +1,4 @@
-# Plano — BK Music Player 🎵 (player de música multiplataforma)
+# Plano — BKmasterplayer 🎵 (player de música multiplataforma)
 
 ## Contexto
 
@@ -43,7 +43,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - Duração da transição quando a música não é clara.
 - Modelo de análise escolhido pela potência do aparelho.
 - Segue a saída padrão do sistema (Bluetooth), sem travadas.
-- Nome **BK Music Player 🎵** (antes BKplayer e BKT Player; trocado em 14/09); aba "Músicas" com a biblioteca inteira; botão do AutoMix que liga/desliga na barra.
+- Nome **BKmasterplayer 🎵** (antes BKplayer, BKT Player e BK Music Player; trocado em 14/09); aba "Músicas" com a biblioteca inteira; botão do AutoMix que liga/desliga na barra.
 - Botões da caixa Bluetooth (JBL): o app se registra direto no BlueZ como player AVRCP (o `mpris-proxy` foi desativado com `systemctl --user mask mpris-proxy`, porque entregava os botões ao primeiro player registrado, ex.: o celular via KDE Connect).
 - Álbum tocado em ordem só fica sem mixagem se o áudio for contínuo (ao vivo, mixado); álbuns com silêncio entre as faixas são mixados.
 - Backup do estado de 13/09 em `~/Documentos/BKplayer-backup-2026-09-13` e na tag git `backup-2026-09-13`.
@@ -61,7 +61,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 
 ### Endereço de casa e Connect (14/09)
 - **Endereço de casa:** a conta tem um endereço opcional da rede local (login e Ajustes). O app usa esse endereço quando o `ping` dele responde (~1,5 s no máximo). Volta ao principal na primeira chamada que falhar e testa de novo quando a rede muda (Wi-Fi/dados), quando o app volta ao primeiro plano e a cada 45 s fora de casa. Ao trocar, a próxima faixa é reagendada pelo endereço novo; o cache não muda, porque as chaves são por conta. Teste: `test/local_address_test.dart`.
-- **BK Music Player Connect** (`lib/connect/`), tocar e controlar entre aparelhos da mesma conta:
+- **BKmasterplayer Connect** (`lib/connect/`), tocar e controlar entre aparelhos da mesma conta:
   - **Descoberta:** anúncio UDP (porta 47801) com id, nome, plataforma, porta e hash do usuário. Pela internet (ex.: Tailscale), dá para "Adicionar pelo endereço".
   - **Controle:** WebSocket (TCP 47800). O aparelho controlado confere as credenciais no próprio servidor (`ping` com o token de quem controla), com limite de tentativas.
   - **Uso:** o botão "Aparelhos" abre "Tocar em". Se o outro aparelho já toca, passa a controlá-lo; se está parado, a fila daqui vai para lá do mesmo ponto. "Este aparelho" traz a música de volta e pausa lá.
@@ -77,7 +77,7 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 - **Entrada só com aprovação:** cada pedido aparece em qualquer tela ou na notificação (Recusar / Aceitar / "Aceitar sempre"). Ninguém entra sozinho, a não ser quem está na lista de aceitos automaticamente (editável nos Ajustes).
 - **Meios:** rede local (anúncio UDP + WebSocket `/jam` e upload `/jam/upload` no servidor do Connect) e, no Android, Bluetooth/Wi-Fi Direct (Nearby Connections, `JamNearby.kt`), que dispensa Wi-Fi em comum (convidado no 4G). A lógica é a mesma nos dois (`JamLink`).
 - **Músicas:** "Adicionar" busca nas músicas do dono pelo próprio dono (o convidado não precisa de conta no servidor dele); "Minhas" manda do servidor do convidado (MP3 320), do aparelho ou de um arquivo, como arquivo, pelo meio mais rápido que o Nearby negociar. O dono só toca o que ele mesmo mostrou ou recebeu como arquivo (nunca um caminho vindo do convidado).
-- **Beacon:** com a Festa aberta, o dono anuncia por Bluetooth LE; o convidado tem um scan econômico registrado no sistema (funciona com o app fechado) e recebe "Tem uma Festa do BK Music Player perto de você" (no máximo a cada 30 min).
+- **Beacon:** com a Festa aberta, o dono anuncia por Bluetooth LE; o convidado tem um scan econômico registrado no sistema (funciona com o app fechado) e recebe "Tem uma Festa do BKmasterplayer perto de você" (no máximo a cada 30 min).
 - **Sem conta:** "Entrar numa Festa por perto" direto no login.
 - **Testado:** no emulador e na instância de teste do PC, com scripts no papel do outro lado (recusar, aceitar, aceitar sempre, busca, adicionar, controlar, arquivo de 3,5 MB). Falta testar entre dois celulares reais (Nearby e beacon).
 
@@ -88,7 +88,7 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 - **Análise:** o motor analisa as 5 melhores (BPM e tom) enquanto sobra tempo antes do fim da atual; nos dados móveis, só as que não precisam ser baixadas. Com cache, a escolha sai em ~1 s.
 
 ### Android Auto e o caminho para o CarPlay (14/09)
-- **Navegação no carro** (`lib/mobile/auto_browser.dart`): abas Início (aleatórias, Modo DJ e mix da atual, favoritas, mais tocados, álbuns aleatórios), Recentes, Álbuns (grade) e Playlists; tocar uma música toca a pasta a partir dela. Busca na tela do carro, pedido de voz ("tocar X no BK Music Player", com o foco em artista/álbum/música), "Continuar ouvindo" e fila (janela de 100 em volta da atual).
+- **Navegação no carro** (`lib/mobile/auto_browser.dart`): abas Início (aleatórias, Modo DJ e mix da atual, favoritas, mais tocados, álbuns aleatórios), Recentes, Álbuns (grade) e Playlists; tocar uma música toca a pasta a partir dela. Busca na tela do carro, pedido de voz ("tocar X no BKmasterplayer", com o foco em artista/álbum/música), "Continuar ouvindo" e fila (janela de 100 em volta da atual).
 - **Capas:** o carro só aceita `content://`. O `BkArtProvider` serve pela chave; a URL com o token fica num arquivo privado do app.
 - **Aberto pelo carro com o app fechado:** o serviço espera o login e a fila salva antes de responder.
 - **Testado** no emulador com um cliente MediaBrowser próprio (navegar, capas lidas por outro app, busca, voz, tocar por id, pular na fila, abertura a frio). Para ver a tela do carro: Android Auto no celular → Configurações → tocar 10× na versão → "Iniciar servidor da unidade principal"; no PC, `adb forward tcp:5277 tcp:5277` e `~/android-sdk/extras/google/auto/desktop-head-unit`.
@@ -106,7 +106,7 @@ Pedido do usuário: cada tipo de configuração na própria tela e tudo da apar�
 - **Ajustes** (`lib/ui/pages/settings/`): lista de categorias com resumo (Conta e servidor, Personalização gráfica, Reprodução, AutoMix, Downloads e cache, Letras/capas/Last.fm, Aparelhos e Festa, Comportamento, Computador, Sobre); cada uma abre em `/settings/<categoria>` com a seta de voltar. Comportamento ganhou o idioma (Sistema/Português/English); Sobre mostra as licenças (inclusive das fontes).
 - **Tema = aparência + estrutura** (`UiPrefs.themeJson()`, `lib/data/ui_prefs.dart`); comportamento (toque na música, tela inicial) fica de fora. Migração única dos campos que ficavam nas configurações gerais (modo, cor, cor da capa, escala).
 - **Editores** (`look_page.dart`, 7 áreas): cores (modo, AMOLED, capa ou fixa, cor base com seletor HSV/hex, 9 estilos de paleta do Material, contraste, cores à mão), fontes de título e texto (Nunito, Space Grotesk, JetBrains Mono, Playfair Display, Bebas Neue — OFL, embutidas), formas e tamanhos, fundo (liso, gradiente, capa desfocada, imagem própria + cor do tema por cima), tocando agora, estrutura (abas do celular 2–4 + Ajustes, abas da barra lateral, rótulos, player grudado/flutuante, botões, seções do Início) e animações. Cada escolha marca a opção original.
-- **Galeria** (`theme_gallery.dart`): miniaturas desenhadas com cada tema; 8 prontos (BK Music Player original, AMOLED, Vinil, Neon, Papel, Terminal, Alto contraste, Automático) e os do usuário (salvar, duplicar, renomear, salvar mudanças, exportar, excluir); ✓ no tema em uso e ✱ quando foi mexido.
+- **Galeria** (`theme_gallery.dart`): miniaturas desenhadas com cada tema; 8 prontos (BKmasterplayer original, AMOLED, Vinil, Neon, Papel, Terminal, Alto contraste, Automático) e os do usuário (salvar, duplicar, renomear, salvar mudanças, exportar, excluir); ✓ no tema em uso e ✱ quando foi mexido.
 - **Backup** (`lib/data/theme_library.dart`): tema em `.bktheme.json` e backup completo em `.bkbackup.json` (imagens de fundo dentro, em base64), pelo seletor de arquivos do sistema; backups automáticos (os 10 últimos) antes de trocas grandes; tudo validado ao importar.
 - **Garantia do visual original:** teste compara o tema padrão com o antigo campo a campo (`test/app_theme_test.dart`) e as telas no emulador ficaram iguais pixel a pixel.
 

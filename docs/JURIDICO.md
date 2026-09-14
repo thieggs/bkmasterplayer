@@ -1,4 +1,4 @@
-# BK Music Player: licenças, marcas, patentes e termos de serviço
+# BKmasterplayer: licenças, marcas, patentes e termos de serviço
 
 Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença MIT. É uma triagem técnica, **não é parecer jurídico**. Para lançamento comercial ou nos EUA, vale revisar com um advogado de propriedade intelectual.
 
@@ -18,7 +18,7 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 | Deezer (capas) | ✅ uso não comercial permitido | dar o crédito |
 | Nome "Jam" | ✅ trocado por "Festa" | feito |
 | Nomes "Connect", "AutoMix", "Modo DJ" | ✅ baixo risco | ✅ comparações com Spotify/Apple tiradas do README e do plano |
-| Nome "BK Music Player" (antes BKplayer e BKT Player) | ⚠️ já existem "BK Music Player" e "BK Music" em lojas de apps | pesquisar no INPI antes de divulgar; se precisar, trocar é rápido |
+| Nome "BKmasterplayer" (antes BKplayer, BKT Player, BK Music Player) | ✅ nenhum app com esse nome achado; há "MasterPlayer" sem o "BK" | pesquisar no INPI antes de divulgar |
 | Patentes de transição automática | ✅ a única ativa (Spotify, EUA, até 2031) exige um passo que o app não faz; as outras venceram | regra de projeto anotada no código |
 | Codecs (MP3, AAC-LC, FLAC, Vorbis, ALAC) | ✅ patentes vencidas ou livres | nada |
 
@@ -74,7 +74,7 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 
 **"Jam" (Spotify).** Já trocado por **Festa** / **Party**; no código continua `jam`, que não aparece.
 
-**"Connect".** "Spotify Connect" é o nome do recurso do Spotify. "Connect" sozinho é palavra comum, e "BK Music Player Connect" tem outra marca na frente, então o risco é baixo. Para evitar comparação, dá para chamar de "Tocar em outro aparelho" ou "BK Link". O README diz "como no Spotify Connect": melhor tirar.
+**"Connect".** "Spotify Connect" é o nome do recurso do Spotify. "Connect" sozinho é palavra comum, e "BKmasterplayer Connect" tem outra marca na frente, então o risco é baixo. Para evitar comparação, dá para chamar de "Tocar em outro aparelho" ou "BK Link". O README diz "como no Spotify Connect": melhor tirar.
 
 **"AutoMix".**
 - A lista oficial de marcas da Apple não tem "AutoMix" (tem "Apple Music®", "Apple CarPlay®", "iMix™").
@@ -85,16 +85,12 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 
 **Nomes de terceiros no app** (Navidrome, OpenSubsonic, AudioMuse-AI, Last.fm, Musixmatch, LRCLIB, Deezer, Android Auto, CarPlay). Citar para dizer compatibilidade é permitido ("funciona com…"), sem usar logotipos como se fossem do app nem sugerir parceria. Para Android Auto e CarPlay, seguir as diretrizes de marca do Google e da Apple.
 
-**"BK Music Player"** (nome atual; antes "BKplayer" e "BKT Player", trocados em 14/09/2026).
-- Já existem apps com nome igual ou quase igual, e da mesma área:
-  - um "BK Music Player" (`com.bkmobile.bkmusicplayer`) em lojas de APK;
-  - o "BK Music", app oficial de um cantor (`com.bkmusic.app`, Play Store);
-  - "BK Music", com músicas da Brahma Kumaris;
-  - "BK Media Player".
-- Na Play Store, nome igual a outro player confunde e pode dar reclamação.
+**"BKmasterplayer"** (nome atual, desde 14/09/2026; antes "BKplayer", "BKT Player" e "BK Music Player").
+- Na busca de 14/09 não apareceu nenhum app chamado "BK Master Player" ou "BKMasterPlayer".
+- Sem o "BK", existem "MasterPlayer - Music player" (`com.msd.masterplayer`, 2026) e "Master Music Player". O "BK" na frente diferencia, e "master" é palavra comum; na busca da loja, porém, aparecem perto.
+- Os nomes anteriores batiam com apps existentes: "Bkt Player" (IPTV), "BK Music Player", "BK Music", "BK Player", "BK Media Player".
 - "BK" também é sigla do Burger King (outra classe de produtos).
 - Antes de divulgar, pesquisar no INPI (busca de marcas, classes 9 e 41) e na Play Store. Se quiser proteger o nome, registrar no INPI. Trocar o nome no app é rápido (título, rótulo do Android, atalho do Linux e textos).
-- Antes, "BKT Player" batia com um "Bkt Player" de IPTV na Play Store (`com.bkt.player`).
 
 ## 4. Patentes
 
@@ -104,7 +100,7 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 
 **Patentes encontradas e situação** (busca no Google Patents, 14/09/2026):
 
-| Patente | Dona | Situação | O que reivindica | BK Music Player |
+| Patente | Dona | Situação | O que reivindica | BKmasterplayer |
 |---|---|---|---|---|
 | US 8.280.539 B2, "automatically segueing between audio tracks" | Spotify (ex-Echo Nest) | ativa até 11/03/2031, só EUA | ver abaixo | não pratica a reivindicação |
 | US 8.680.388 B2 (US 2010/0011941), "automatic recognition and matching of tempo and phase… interactive music player" | pessoa física (prioridade 2001) | **vencida em 2022** | sincronizar tempo e fase entre faixas | livre |
@@ -117,7 +113,7 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 3. **comparar, por janela deslizante, os descritores das duas faixas para achar a janela de transição preferida**;
 4. fazer a transição nessa janela.
 
-O AutoMix do BK Music Player não faz o passo 3: o ponto de saída de A vem da estrutura de A (começo da outro, ou N compassos antes do fim musical) e o de entrada de B é o primeiro compasso com som de B, cada um calculado sozinho. Entre as duas faixas só se comparam BPM (velocidade) e tom (roda Camelot), nunca trechos. Sem o passo 3, a reivindicação não é praticada. Essa regra está escrita no código (`app/rust/src/engine/automix.rs`) para ninguém mudar o planejador nessa direção até 2031. O Modo DJ escolhe **qual** música vem depois (parecença, BPM, tom), não **onde** emendar, o que também fica fora da reivindicação.
+O AutoMix do BKmasterplayer não faz o passo 3: o ponto de saída de A vem da estrutura de A (começo da outro, ou N compassos antes do fim musical) e o de entrada de B é o primeiro compasso com som de B, cada um calculado sozinho. Entre as duas faixas só se comparam BPM (velocidade) e tom (roda Camelot), nunca trechos. Sem o passo 3, a reivindicação não é praticada. Essa regra está escrita no código (`app/rust/src/engine/automix.rs`) para ninguém mudar o planejador nessa direção até 2031. O Modo DJ escolhe **qual** música vem depois (parecença, BPM, tom), não **onde** emendar, o que também fica fora da reivindicação.
 
 **Apple AutoMix.** A Apple lançou o AutoMix em 2025 (iOS/macOS 26). Pedidos de patente ainda não concedidos não valem; vale acompanhar se algum for concedido nos EUA.
 
@@ -134,7 +130,7 @@ O AutoMix do BK Music Player não faz o passo 3: o ponto de saída de A vem da e
 
 Já feito em 14/09/2026:
 - licença MIT;
-- nome BK Music Player;
+- nome BKmasterplayer;
 - fontes on-line nos termos: Cover Art Archive + Deezer para capas, LRCLIB + Musixmatch para letras, sem iTunes e sem lyrics.ovh;
 - créditos (fonte da letra, aviso da Musixmatch, "Dados do Last.fm");
 - avisos de licença de tudo no app;
@@ -143,7 +139,7 @@ Já feito em 14/09/2026:
 - README e plano sem comparações com marcas de terceiros.
 
 Falta, fora do código:
-1. Pesquisar o nome "BK Music Player" no INPI (classes 9 e 41) e decidir se registra.
+1. Pesquisar o nome "BKmasterplayer" no INPI (classes 9 e 41) e decidir se registra.
 2. Para a Play Store: política de privacidade (Bluetooth, localização/Nearby, rede local, serviços on-line) e o formulário de segurança de dados.
 3. Se um dia for vendido ou tiver versão paga: Deezer e Last.fm pedem acordo comercial; e vale uma análise de patentes por advogado nos EUA.
 
@@ -161,6 +157,6 @@ Falta, fora do código:
 - Patente US 8.280.539 B2: https://patents.google.com/patent/US8280539B2/en
 - AutoMix da Apple: https://musictech.com/news/gear/apple-music-automix-ai/
 - AAC-LC e patentes (Fedora): https://fedoraproject.org/wiki/Licensing/FDK-AAC · https://en.wikipedia.org/wiki/Fraunhofer_FDK_AAC
-- Apps com nome parecido: https://apkcombo.com/bk-music-player/com.bkmobile.bkmusicplayer/ · https://play.google.com/store/apps/details?id=com.bkmusic.app · https://play.google.com/store/apps/details?id=com.bkt.player
+- Apps com nome parecido: https://apkcombo.com/masterplayer-music-player/com.msd.masterplayer/ · https://m.apkpure.com/master-music-player-%E2%80%93-mp3-songs-audio-player/com.master.musicplayer · https://apkcombo.com/bk-music-player/com.bkmobile.bkmusicplayer/ · https://play.google.com/store/apps/details?id=com.bkmusic.app · https://play.google.com/store/apps/details?id=com.bkt.player
 - Patentes vencidas/caducadas: https://patents.google.com/patent/US20100011941A1/en · https://patents.google.com/patent/EP2845188B1/en · https://patents.google.com/patent/US7842874
 - Lei 9.279/1996 (propriedade industrial), art. 10: https://www.planalto.gov.br/ccivil_03/leis/l9279.htm

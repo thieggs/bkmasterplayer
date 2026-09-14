@@ -1,6 +1,6 @@
 {
  "@@locale": "en",
- "appTitle": "BK Music Player 🎵",
+ "appTitle": "BKmasterplayer 🎵",
  "about": "About",
  "aboutText": "Open source player for OpenSubsonic servers (Navidrome), with AudioMuse-AI and AutoMix. MIT license.",
  "accentColor": "Accent color",
@@ -286,10 +286,10 @@
    }
   }
  },
- "noDevicesFound": "No other devices found. Open BK Music Player on the other device, with the same account and on the same network.",
+ "noDevicesFound": "No other devices found. Open BKmasterplayer on the other device, with the same account and on the same network.",
  "addDeviceByAddress": "Add by address",
  "addDeviceHint": "Device IP (e.g., its Tailscale address, 100.x.y.z)",
- "deviceNotFound": "No BK Music Player of this account answered at that address",
+ "deviceNotFound": "No BKmasterplayer of this account answered at that address",
  "connectFailed": "Couldn't connect to {device}",
  "@connectFailed": {
   "placeholders": {
@@ -306,10 +306,10 @@
  "useLocalMusic": "Use only this device's music",
  "useLocalMusicHint": "No server: plays the files in a folder on this device. You can change the folders later in Settings.",
  "musicFolder": "Music folder",
- "musicFolderHint": "BK Music Player reads the music in this folder and its subfolders.",
+ "musicFolderHint": "BKmasterplayer reads the music in this folder and its subfolders.",
  "chooseOtherFolder": "Choose another",
  "useThisFolder": "Use this folder",
- "musicPermissionDenied": "No permission to read this device's music. Allow it in Android Settings → Apps → BK Music Player → Permissions.",
+ "musicPermissionDenied": "No permission to read this device's music. Allow it in Android Settings → Apps → BKmasterplayer → Permissions.",
  "noLocalSongs": "No music found in that folder.",
  "scanningMusic": "Reading the music… {count} files",
  "@scanningMusic": {
@@ -359,7 +359,7 @@
  "accept": "Accept",
  "reject": "Decline",
  "startJam": "Start a Party",
- "startJamHint": "People nearby with BK Music Player can ask to join, add songs and control playback. You approve each person.",
+ "startJamHint": "People nearby with BKmasterplayer can ask to join, add songs and control playback. You approve each person.",
  "jamWaiting": "Asking to join {name}'s Party… Wait for them to accept.",
  "@jamWaiting": {
   "placeholders": {
@@ -371,7 +371,7 @@
  "jamRejected": "The request wasn't accepted.",
  "jamEnded": "The Party ended.",
  "jamsNearby": "Parties nearby",
- "jamSearching": "Searching… Ask whoever is playing to open a Party in BK Music Player.",
+ "jamSearching": "Searching… Ask whoever is playing to open a Party in BKmasterplayer.",
  "jamOf": "{name}'s Party",
  "@jamOf": {
   "placeholders": {
@@ -578,7 +578,7 @@
  "animOff": "Off",
  "themes": "Themes",
  "themesHint": "Tap to apply; long-press (or ⋮) for more options.",
- "themeOriginal": "BK Music Player (original)",
+ "themeOriginal": "BKmasterplayer (original)",
  "themeVinyl": "Vinyl",
  "themePaper": "Paper",
  "themeContrast": "High contrast",
@@ -609,12 +609,12 @@
  "autoBackupsHint": "Made before every big change (the last 10)",
  "noAutoBackups": "None yet: they appear when you switch themes with unsaved changes, import or restore.",
  "fileSaved": "File saved",
- "invalidThemeFile": "Invalid file: not a BK Music Player theme or backup",
+ "invalidThemeFile": "Invalid file: not a BKmasterplayer theme or backup",
  "textProfiles": "As text (clipboard)",
  "deleteThemeConfirm": "Delete theme \"{name}\"?",
  "@deleteThemeConfirm": {"placeholders": {"name": {"type": "String"}}},
  "backToOriginal": "Back to the original look",
- "backToOriginalHint": "The BK Music Player theme, as the app ships (the current look goes to automatic backups if not saved).",
+ "backToOriginalHint": "The BKmasterplayer theme, as the app ships (the current look goes to automatic backups if not saved).",
  "party": "Party",
  "lyricsSource": "Lyrics: {source}",
  "@lyricsSource": {"placeholders": {"source": {"type": "String"}}},
