@@ -209,7 +209,9 @@ class PlayerController extends Notifier<PlayerState> {
         _restored = true;
         // Depois do build: com o login já pronto, isto dispara durante o
         // build, quando o estado ainda não existe (a restauração falhava calada).
-        Future.microtask(_restore);
+        Future.microtask(() => _restore().whenComplete(() {
+              if (!_restoredDone.isCompleted) _restoredDone.complete();
+            }));
       }
     }, fireImmediately: true);
     ref.onDispose(() {
@@ -222,7 +224,11 @@ class PlayerController extends Notifier<PlayerState> {
   // ---- Fila salva (disco) e sincronizada (servidor) ----
 
   bool _restored = false;
+  final _restoredDone = Completer<void>();
   String? _accountId;
+
+  /// Completa quando a fila salva da conta foi carregada (ou não havia).
+  Future<void> get restored => _restoredDone.future;
   Duration? _resumeAt;
   Timer? _saveTimer;
   Timer? _syncTimer;

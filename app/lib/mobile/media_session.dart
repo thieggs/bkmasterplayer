@@ -5,10 +5,14 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../core/providers.dart';
+import '../data/similar.dart';
+import '../domain/models.dart';
 import '../player/player_controller.dart';
 import '../ui/widgets/cover_art.dart';
+import 'auto_browser.dart';
 
 /// Celular (Android): notificação de mídia, tela de bloqueio, botões do fone e
 /// da caixa Bluetooth e foco de áudio (pausa numa ligação, abaixa o volume
@@ -28,31 +32,64 @@ Future<void> initMobileMedia(ProviderContainer container) async {
       // da caixa funciona com o app em segundo plano porque o Android libera o
       // serviço por um tempo quando um controle de mídia manda um comando.
       androidStopForegroundOnPause: true,
+      // Android Auto: lista/grade por pasta e busca na tela do carro.
+      androidBrowsableRootExtras: AutoBrowser.rootExtras,
     ),
   );
 }
 
 class _BkAudioHandler extends BaseAudioHandler {
-  _BkAudioHandler(this._container, this._session) {
+  _BkAudioHandler(this._container, this._session)
+      : _auto = AutoBrowser(
+          provider: () {
+            try {
+              return _container.read(musicProvider);
+            } catch (_) {
+              return null; // sem login
+            }
+          },
+          artDir: '${_container.read(cacheDirProvider).path}/aa_art',
+          pt: Platform.localeName.startsWith('pt'),
+        ) {
     _session.interruptionEventStream.listen(_onInterruption);
     // Fone desconectado / Bluetooth caiu: pausa em vez de sair no alto-falante.
     _session.becomingNoisyEventStream.listen((_) {
       if (!_remote) _player.pause();
     });
     _container.listen<PlayerState>(playerProvider, (_, s) => _update(s), fireImmediately: true);
+    // O carro abriu o app antes do login voltar (ou trocou a conta): recarrega as pastas.
+    _container.listen(sessionProvider, (prev, next) {
+      if (prev?.value?.provider.accountId != next.value?.provider.accountId) {
+        for (final s in _children.values) {
+          s.add(const {});
+        }
+      }
+    });
   }
+
+  final _children = <String, BehaviorSubject<Map<String, dynamic>>>{};
+
+  @override
+  ValueStream<Map<String, dynamic>> subscribeToChildren(String parentMediaId) =>
+      _children.putIfAbsent(parentMediaId, BehaviorSubject.new);
 
   final ProviderContainer _container;
   final AudioSession _session;
+  final AutoBrowser _auto;
 
   PlayerController get _player => _container.read(playerProvider.notifier);
+
+  /// Fila mostrada no carro: uma janela em volta da atual (fila de milhares
+  /// de músicas estoura o limite do Binder).
+  List<QueueItem>? _queueOf;
+  int _queueStart = 0;
 
   /// Fechado pela notificação: some do sistema até voltar a tocar.
   bool _stopped = false;
   bool _wasPlaying = false;
   bool _resumeAfterInterruption = false;
   String? _itemUid;
-  (bool, bool, Duration)? _published;
+  (bool, bool, Duration, int)? _published;
   Duration _publishedPos = Duration.zero;
   DateTime _publishedAt = DateTime.now();
 
@@ -81,6 +118,7 @@ class _BkAudioHandler extends BaseAudioHandler {
       return;
     }
 
+    _publishQueue(s);
     final song = item.song;
     final duration = s.duration > Duration.zero ? s.duration : (song.duration ?? Duration.zero);
     if (item.uid != _itemUid || mediaItem.value?.duration != duration) {
@@ -104,7 +142,7 @@ class _BkAudioHandler extends BaseAudioHandler {
     final now = DateTime.now();
     final predicted = _publishedPos + (playbackState.value.playing ? now.difference(_publishedAt) : Duration.zero);
     final jumped = (s.position - predicted).abs() > const Duration(milliseconds: 1500);
-    final sig = (s.playing, s.buffering, duration);
+    final sig = (s.playing, s.buffering, duration, s.index - _queueStart);
     if (sig == _published && !jumped) return;
     _published = sig;
     _publishedPos = s.position;
@@ -123,9 +161,22 @@ class _BkAudioHandler extends BaseAudioHandler {
         playing: s.playing,
         updatePosition: s.position,
         bufferedPosition: duration * s.buffered.clamp(0.0, 1.0),
-        queueIndex: s.index,
+        queueIndex: s.index - _queueStart,
       ),
     );
+  }
+
+  void _publishQueue(PlayerState s) {
+    const before = 20, size = 100;
+    final inWindow = s.index - _queueStart >= 0 && s.index - _queueStart < size - 30;
+    if (identical(s.queue, _queueOf) && inWindow) return;
+    _queueOf = s.queue;
+    _queueStart = (s.index - before).clamp(0, (s.queue.length - 1).clamp(0, 1 << 30));
+    final end = (_queueStart + size).clamp(0, s.queue.length);
+    queue.add([
+      for (final q in s.queue.sublist(_queueStart, end))
+        MediaItem(id: q.uid, title: q.song.title, artist: q.song.displayArtist, album: q.song.album, duration: q.song.duration),
+    ]);
   }
 
   /// Capa da notificação a partir do cache local: a URL do servidor leva o
@@ -191,7 +242,90 @@ class _BkAudioHandler extends BaseAudioHandler {
   Future<void> skipToPrevious() async => _player.previous();
 
   @override
-  Future<void> skipToQueueItem(int index) async => _player.jumpTo(index);
+  Future<void> skipToQueueItem(int index) async => _player.jumpTo(_queueStart + index);
+
+  // ---- Android Auto: navegação, busca e voz ----
+
+  Song? get _current => _container.read(playerProvider).current?.song;
+
+  /// O carro pode abrir o app do zero: espera o login (e a fila salva) voltar.
+  Future<void> _ready() async {
+    try {
+      if (_auto.provider() == null) await _container.read(sessionProvider.future).timeout(const Duration(seconds: 8));
+      // A fila salva é restaurada logo depois do login.
+      if (_auto.provider() != null) await _player.restored.timeout(const Duration(seconds: 4));
+    } catch (_) {}
+  }
+
+  @override
+  Future<List<MediaItem>> getChildren(String parentMediaId, [Map<String, dynamic>? options]) async {
+    try {
+      await _ready();
+      if (parentMediaId == AudioService.recentRootId) {
+        // "Continuar ouvindo" do sistema: a música da fila salva.
+        final song = _current;
+        if (song == null) return const [];
+        return [
+          MediaItem(id: 'do:resume', title: song.title, artist: song.displayArtist, album: song.album, artUri: _auto.art(song.coverArt), playable: true),
+        ];
+      }
+      if (parentMediaId != AudioService.browsableRootId && _auto.provider() == null) {
+        final pt = Platform.localeName.startsWith('pt');
+        return [MediaItem(id: 'info:login', title: pt ? 'Entre na sua conta no BKplayer do celular' : 'Sign in on the BKplayer phone app', playable: false)];
+      }
+      return await _auto.children(parentMediaId, current: _current);
+    } catch (e) {
+      debugPrint('Android Auto ($parentMediaId): $e');
+      return const [];
+    }
+  }
+
+  @override
+  Future<List<MediaItem>> search(String query, [Map<String, dynamic>? extras]) async {
+    try {
+      await _ready();
+      return await _auto.search(query);
+    } catch (e) {
+      debugPrint('Android Auto (busca): $e');
+      return const [];
+    }
+  }
+
+  @override
+  Future<void> playFromMediaId(String mediaId, [Map<String, dynamic>? extras]) async {
+    await _ready();
+    final song = _current;
+    switch (mediaId) {
+      case 'do:resume':
+        _player.play();
+      case 'do:dj':
+        if (song != null) _player.startDj(song);
+      case 'do:mix':
+        final p = _auto.provider();
+        if (song == null || p == null) return;
+        final s = _container.read(settingsProvider);
+        final similar = await findSimilar(p, song, count: 60, lastFm: s.lastFmForRadio ? _container.read(lastFmProvider) : null);
+        _player.playSongs([song, ...similar.where((x) => x.id != song.id)]);
+        _player.setRadio(true);
+      case 'do:shuffle':
+        final p = _auto.provider();
+        if (p != null) _player.playSongs(await p.randomSongs(size: 100));
+      default:
+        final r = await _auto.resolve(mediaId);
+        if (r != null) _player.playSongs(r.$1, start: r.$2);
+    }
+  }
+
+  @override
+  Future<void> playFromSearch(String query, [Map<String, dynamic>? extras]) async {
+    await _ready();
+    try {
+      final songs = await _auto.voice(query, extras);
+      if (songs.isNotEmpty) _player.playSongs(songs);
+    } catch (e) {
+      debugPrint('Android Auto (voz): $e');
+    }
+  }
 
   @override
   Future<void> seek(Duration position) async => _player.seek(position);
