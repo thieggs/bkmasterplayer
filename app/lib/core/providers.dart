@@ -13,6 +13,7 @@ import '../data/lastfm.dart';
 import '../data/local/local_provider.dart';
 import '../data/online_meta.dart';
 import '../data/settings.dart';
+import '../data/theme_library.dart';
 import '../data/ui_prefs.dart';
 import '../data/subsonic/subsonic_client.dart';
 import '../data/subsonic/subsonic_provider.dart';
@@ -92,6 +93,64 @@ class UiPrefsNotifier extends Notifier<UiPrefs> {
 }
 
 final uiPrefsProvider = NotifierProvider<UiPrefsNotifier, UiPrefs>(UiPrefsNotifier.new);
+
+/// Galeria de temas (prontos + do usuário) e os arquivos/backups deles.
+class ThemesNotifier extends AsyncNotifier<List<BkTheme>> {
+  late ThemeLibrary lib;
+
+  @override
+  Future<List<BkTheme>> build() async {
+    lib = ThemeLibrary(ref.watch(supportDirProvider).path);
+    await lib.load();
+    return lib.all;
+  }
+
+  Future<T> _run<T>(Future<T> Function() f) async {
+    final r = await f();
+    state = AsyncData(lib.all);
+    return r;
+  }
+
+  /// Aplica um tema. Se o visual atual não está salvo em nenhum tema (foi
+  /// mexido à mão), guarda um backup automático antes de trocar.
+  Future<void> apply(BkTheme t) async {
+    await backupIfUnsaved();
+    ref.read(uiPrefsProvider.notifier).update((p) => p.withTheme(t.theme, id: t.id));
+  }
+
+  Future<void> backupIfUnsaved() async {
+    final ui = ref.read(uiPrefsProvider);
+    if (!lib.all.any((t) => ui.sameTheme(t.theme))) await lib.autoBackup(ui);
+  }
+
+  /// Salva o visual atual como tema novo (e passa a usá-lo).
+  Future<BkTheme> saveCurrent(String name) async {
+    final t = await _run(() => lib.add(name, ref.read(uiPrefsProvider).themeJson()));
+    ref.read(uiPrefsProvider.notifier).update((p) => p.copyWith(themeId: t.id));
+    return t;
+  }
+
+  Future<void> overwriteWithCurrent(String id) => _run(() => lib.overwrite(id, ref.read(uiPrefsProvider).themeJson()));
+  Future<void> rename(String id, String name) => _run(() => lib.rename(id, name));
+  Future<void> delete(String id) => _run(() => lib.delete(id));
+  Future<BkTheme> duplicate(BkTheme t, String name) => _run(() => lib.duplicate(t, name));
+
+  /// Importa um arquivo de tema e aplica.
+  Future<BkTheme> importAndApply(String text) async {
+    final t = await _run(() => lib.importTheme(text));
+    await apply(t);
+    return t;
+  }
+
+  /// Restaura um backup (guarda o estado de agora antes).
+  Future<void> restore(String text) async {
+    await lib.autoBackup(ref.read(uiPrefsProvider));
+    final (theme, id) = await _run(() => lib.restoreBackup(text));
+    ref.read(uiPrefsProvider.notifier).update((p) => p.withTheme(theme, id: id));
+  }
+}
+
+final themesProvider = AsyncNotifierProvider<ThemesNotifier, List<BkTheme>>(ThemesNotifier.new);
 
 /// Last.fm configurado (null = sem chave).
 final lastFmProvider = Provider<LastFm?>((ref) {

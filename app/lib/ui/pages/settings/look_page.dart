@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
@@ -15,6 +14,7 @@ import '../../actions.dart';
 import '../../widgets/color_picker.dart';
 import '../../widgets/ordered_toggles.dart';
 import 'common.dart';
+import 'theme_gallery.dart';
 
 /// Personalização gráfica: um painel com as áreas do tema; cada área abre a
 /// própria tela. Tudo muda na hora (o app é a prévia).
@@ -38,6 +38,8 @@ class LookPage extends ConsumerWidget {
     return SettingsScaffold(
       title: l10n.settingsLook,
       children: [
+        const ThemeGallery(),
+        SettingsSection(l10n.customize),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(l10n.lookEditHint, style: Theme.of(context).textTheme.bodySmall),
@@ -54,7 +56,7 @@ class LookPage extends ConsumerWidget {
             '${l10n.mobileTabs}: ${ui.mobileTabs.length + 1} • ${l10n.playerStyle}: ${n.player(ui.playerStyle)}'),
         part('motion', Icons.animation_outlined, l10n.lookMotion, '${n.transition(ui.transitions)} • ${n.speed(ui.animations)}'),
         const SizedBox(height: 8),
-        const _ProfileTiles(),
+        const ThemeBackupSection(),
       ],
     );
   }
@@ -68,6 +70,7 @@ Widget lookPartPage(String id) => switch (id) {
       'background' => const _BackgroundPage(),
       'nowplaying' => const _NowPlayingPage(),
       'structure' => const _StructurePage(),
+      'backups' => const AutoBackupsPage(),
       _ => const _MotionPage(),
     };
 
@@ -633,51 +636,6 @@ class _MotionPage extends StatelessWidget {
           value: ui.animations,
           options: {'normal': l10n.animNormal, 'fast': l10n.animFast, 'off': l10n.animOff},
           onChanged: (v) => set((p) => p.copyWith(animations: v)),
-        ),
-      ],
-    );
-  }
-}
-
-/// Perfis em texto (compatibilidade) e voltar ao original. A galeria de temas
-/// e o backup em arquivo entram por cima disto.
-class _ProfileTiles extends ConsumerWidget {
-  const _ProfileTiles();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SettingsSection(l10n.profiles),
-        ListTile(
-          leading: const Icon(Icons.upload_outlined),
-          title: Text(l10n.exportProfile),
-          subtitle: Text(l10n.exportProfileHint),
-          onTap: () async {
-            await Clipboard.setData(ClipboardData(text: ref.read(uiPrefsProvider.notifier).exportProfile()));
-            if (context.mounted) showSnack(context, l10n.profileCopied);
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.download_outlined),
-          title: Text(l10n.importProfile),
-          subtitle: Text(l10n.importProfileHint),
-          onTap: () async {
-            final data = await Clipboard.getData(Clipboard.kTextPlain);
-            try {
-              ref.read(uiPrefsProvider.notifier).importProfile(data?.text ?? '');
-              if (context.mounted) showSnack(context, l10n.profileImported);
-            } catch (_) {
-              if (context.mounted) showSnack(context, l10n.profileInvalid);
-            }
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.restart_alt),
-          title: Text(l10n.resetAppearance),
-          onTap: () => ref.read(uiPrefsProvider.notifier).update((p) => p.withTheme(const UiPrefs().themeJson())),
         ),
       ],
     );

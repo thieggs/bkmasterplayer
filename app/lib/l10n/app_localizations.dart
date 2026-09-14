@@ -2826,6 +2826,216 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Desligadas'**
   String get animOff;
+
+  /// No description provided for @themes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Temas'**
+  String get themes;
+
+  /// No description provided for @themesHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para aplicar; segure (ou ⋮) para mais opções.'**
+  String get themesHint;
+
+  /// No description provided for @themeOriginal.
+  ///
+  /// In pt, this message translates to:
+  /// **'BKplayer (original)'**
+  String get themeOriginal;
+
+  /// No description provided for @themeVinyl.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vinil'**
+  String get themeVinyl;
+
+  /// No description provided for @themePaper.
+  ///
+  /// In pt, this message translates to:
+  /// **'Papel'**
+  String get themePaper;
+
+  /// No description provided for @themeContrast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alto contraste'**
+  String get themeContrast;
+
+  /// No description provided for @themeAuto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Automático'**
+  String get themeAuto;
+
+  /// No description provided for @themeModified.
+  ///
+  /// In pt, this message translates to:
+  /// **'modificado'**
+  String get themeModified;
+
+  /// No description provided for @saveAsTheme.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar o visual atual como tema'**
+  String get saveAsTheme;
+
+  /// No description provided for @themeName.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome do tema'**
+  String get themeName;
+
+  /// No description provided for @myTheme.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meu tema'**
+  String get myTheme;
+
+  /// No description provided for @themeSaved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema \"{name}\" salvo'**
+  String themeSaved(String name);
+
+  /// No description provided for @applyTheme.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicar'**
+  String get applyTheme;
+
+  /// No description provided for @duplicate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Duplicar'**
+  String get duplicate;
+
+  /// No description provided for @copyOf.
+  ///
+  /// In pt, this message translates to:
+  /// **'{name} (cópia)'**
+  String copyOf(String name);
+
+  /// No description provided for @saveChangesHere.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar as mudanças neste tema'**
+  String get saveChangesHere;
+
+  /// No description provided for @exportThemeFile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exportar arquivo'**
+  String get exportThemeFile;
+
+  /// No description provided for @importTheme.
+  ///
+  /// In pt, this message translates to:
+  /// **'Importar tema (arquivo)'**
+  String get importTheme;
+
+  /// No description provided for @themeImported.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema \"{name}\" importado e aplicado'**
+  String themeImported(String name);
+
+  /// No description provided for @backupFiles.
+  ///
+  /// In pt, this message translates to:
+  /// **'Backup e arquivos'**
+  String get backupFiles;
+
+  /// No description provided for @exportBackup.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exportar backup completo'**
+  String get exportBackup;
+
+  /// No description provided for @exportBackupHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos os seus temas e o visual atual num arquivo'**
+  String get exportBackupHint;
+
+  /// No description provided for @restoreBackup.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restaurar backup (arquivo)'**
+  String get restoreBackup;
+
+  /// No description provided for @restoreBackupConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar seus temas e o visual atual pelos do backup? O estado de agora fica guardado nos backups automáticos.'**
+  String get restoreBackupConfirm;
+
+  /// No description provided for @restore.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restaurar'**
+  String get restore;
+
+  /// No description provided for @backupRestored.
+  ///
+  /// In pt, this message translates to:
+  /// **'Backup restaurado'**
+  String get backupRestored;
+
+  /// No description provided for @autoBackups.
+  ///
+  /// In pt, this message translates to:
+  /// **'Backups automáticos'**
+  String get autoBackups;
+
+  /// No description provided for @autoBackupsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Feitos antes de cada troca grande (os 10 últimos)'**
+  String get autoBackupsHint;
+
+  /// No description provided for @noAutoBackups.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum ainda: aparecem quando você troca de tema com mudanças não salvas, importa ou restaura.'**
+  String get noAutoBackups;
+
+  /// No description provided for @fileSaved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arquivo salvo'**
+  String get fileSaved;
+
+  /// No description provided for @invalidThemeFile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arquivo inválido: não é um tema ou backup do BKplayer'**
+  String get invalidThemeFile;
+
+  /// No description provided for @textProfiles.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como texto (área de transferência)'**
+  String get textProfiles;
+
+  /// No description provided for @deleteThemeConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir o tema \"{name}\"?'**
+  String deleteThemeConfirm(String name);
+
+  /// No description provided for @backToOriginal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar à aparência original'**
+  String get backToOriginal;
+
+  /// No description provided for @backToOriginalHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O tema BKplayer, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).'**
+  String get backToOriginalHint;
 }
 
 class _AppLocalizationsDelegate

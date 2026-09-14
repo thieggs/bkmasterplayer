@@ -1528,4 +1528,124 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get animOff => 'Desligadas';
+
+  @override
+  String get themes => 'Temas';
+
+  @override
+  String get themesHint =>
+      'Toque para aplicar; segure (ou ⋮) para mais opções.';
+
+  @override
+  String get themeOriginal => 'BKplayer (original)';
+
+  @override
+  String get themeVinyl => 'Vinil';
+
+  @override
+  String get themePaper => 'Papel';
+
+  @override
+  String get themeContrast => 'Alto contraste';
+
+  @override
+  String get themeAuto => 'Automático';
+
+  @override
+  String get themeModified => 'modificado';
+
+  @override
+  String get saveAsTheme => 'Salvar o visual atual como tema';
+
+  @override
+  String get themeName => 'Nome do tema';
+
+  @override
+  String get myTheme => 'Meu tema';
+
+  @override
+  String themeSaved(String name) {
+    return 'Tema \"$name\" salvo';
+  }
+
+  @override
+  String get applyTheme => 'Aplicar';
+
+  @override
+  String get duplicate => 'Duplicar';
+
+  @override
+  String copyOf(String name) {
+    return '$name (cópia)';
+  }
+
+  @override
+  String get saveChangesHere => 'Salvar as mudanças neste tema';
+
+  @override
+  String get exportThemeFile => 'Exportar arquivo';
+
+  @override
+  String get importTheme => 'Importar tema (arquivo)';
+
+  @override
+  String themeImported(String name) {
+    return 'Tema \"$name\" importado e aplicado';
+  }
+
+  @override
+  String get backupFiles => 'Backup e arquivos';
+
+  @override
+  String get exportBackup => 'Exportar backup completo';
+
+  @override
+  String get exportBackupHint =>
+      'Todos os seus temas e o visual atual num arquivo';
+
+  @override
+  String get restoreBackup => 'Restaurar backup (arquivo)';
+
+  @override
+  String get restoreBackupConfirm =>
+      'Trocar seus temas e o visual atual pelos do backup? O estado de agora fica guardado nos backups automáticos.';
+
+  @override
+  String get restore => 'Restaurar';
+
+  @override
+  String get backupRestored => 'Backup restaurado';
+
+  @override
+  String get autoBackups => 'Backups automáticos';
+
+  @override
+  String get autoBackupsHint =>
+      'Feitos antes de cada troca grande (os 10 últimos)';
+
+  @override
+  String get noAutoBackups =>
+      'Nenhum ainda: aparecem quando você troca de tema com mudanças não salvas, importa ou restaura.';
+
+  @override
+  String get fileSaved => 'Arquivo salvo';
+
+  @override
+  String get invalidThemeFile =>
+      'Arquivo inválido: não é um tema ou backup do BKplayer';
+
+  @override
+  String get textProfiles => 'Como texto (área de transferência)';
+
+  @override
+  String deleteThemeConfirm(String name) {
+    return 'Excluir o tema \"$name\"?';
+  }
+
+  @override
+  String get backToOriginal => 'Voltar à aparência original';
+
+  @override
+  String get backToOriginalHint =>
+      'O tema BKplayer, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).';
 }
