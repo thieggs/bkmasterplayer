@@ -24,42 +24,61 @@ class _Dest {
   final String Function(AppLocalizations) label;
 }
 
-final _dests = [
-  _Dest('/', Icons.home_outlined, Icons.home, (l) => l.home),
-  _Dest('/search', Icons.search, Icons.search, (l) => l.search),
-  _Dest('/albums', Icons.album_outlined, Icons.album, (l) => l.albums),
-  _Dest('/songs', Icons.music_note_outlined, Icons.music_note, (l) => l.songs),
-  _Dest('/artists', Icons.person_outline, Icons.person, (l) => l.artists),
-  _Dest('/playlists', Icons.queue_music_outlined, Icons.queue_music, (l) => l.playlists),
-  _Dest('/genres', Icons.sell_outlined, Icons.sell, (l) => l.genres),
-  _Dest('/favorites', Icons.favorite_border, Icons.favorite, (l) => l.favorites),
-  _Dest('/offline', Icons.download_outlined, Icons.download_done, (l) => l.downloads),
-];
-
-/// Abas do celular (a navegação de baixo só comporta poucas).
-final _mobileDests = [
-  _Dest('/', Icons.home_outlined, Icons.home, (l) => l.home),
-  _Dest('/search', Icons.search, Icons.search, (l) => l.search),
-  _Dest('/library', Icons.library_music_outlined, Icons.library_music, (l) => l.library),
-  _Dest('/settings', Icons.settings_outlined, Icons.settings, (l) => l.settings),
-];
+/// Abas que a pessoa pode pôr na barra lateral e na de baixo do celular.
+final _tabs = <String, _Dest>{
+  'home': _Dest('/', Icons.home_outlined, Icons.home, (l) => l.home),
+  'search': _Dest('/search', Icons.search, Icons.search, (l) => l.search),
+  'library': _Dest('/library', Icons.library_music_outlined, Icons.library_music, (l) => l.library),
+  'albums': _Dest('/albums', Icons.album_outlined, Icons.album, (l) => l.albums),
+  'songs': _Dest('/songs', Icons.music_note_outlined, Icons.music_note, (l) => l.songs),
+  'artists': _Dest('/artists', Icons.person_outline, Icons.person, (l) => l.artists),
+  'playlists': _Dest('/playlists', Icons.queue_music_outlined, Icons.queue_music, (l) => l.playlists),
+  'genres': _Dest('/genres', Icons.sell_outlined, Icons.sell, (l) => l.genres),
+  'favorites': _Dest('/favorites', Icons.favorite_border, Icons.favorite, (l) => l.favorites),
+  'downloads': _Dest('/offline', Icons.download_outlined, Icons.download_done, (l) => l.downloads),
+};
+final _settingsDest = _Dest('/settings', Icons.settings_outlined, Icons.settings, (l) => l.settings);
 
 // Prefixos: '/album' cobre a lista (/albums) e o álbum aberto (/album/:id).
 const _libraryPaths = ['/library', '/album', '/song', '/artist', '/playlist', '/genre', '/favorites', '/offline'];
 const _settingsPaths = ['/settings', '/equalizer', '/customize'];
 
-int _mobileSelected(String loc) {
-  if (loc.startsWith('/search')) return 1;
-  if (_settingsPaths.any(loc.startsWith)) return 3;
-  if (loc != '/' && _libraryPaths.any(loc.startsWith)) return 2;
+/// A aba [id] (do celular) cobre o endereço [loc]?
+bool _covers(String id, String loc) => switch (id) {
+      'home' => loc == '/',
+      'library' => loc != '/' && _libraryPaths.any(loc.startsWith),
+      'albums' => loc.startsWith('/album'),
+      'artists' => loc.startsWith('/artist'),
+      'playlists' => loc.startsWith('/playlist'),
+      'genres' => loc.startsWith('/genre'),
+      _ => loc.startsWith(_tabs[id]!.path),
+    };
+
+/// Aba do celular acesa em [loc]; [ids] são as abas escolhidas (Ajustes vem depois).
+@visibleForTesting
+int mobileSelectedTab(String loc, List<String> ids) {
+  if (_settingsPaths.any(loc.startsWith)) return ids.length;
+  // Uma aba específica (ex.: Álbuns) vence a Biblioteca, que cobre tudo.
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i] != 'library' && _covers(ids[i], loc)) return i;
+  }
+  final lib = ids.indexOf('library');
+  if (lib >= 0 && _covers('library', loc)) return lib;
   return 0;
 }
 
 /// Para onde o "voltar" do Android leva numa aba sem histórico (null = sai do app).
-String? _backTarget(String loc) {
+@visibleForTesting
+String? backTargetFor(String loc, List<String> ids) {
   if (loc == '/') return null;
-  if (loc != '/library' && _libraryPaths.any(loc.startsWith)) return '/library';
+  // Ajustes em telas: sobe um nível (/settings/look/cores → /settings/look).
+  if (loc.startsWith('/settings/')) return loc.substring(0, loc.lastIndexOf('/'));
   if (loc != '/settings' && _settingsPaths.any(loc.startsWith)) return '/settings';
+  for (final id in ids) {
+    final path = _tabs[id]!.path;
+    if (id != 'home' && id != 'library' && loc != path && _covers(id, loc)) return path;
+  }
+  if (ids.contains('library') && loc != '/library' && _covers('library', loc)) return '/library';
   return '/';
 }
 
@@ -77,10 +96,10 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   late bool _queueOpen = ref.read(uiPrefsProvider).showQueue;
 
-  int get _selected {
+  int _selected(List<_Dest> dests) {
     final loc = widget.location;
-    for (var i = _dests.length - 1; i >= 0; i--) {
-      final p = _dests[i].path;
+    for (var i = dests.length - 1; i >= 0; i--) {
+      final p = dests[i].path;
       if (p == '/' ? loc == '/' : loc.startsWith(p)) return i;
     }
     return -1;
@@ -96,7 +115,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     final tablet = mobile && size.shortestSide >= 600;
     final phoneLandscape = mobile && !tablet && size.width > size.height;
     final wide = mobile ? tablet : size.width >= 720;
-    final sidebar = ref.watch(uiPrefsProvider.select((p) => p.sidebar));
+    final ui = ref.watch(uiPrefsProvider);
+    final sidebar = ui.sidebar;
+    // Abas escolhidas na personalização (Ajustes sempre no fim, no celular).
+    final mobileIds = ui.mobileTabs.where(_tabs.containsKey).toList();
+    final mobileDests = [for (final id in mobileIds) _tabs[id]!, _settingsDest];
+    final sidebarDests = [for (final id in ui.sidebarTabs) ?_tabs[id]];
+    final floating = ui.playerStyle == 'floating';
     final veryWide = switch (sidebar) {
       'expanded' => true,
       'rail' => false,
@@ -140,7 +165,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         final router = GoRouter.of(context);
         // Página aberta por cima (álbum, artista, tocando agora): o go_router volta.
         if (router.canPop()) return false;
-        final target = _backTarget(loc);
+        final target = backTargetFor(loc, mobileIds);
         if (target == null) return false;
         router.go(target);
         return true;
@@ -154,12 +179,16 @@ class _AppShellState extends ConsumerState<AppShell> {
               child: Row(
                 children: [
                   NavigationRail(
-                    selectedIndex: _mobileSelected(loc),
-                    labelType: NavigationRailLabelType.all,
+                    selectedIndex: mobileSelectedTab(loc, mobileIds),
+                    labelType: switch (ui.navLabels) {
+                      'selected' => NavigationRailLabelType.selected,
+                      'none' => NavigationRailLabelType.none,
+                      _ => NavigationRailLabelType.all,
+                    },
                     groupAlignment: 0,
-                    onDestinationSelected: (i) => context.go(_mobileDests[i].path),
+                    onDestinationSelected: (i) => context.go(mobileDests[i].path),
                     destinations: [
-                      for (final d in _mobileDests)
+                      for (final d in mobileDests)
                         NavigationRailDestination(
                           icon: Icon(d.icon),
                           selectedIcon: Icon(d.selectedIcon),
@@ -192,10 +221,16 @@ class _AppShellState extends ConsumerState<AppShell> {
             children: [
               const MiniPlayer(),
               NavigationBar(
-                selectedIndex: _mobileSelected(loc),
-                onDestinationSelected: (i) => context.go(_mobileDests[i].path),
+                selectedIndex: mobileSelectedTab(loc, mobileIds),
+                labelBehavior: switch (ui.navLabels) {
+                  'all' => NavigationDestinationLabelBehavior.alwaysShow,
+                  'selected' => NavigationDestinationLabelBehavior.onlyShowSelected,
+                  'none' => NavigationDestinationLabelBehavior.alwaysHide,
+                  _ => null,
+                },
+                onDestinationSelected: (i) => context.go(mobileDests[i].path),
                 destinations: [
-                  for (final d in _mobileDests)
+                  for (final d in mobileDests)
                     NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label(l10n)),
                 ],
               ),
@@ -217,7 +252,12 @@ class _AppShellState extends ConsumerState<AppShell> {
                   children: [
                     SafeArea(
                       right: false,
-                      child: _Sidebar(selected: _selected, extended: veryWide),
+                      child: _Sidebar(
+                        dests: sidebarDests,
+                        selected: _selected(sidebarDests),
+                        extended: veryWide,
+                        labels: ui.navLabels,
+                      ),
                     ),
                     const VerticalDivider(width: 1),
                     Expanded(child: content),
@@ -228,7 +268,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ],
                 ),
               ),
-              const Divider(height: 1),
+              if (!floating) const Divider(height: 1),
               PlayerBar(queueOpen: _queueOpen, onToggleQueue: () => setState(() => _queueOpen = !_queueOpen)),
             ],
           ),
@@ -239,9 +279,13 @@ class _AppShellState extends ConsumerState<AppShell> {
 }
 
 class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.selected, required this.extended});
+  const _Sidebar({required this.dests, required this.selected, required this.extended, required this.labels});
+  final List<_Dest> dests;
   final int selected;
   final bool extended;
+
+  /// Rótulos da barra compacta (a aberta sempre mostra o nome).
+  final String labels;
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +306,15 @@ class _Sidebar extends StatelessWidget {
       extended: extended,
       minExtendedWidth: 210,
       selectedIndex: selected < 0 ? null : selected,
-      onDestinationSelected: (i) => context.go(_dests[i].path),
+      labelType: extended
+          ? null
+          : switch (labels) {
+              'all' => NavigationRailLabelType.all,
+              'selected' => NavigationRailLabelType.selected,
+              'none' => NavigationRailLabelType.none,
+              _ => null,
+            },
+      onDestinationSelected: (i) => context.go(dests[i].path),
       leading: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: extended
@@ -289,7 +341,7 @@ class _Sidebar extends StatelessWidget {
         ),
       ),
       destinations: [
-        for (final d in _dests)
+        for (final d in dests)
           NavigationRailDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: Text(d.label(l10n))),
       ],
     );

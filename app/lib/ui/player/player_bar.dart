@@ -169,7 +169,7 @@ class PlayerBar extends ConsumerWidget {
     final item = ref.watch(playerProvider.select((s) => s.current));
     final song = item?.song;
     final buttons = ref.watch(uiPrefsProvider.select((p) => p.playerButtons));
-    return Material(
+    return floatingFrame(ref, theme.colorScheme.surfaceContainer, Material(
       color: theme.colorScheme.surfaceContainer,
       child: SizedBox(
         height: 84,
@@ -278,7 +278,7 @@ class PlayerBar extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -347,7 +347,7 @@ class MiniPlayer extends ConsumerWidget {
     final (item, playing, pos, dur) = s;
     if (item == null) return const SizedBox.shrink();
     final progress = dur.inMilliseconds == 0 ? 0.0 : pos.inMilliseconds / dur.inMilliseconds;
-    return Material(
+    return floatingFrame(ref, theme.colorScheme.surfaceContainerHigh, margin: const EdgeInsets.fromLTRB(8, 4, 8, 6), Material(
       color: theme.colorScheme.surfaceContainerHigh,
       child: InkWell(
         onTap: () => context.push('/now-playing'),
@@ -395,6 +395,23 @@ class MiniPlayer extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ));
   }
+}
+
+/// Estilo "flutuante" da barra do player: vira um cartão com margem, cantos e
+/// sombra, soltando do rodapé. No estilo "grudada" (original) não muda nada.
+Widget floatingFrame(WidgetRef ref, Color color, Widget bar, {EdgeInsets margin = const EdgeInsets.fromLTRB(12, 6, 12, 12)}) {
+  final (style, radius) = ref.watch(uiPrefsProvider.select((p) => (p.playerStyle, p.radius)));
+  if (style != 'floating') return bar;
+  return Padding(
+    padding: margin,
+    child: Material(
+      color: color,
+      elevation: 4,
+      borderRadius: BorderRadius.circular(radius + 6),
+      clipBehavior: Clip.antiAlias,
+      child: bar,
+    ),
+  );
 }

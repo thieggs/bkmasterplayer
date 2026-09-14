@@ -30,6 +30,7 @@ import 'ui/pages/settings/settings_page.dart';
 import 'ui/pages/songs_page.dart';
 import 'ui/player/now_playing_page.dart';
 import 'ui/shell.dart';
+import 'ui/theme/app_background.dart';
 import 'ui/theme/app_theme.dart';
 import 'ui/widgets/cover_art.dart';
 
@@ -92,7 +93,11 @@ final _routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (_, _) => const SettingsPage(),
             routes: [
-              GoRoute(path: 'look', builder: (_, _) => const LookPage()),
+              GoRoute(
+                path: 'look',
+                builder: (_, _) => const LookPage(),
+                routes: [GoRoute(path: ':part', builder: (_, state) => lookPartPage(state.pathParameters['part']!))],
+              ),
               GoRoute(path: ':section', builder: (_, state) => settingsSectionPage(state.pathParameters['section']!)),
             ],
           ),
@@ -195,9 +200,11 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
       ],
       builder: (context, child) {
         final mq = MediaQuery.of(context);
-        return MediaQuery(
-          data: mq.copyWith(textScaler: TextScaler.linear(ui.uiScale)),
-          child: child!,
+        return AppBackground(
+          child: MediaQuery(
+            data: mq.copyWith(textScaler: TextScaler.linear(ui.uiScale)),
+            child: child!,
+          ),
         );
       },
     );

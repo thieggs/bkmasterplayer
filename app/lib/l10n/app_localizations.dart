@@ -2316,6 +2316,516 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Álbuns, playlists e a biblioteca inteira para ouvir sem internet'**
   String get openDownloadsHint;
+
+  /// No description provided for @lookColors.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cores'**
+  String get lookColors;
+
+  /// No description provided for @lookFonts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fontes'**
+  String get lookFonts;
+
+  /// No description provided for @lookShapes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formas e tamanhos'**
+  String get lookShapes;
+
+  /// No description provided for @lookBackground.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fundo'**
+  String get lookBackground;
+
+  /// No description provided for @lookStructure.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estrutura das telas'**
+  String get lookStructure;
+
+  /// No description provided for @lookMotion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Animações'**
+  String get lookMotion;
+
+  /// No description provided for @lookEditHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tudo muda na hora; o próprio app é a prévia.'**
+  String get lookEditHint;
+
+  /// No description provided for @original.
+  ///
+  /// In pt, this message translates to:
+  /// **'original'**
+  String get original;
+
+  /// No description provided for @colorSource.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cor do app'**
+  String get colorSource;
+
+  /// No description provided for @colorFromCover.
+  ///
+  /// In pt, this message translates to:
+  /// **'Da capa que toca (original)'**
+  String get colorFromCover;
+
+  /// No description provided for @colorFixed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cor fixa'**
+  String get colorFixed;
+
+  /// No description provided for @baseColor.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cor base'**
+  String get baseColor;
+
+  /// No description provided for @baseColorHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com a cor da capa, é a usada quando nada está tocando.'**
+  String get baseColorHint;
+
+  /// No description provided for @pickColor.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher cor…'**
+  String get pickColor;
+
+  /// No description provided for @colorHex.
+  ///
+  /// In pt, this message translates to:
+  /// **'Código'**
+  String get colorHex;
+
+  /// No description provided for @hue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Matiz'**
+  String get hue;
+
+  /// No description provided for @saturation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saturação'**
+  String get saturation;
+
+  /// No description provided for @brightness.
+  ///
+  /// In pt, this message translates to:
+  /// **'Brilho'**
+  String get brightness;
+
+  /// No description provided for @useThis.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar'**
+  String get useThis;
+
+  /// No description provided for @paletteStyle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estilo da paleta'**
+  String get paletteStyle;
+
+  /// No description provided for @variantTonalSpot.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tonal (original)'**
+  String get variantTonalSpot;
+
+  /// No description provided for @variantFidelity.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fiel à cor'**
+  String get variantFidelity;
+
+  /// No description provided for @variantMonochrome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Monocromática'**
+  String get variantMonochrome;
+
+  /// No description provided for @variantNeutral.
+  ///
+  /// In pt, this message translates to:
+  /// **'Neutra'**
+  String get variantNeutral;
+
+  /// No description provided for @variantVibrant.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vibrante'**
+  String get variantVibrant;
+
+  /// No description provided for @variantExpressive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expressiva'**
+  String get variantExpressive;
+
+  /// No description provided for @variantContent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conteúdo'**
+  String get variantContent;
+
+  /// No description provided for @variantRainbow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arco-íris'**
+  String get variantRainbow;
+
+  /// No description provided for @variantFruitSalad.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salada de frutas'**
+  String get variantFruitSalad;
+
+  /// No description provided for @contrast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contraste'**
+  String get contrast;
+
+  /// No description provided for @contrastSoft.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suave'**
+  String get contrastSoft;
+
+  /// No description provided for @contrastStandard.
+  ///
+  /// In pt, this message translates to:
+  /// **'Padrão'**
+  String get contrastStandard;
+
+  /// No description provided for @contrastMax.
+  ///
+  /// In pt, this message translates to:
+  /// **'Máximo'**
+  String get contrastMax;
+
+  /// No description provided for @manualColors.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cores à mão'**
+  String get manualColors;
+
+  /// No description provided for @manualColorsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocam a cor calculada. O × volta ao automático.'**
+  String get manualColorsHint;
+
+  /// No description provided for @colorPrimary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Principal'**
+  String get colorPrimary;
+
+  /// No description provided for @colorSecondary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Secundária'**
+  String get colorSecondary;
+
+  /// No description provided for @colorTertiary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Terciária'**
+  String get colorTertiary;
+
+  /// No description provided for @colorBackground.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fundo'**
+  String get colorBackground;
+
+  /// No description provided for @colorText.
+  ///
+  /// In pt, this message translates to:
+  /// **'Texto'**
+  String get colorText;
+
+  /// No description provided for @automatic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Automática'**
+  String get automatic;
+
+  /// No description provided for @fontTitles.
+  ///
+  /// In pt, this message translates to:
+  /// **'Títulos'**
+  String get fontTitles;
+
+  /// No description provided for @fontBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'Texto'**
+  String get fontBody;
+
+  /// No description provided for @fontSystem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Do sistema (original)'**
+  String get fontSystem;
+
+  /// No description provided for @fontSample.
+  ///
+  /// In pt, this message translates to:
+  /// **'A música certa, na hora certa'**
+  String get fontSample;
+
+  /// No description provided for @buttons.
+  ///
+  /// In pt, this message translates to:
+  /// **'Botões'**
+  String get buttons;
+
+  /// No description provided for @buttonFilled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cheio (original)'**
+  String get buttonFilled;
+
+  /// No description provided for @buttonTonal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suave'**
+  String get buttonTonal;
+
+  /// No description provided for @buttonOutlined.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contorno'**
+  String get buttonOutlined;
+
+  /// No description provided for @cards.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cartões'**
+  String get cards;
+
+  /// No description provided for @cardFlat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Liso (original)'**
+  String get cardFlat;
+
+  /// No description provided for @cardElevated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com sombra'**
+  String get cardElevated;
+
+  /// No description provided for @cardOutlined.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contorno'**
+  String get cardOutlined;
+
+  /// No description provided for @preview.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prévia'**
+  String get preview;
+
+  /// No description provided for @backgroundStyle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fundo das telas'**
+  String get backgroundStyle;
+
+  /// No description provided for @bgSolid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Liso (original)'**
+  String get bgSolid;
+
+  /// No description provided for @bgGradient.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gradiente'**
+  String get bgGradient;
+
+  /// No description provided for @bgCover.
+  ///
+  /// In pt, this message translates to:
+  /// **'Capa desfocada'**
+  String get bgCover;
+
+  /// No description provided for @bgImage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Imagem'**
+  String get bgImage;
+
+  /// No description provided for @chooseImage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher imagem…'**
+  String get chooseImage;
+
+  /// No description provided for @imageTooBig.
+  ///
+  /// In pt, this message translates to:
+  /// **'Imagem grande demais (máximo 12 MB)'**
+  String get imageTooBig;
+
+  /// No description provided for @backgroundDim.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cor do tema por cima'**
+  String get backgroundDim;
+
+  /// No description provided for @backgroundDimHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais alto deixa o texto mais legível.'**
+  String get backgroundDimHint;
+
+  /// No description provided for @sidebarTabs.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abas da barra lateral'**
+  String get sidebarTabs;
+
+  /// No description provided for @sidebarTabsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Computador e tablet. Arraste para mudar a ordem.'**
+  String get sidebarTabsHint;
+
+  /// No description provided for @mobileTabs.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abas do celular'**
+  String get mobileTabs;
+
+  /// No description provided for @mobileTabsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'De 2 a 4, além de Ajustes (sempre no fim). Arraste para mudar a ordem.'**
+  String get mobileTabsHint;
+
+  /// No description provided for @mobileTabsLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'O celular comporta de 2 a 4 abas, além de Ajustes'**
+  String get mobileTabsLimit;
+
+  /// No description provided for @navLabels.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome das abas'**
+  String get navLabels;
+
+  /// No description provided for @labelsAuto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Automático (original)'**
+  String get labelsAuto;
+
+  /// No description provided for @labelsAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre'**
+  String get labelsAll;
+
+  /// No description provided for @labelsSelected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só a aberta'**
+  String get labelsSelected;
+
+  /// No description provided for @labelsNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nunca'**
+  String get labelsNone;
+
+  /// No description provided for @playerStyle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Barra do player'**
+  String get playerStyle;
+
+  /// No description provided for @playerDocked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Grudada (original)'**
+  String get playerDocked;
+
+  /// No description provided for @playerFloating.
+  ///
+  /// In pt, this message translates to:
+  /// **'Flutuante'**
+  String get playerFloating;
+
+  /// No description provided for @transitions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Troca de telas'**
+  String get transitions;
+
+  /// No description provided for @transDefault.
+  ///
+  /// In pt, this message translates to:
+  /// **'Padrão (original)'**
+  String get transDefault;
+
+  /// No description provided for @transFade.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esmaecer'**
+  String get transFade;
+
+  /// No description provided for @transSlide.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deslizar'**
+  String get transSlide;
+
+  /// No description provided for @transNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem animação'**
+  String get transNone;
+
+  /// No description provided for @animSpeed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Animações'**
+  String get animSpeed;
+
+  /// No description provided for @animNormal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Normais (original)'**
+  String get animNormal;
+
+  /// No description provided for @animFast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rápidas'**
+  String get animFast;
+
+  /// No description provided for @animOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligadas'**
+  String get animOff;
 }
 
 class _AppLocalizationsDelegate

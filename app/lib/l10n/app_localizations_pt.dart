@@ -1268,4 +1268,264 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get openDownloadsHint =>
       'Álbuns, playlists e a biblioteca inteira para ouvir sem internet';
+
+  @override
+  String get lookColors => 'Cores';
+
+  @override
+  String get lookFonts => 'Fontes';
+
+  @override
+  String get lookShapes => 'Formas e tamanhos';
+
+  @override
+  String get lookBackground => 'Fundo';
+
+  @override
+  String get lookStructure => 'Estrutura das telas';
+
+  @override
+  String get lookMotion => 'Animações';
+
+  @override
+  String get lookEditHint => 'Tudo muda na hora; o próprio app é a prévia.';
+
+  @override
+  String get original => 'original';
+
+  @override
+  String get colorSource => 'Cor do app';
+
+  @override
+  String get colorFromCover => 'Da capa que toca (original)';
+
+  @override
+  String get colorFixed => 'Cor fixa';
+
+  @override
+  String get baseColor => 'Cor base';
+
+  @override
+  String get baseColorHint =>
+      'Com a cor da capa, é a usada quando nada está tocando.';
+
+  @override
+  String get pickColor => 'Escolher cor…';
+
+  @override
+  String get colorHex => 'Código';
+
+  @override
+  String get hue => 'Matiz';
+
+  @override
+  String get saturation => 'Saturação';
+
+  @override
+  String get brightness => 'Brilho';
+
+  @override
+  String get useThis => 'Usar';
+
+  @override
+  String get paletteStyle => 'Estilo da paleta';
+
+  @override
+  String get variantTonalSpot => 'Tonal (original)';
+
+  @override
+  String get variantFidelity => 'Fiel à cor';
+
+  @override
+  String get variantMonochrome => 'Monocromática';
+
+  @override
+  String get variantNeutral => 'Neutra';
+
+  @override
+  String get variantVibrant => 'Vibrante';
+
+  @override
+  String get variantExpressive => 'Expressiva';
+
+  @override
+  String get variantContent => 'Conteúdo';
+
+  @override
+  String get variantRainbow => 'Arco-íris';
+
+  @override
+  String get variantFruitSalad => 'Salada de frutas';
+
+  @override
+  String get contrast => 'Contraste';
+
+  @override
+  String get contrastSoft => 'Suave';
+
+  @override
+  String get contrastStandard => 'Padrão';
+
+  @override
+  String get contrastMax => 'Máximo';
+
+  @override
+  String get manualColors => 'Cores à mão';
+
+  @override
+  String get manualColorsHint =>
+      'Trocam a cor calculada. O × volta ao automático.';
+
+  @override
+  String get colorPrimary => 'Principal';
+
+  @override
+  String get colorSecondary => 'Secundária';
+
+  @override
+  String get colorTertiary => 'Terciária';
+
+  @override
+  String get colorBackground => 'Fundo';
+
+  @override
+  String get colorText => 'Texto';
+
+  @override
+  String get automatic => 'Automática';
+
+  @override
+  String get fontTitles => 'Títulos';
+
+  @override
+  String get fontBody => 'Texto';
+
+  @override
+  String get fontSystem => 'Do sistema (original)';
+
+  @override
+  String get fontSample => 'A música certa, na hora certa';
+
+  @override
+  String get buttons => 'Botões';
+
+  @override
+  String get buttonFilled => 'Cheio (original)';
+
+  @override
+  String get buttonTonal => 'Suave';
+
+  @override
+  String get buttonOutlined => 'Contorno';
+
+  @override
+  String get cards => 'Cartões';
+
+  @override
+  String get cardFlat => 'Liso (original)';
+
+  @override
+  String get cardElevated => 'Com sombra';
+
+  @override
+  String get cardOutlined => 'Contorno';
+
+  @override
+  String get preview => 'Prévia';
+
+  @override
+  String get backgroundStyle => 'Fundo das telas';
+
+  @override
+  String get bgSolid => 'Liso (original)';
+
+  @override
+  String get bgGradient => 'Gradiente';
+
+  @override
+  String get bgCover => 'Capa desfocada';
+
+  @override
+  String get bgImage => 'Imagem';
+
+  @override
+  String get chooseImage => 'Escolher imagem…';
+
+  @override
+  String get imageTooBig => 'Imagem grande demais (máximo 12 MB)';
+
+  @override
+  String get backgroundDim => 'Cor do tema por cima';
+
+  @override
+  String get backgroundDimHint => 'Mais alto deixa o texto mais legível.';
+
+  @override
+  String get sidebarTabs => 'Abas da barra lateral';
+
+  @override
+  String get sidebarTabsHint =>
+      'Computador e tablet. Arraste para mudar a ordem.';
+
+  @override
+  String get mobileTabs => 'Abas do celular';
+
+  @override
+  String get mobileTabsHint =>
+      'De 2 a 4, além de Ajustes (sempre no fim). Arraste para mudar a ordem.';
+
+  @override
+  String get mobileTabsLimit =>
+      'O celular comporta de 2 a 4 abas, além de Ajustes';
+
+  @override
+  String get navLabels => 'Nome das abas';
+
+  @override
+  String get labelsAuto => 'Automático (original)';
+
+  @override
+  String get labelsAll => 'Sempre';
+
+  @override
+  String get labelsSelected => 'Só a aberta';
+
+  @override
+  String get labelsNone => 'Nunca';
+
+  @override
+  String get playerStyle => 'Barra do player';
+
+  @override
+  String get playerDocked => 'Grudada (original)';
+
+  @override
+  String get playerFloating => 'Flutuante';
+
+  @override
+  String get transitions => 'Troca de telas';
+
+  @override
+  String get transDefault => 'Padrão (original)';
+
+  @override
+  String get transFade => 'Esmaecer';
+
+  @override
+  String get transSlide => 'Deslizar';
+
+  @override
+  String get transNone => 'Sem animação';
+
+  @override
+  String get animSpeed => 'Animações';
+
+  @override
+  String get animNormal => 'Normais (original)';
+
+  @override
+  String get animFast => 'Rápidas';
+
+  @override
+  String get animOff => 'Desligadas';
 }

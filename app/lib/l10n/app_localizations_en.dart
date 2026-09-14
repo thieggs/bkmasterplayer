@@ -1269,4 +1269,263 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get openDownloadsHint =>
       'Albums, playlists and the whole library to listen offline';
+
+  @override
+  String get lookColors => 'Colors';
+
+  @override
+  String get lookFonts => 'Fonts';
+
+  @override
+  String get lookShapes => 'Shapes and sizes';
+
+  @override
+  String get lookBackground => 'Background';
+
+  @override
+  String get lookStructure => 'Screen layout';
+
+  @override
+  String get lookMotion => 'Animations';
+
+  @override
+  String get lookEditHint =>
+      'Everything applies right away; the app itself is the preview.';
+
+  @override
+  String get original => 'original';
+
+  @override
+  String get colorSource => 'App color';
+
+  @override
+  String get colorFromCover => 'From the playing cover (original)';
+
+  @override
+  String get colorFixed => 'Fixed color';
+
+  @override
+  String get baseColor => 'Base color';
+
+  @override
+  String get baseColorHint =>
+      'With cover colors, it is used when nothing is playing.';
+
+  @override
+  String get pickColor => 'Pick a color…';
+
+  @override
+  String get colorHex => 'Code';
+
+  @override
+  String get hue => 'Hue';
+
+  @override
+  String get saturation => 'Saturation';
+
+  @override
+  String get brightness => 'Brightness';
+
+  @override
+  String get useThis => 'Use';
+
+  @override
+  String get paletteStyle => 'Palette style';
+
+  @override
+  String get variantTonalSpot => 'Tonal (original)';
+
+  @override
+  String get variantFidelity => 'True to color';
+
+  @override
+  String get variantMonochrome => 'Monochrome';
+
+  @override
+  String get variantNeutral => 'Neutral';
+
+  @override
+  String get variantVibrant => 'Vibrant';
+
+  @override
+  String get variantExpressive => 'Expressive';
+
+  @override
+  String get variantContent => 'Content';
+
+  @override
+  String get variantRainbow => 'Rainbow';
+
+  @override
+  String get variantFruitSalad => 'Fruit salad';
+
+  @override
+  String get contrast => 'Contrast';
+
+  @override
+  String get contrastSoft => 'Soft';
+
+  @override
+  String get contrastStandard => 'Standard';
+
+  @override
+  String get contrastMax => 'Maximum';
+
+  @override
+  String get manualColors => 'Custom colors';
+
+  @override
+  String get manualColorsHint =>
+      'They replace the computed color. × goes back to automatic.';
+
+  @override
+  String get colorPrimary => 'Primary';
+
+  @override
+  String get colorSecondary => 'Secondary';
+
+  @override
+  String get colorTertiary => 'Tertiary';
+
+  @override
+  String get colorBackground => 'Background';
+
+  @override
+  String get colorText => 'Text';
+
+  @override
+  String get automatic => 'Automatic';
+
+  @override
+  String get fontTitles => 'Titles';
+
+  @override
+  String get fontBody => 'Text';
+
+  @override
+  String get fontSystem => 'System (original)';
+
+  @override
+  String get fontSample => 'The right song at the right time';
+
+  @override
+  String get buttons => 'Buttons';
+
+  @override
+  String get buttonFilled => 'Filled (original)';
+
+  @override
+  String get buttonTonal => 'Tonal';
+
+  @override
+  String get buttonOutlined => 'Outlined';
+
+  @override
+  String get cards => 'Cards';
+
+  @override
+  String get cardFlat => 'Flat (original)';
+
+  @override
+  String get cardElevated => 'Elevated';
+
+  @override
+  String get cardOutlined => 'Outlined';
+
+  @override
+  String get preview => 'Preview';
+
+  @override
+  String get backgroundStyle => 'Screen background';
+
+  @override
+  String get bgSolid => 'Solid (original)';
+
+  @override
+  String get bgGradient => 'Gradient';
+
+  @override
+  String get bgCover => 'Blurred cover';
+
+  @override
+  String get bgImage => 'Image';
+
+  @override
+  String get chooseImage => 'Choose image…';
+
+  @override
+  String get imageTooBig => 'Image too large (12 MB max)';
+
+  @override
+  String get backgroundDim => 'Theme color on top';
+
+  @override
+  String get backgroundDimHint => 'Higher keeps text easier to read.';
+
+  @override
+  String get sidebarTabs => 'Sidebar tabs';
+
+  @override
+  String get sidebarTabsHint => 'Desktop and tablet. Drag to reorder.';
+
+  @override
+  String get mobileTabs => 'Phone tabs';
+
+  @override
+  String get mobileTabsHint =>
+      'From 2 to 4, plus Settings (always last). Drag to reorder.';
+
+  @override
+  String get mobileTabsLimit => 'The phone fits 2 to 4 tabs, plus Settings';
+
+  @override
+  String get navLabels => 'Tab labels';
+
+  @override
+  String get labelsAuto => 'Automatic (original)';
+
+  @override
+  String get labelsAll => 'Always';
+
+  @override
+  String get labelsSelected => 'Only the open one';
+
+  @override
+  String get labelsNone => 'Never';
+
+  @override
+  String get playerStyle => 'Player bar';
+
+  @override
+  String get playerDocked => 'Docked (original)';
+
+  @override
+  String get playerFloating => 'Floating';
+
+  @override
+  String get transitions => 'Screen transitions';
+
+  @override
+  String get transDefault => 'Default (original)';
+
+  @override
+  String get transFade => 'Fade';
+
+  @override
+  String get transSlide => 'Slide';
+
+  @override
+  String get transNone => 'No animation';
+
+  @override
+  String get animSpeed => 'Animations';
+
+  @override
+  String get animNormal => 'Normal (original)';
+
+  @override
+  String get animFast => 'Fast';
+
+  @override
+  String get animOff => 'Off';
 }
