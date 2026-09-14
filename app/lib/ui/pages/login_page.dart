@@ -6,6 +6,7 @@ import '../../core/providers.dart';
 import '../../data/local/local_setup.dart';
 import '../../data/subsonic/subsonic_client.dart';
 import '../../l10n/l10n.dart';
+import '../widgets/bk_logo.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -95,7 +96,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(Icons.graphic_eq, size: 56, color: theme.colorScheme.primary),
+                    const Center(child: BkLogo(size: 72)),
                     const SizedBox(height: 12),
                     Text(l10n.appTitle, textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
                     const SizedBox(height: 4),

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fundo da abertura: acompanha o tema claro do aparelho. -->
+    <color name="splash_bg">#FFF8FB</color>
+</resources>

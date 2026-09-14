@@ -16,6 +16,7 @@ import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
 import '../../connect/connect_service.dart';
 import '../actions.dart';
+import '../widgets/bk_logo.dart';
 import 'automix_settings.dart';
 
 final outputDevicesProvider = FutureProvider.autoDispose<List<engine.OutputDevice>>((ref) => engine.playerOutputDevices());
@@ -466,7 +467,7 @@ class SettingsPage extends ConsumerWidget {
 
         section(l10n.about),
         ListTile(
-          leading: const Icon(Icons.info_outline),
+          leading: const BkLogo(size: 32),
           title: Text(l10n.appTitle),
           subtitle: Text(l10n.aboutText),
         ),

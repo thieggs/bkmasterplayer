@@ -14,6 +14,7 @@ import 'actions.dart';
 import 'player/player_bar.dart';
 import 'player/queue_panel.dart';
 import 'player/mini_window.dart';
+import 'widgets/bk_logo.dart';
 
 class _Dest {
   const _Dest(this.path, this.icon, this.selectedIcon, this.label);
@@ -267,12 +268,12 @@ class _Sidebar extends StatelessWidget {
         child: extended
             ? Row(
                 children: [
-                  Icon(Icons.graphic_eq, color: Theme.of(context).colorScheme.primary),
+                  const BkLogo(size: 28),
                   const SizedBox(width: 8),
                   Text(l10n.appTitle, style: Theme.of(context).textTheme.titleMedium),
                 ],
               )
-            : Icon(Icons.graphic_eq, color: Theme.of(context).colorScheme.primary),
+            : const BkLogo(size: 32),
       ),
       trailing: Expanded(
         child: Align(
