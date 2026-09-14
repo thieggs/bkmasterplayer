@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In pt, this message translates to:
-  /// **'BKT Player 🎵'**
+  /// **'BK Music Player 🎵'**
   String get appTitle;
 
   /// No description provided for @about.
@@ -1696,7 +1696,7 @@ abstract class AppLocalizations {
   /// No description provided for @noDevicesFound.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhum outro aparelho encontrado. Abra o BKT Player no outro aparelho, com a mesma conta e na mesma rede.'**
+  /// **'Nenhum outro aparelho encontrado. Abra o BK Music Player no outro aparelho, com a mesma conta e na mesma rede.'**
   String get noDevicesFound;
 
   /// No description provided for @addDeviceByAddress.
@@ -1714,7 +1714,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceNotFound.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhum BKT Player desta conta respondeu nesse endereço'**
+  /// **'Nenhum BK Music Player desta conta respondeu nesse endereço'**
   String get deviceNotFound;
 
   /// No description provided for @connectFailed.
@@ -1774,7 +1774,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicFolderHint.
   ///
   /// In pt, this message translates to:
-  /// **'O BKT Player lê as músicas desta pasta e das subpastas.'**
+  /// **'O BK Music Player lê as músicas desta pasta e das subpastas.'**
   String get musicFolderHint;
 
   /// No description provided for @chooseOtherFolder.
@@ -1792,7 +1792,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicPermissionDenied.
   ///
   /// In pt, this message translates to:
-  /// **'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKT Player → Permissões.'**
+  /// **'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BK Music Player → Permissões.'**
   String get musicPermissionDenied;
 
   /// No description provided for @noLocalSongs.
@@ -1924,7 +1924,7 @@ abstract class AppLocalizations {
   /// No description provided for @startJamHint.
   ///
   /// In pt, this message translates to:
-  /// **'Quem estiver perto com o BKT Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.'**
+  /// **'Quem estiver perto com o BK Music Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.'**
   String get startJamHint;
 
   /// No description provided for @jamWaiting.
@@ -1954,7 +1954,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamSearching.
   ///
   /// In pt, this message translates to:
-  /// **'Procurando… Peça para quem está tocando abrir uma Festa no BKT Player.'**
+  /// **'Procurando… Peça para quem está tocando abrir uma Festa no BK Music Player.'**
   String get jamSearching;
 
   /// No description provided for @jamOf.
@@ -2842,7 +2842,7 @@ abstract class AppLocalizations {
   /// No description provided for @themeOriginal.
   ///
   /// In pt, this message translates to:
-  /// **'BKT Player (original)'**
+  /// **'BK Music Player (original)'**
   String get themeOriginal;
 
   /// No description provided for @themeVinyl.
@@ -3010,7 +3010,7 @@ abstract class AppLocalizations {
   /// No description provided for @invalidThemeFile.
   ///
   /// In pt, this message translates to:
-  /// **'Arquivo inválido: não é um tema ou backup do BKT Player'**
+  /// **'Arquivo inválido: não é um tema ou backup do BK Music Player'**
   String get invalidThemeFile;
 
   /// No description provided for @textProfiles.
@@ -3034,7 +3034,7 @@ abstract class AppLocalizations {
   /// No description provided for @backToOriginalHint.
   ///
   /// In pt, this message translates to:
-  /// **'O tema BKT Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).'**
+  /// **'O tema BK Music Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).'**
   String get backToOriginalHint;
 
   /// No description provided for @party.

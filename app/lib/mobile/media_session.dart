@@ -271,7 +271,7 @@ class _BkAudioHandler extends BaseAudioHandler {
       }
       if (parentMediaId != AudioService.browsableRootId && _auto.provider() == null) {
         final pt = Platform.localeName.startsWith('pt');
-        return [MediaItem(id: 'info:login', title: pt ? 'Entre na sua conta no BKT Player do celular' : 'Sign in on the BKT Player phone app', playable: false)];
+        return [MediaItem(id: 'info:login', title: pt ? 'Entre na sua conta no BK Music Player do celular' : 'Sign in on the BK Music Player phone app', playable: false)];
       }
       return await _auto.children(parentMediaId, current: _current);
     } catch (e) {

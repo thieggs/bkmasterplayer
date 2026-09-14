@@ -9,7 +9,7 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appTitle => 'BKT Player 🎵';
+  String get appTitle => 'BK Music Player 🎵';
 
   @override
   String get about => 'Sobre';
@@ -890,7 +890,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get noDevicesFound =>
-      'Nenhum outro aparelho encontrado. Abra o BKT Player no outro aparelho, com a mesma conta e na mesma rede.';
+      'Nenhum outro aparelho encontrado. Abra o BK Music Player no outro aparelho, com a mesma conta e na mesma rede.';
 
   @override
   String get addDeviceByAddress => 'Adicionar pelo endereço';
@@ -900,7 +900,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get deviceNotFound =>
-      'Nenhum BKT Player desta conta respondeu nesse endereço';
+      'Nenhum BK Music Player desta conta respondeu nesse endereço';
 
   @override
   String connectFailed(String device) {
@@ -935,7 +935,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get musicFolderHint =>
-      'O BKT Player lê as músicas desta pasta e das subpastas.';
+      'O BK Music Player lê as músicas desta pasta e das subpastas.';
 
   @override
   String get chooseOtherFolder => 'Escolher outra';
@@ -945,7 +945,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get musicPermissionDenied =>
-      'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKT Player → Permissões.';
+      'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BK Music Player → Permissões.';
 
   @override
   String get noLocalSongs => 'Nenhuma música encontrada nessa pasta.';
@@ -1031,7 +1031,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get startJamHint =>
-      'Quem estiver perto com o BKT Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.';
+      'Quem estiver perto com o BK Music Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.';
 
   @override
   String jamWaiting(String name) {
@@ -1049,7 +1049,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get jamSearching =>
-      'Procurando… Peça para quem está tocando abrir uma Festa no BKT Player.';
+      'Procurando… Peça para quem está tocando abrir uma Festa no BK Music Player.';
 
   @override
   String jamOf(String name) {
@@ -1536,7 +1536,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Toque para aplicar; segure (ou ⋮) para mais opções.';
 
   @override
-  String get themeOriginal => 'BKT Player (original)';
+  String get themeOriginal => 'BK Music Player (original)';
 
   @override
   String get themeVinyl => 'Vinil';
@@ -1631,7 +1631,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get invalidThemeFile =>
-      'Arquivo inválido: não é um tema ou backup do BKT Player';
+      'Arquivo inválido: não é um tema ou backup do BK Music Player';
 
   @override
   String get textProfiles => 'Como texto (área de transferência)';
@@ -1646,7 +1646,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get backToOriginalHint =>
-      'O tema BKT Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).';
+      'O tema BK Music Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).';
 
   @override
   String get party => 'Festa';

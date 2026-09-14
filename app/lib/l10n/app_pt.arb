@@ -1,6 +1,6 @@
 {
  "@@locale": "pt",
- "appTitle": "BKT Player 🎵",
+ "appTitle": "BK Music Player 🎵",
  "about": "Sobre",
  "aboutText": "Player open source para servidores OpenSubsonic (Navidrome), com AudioMuse-AI e AutoMix. Licença MIT.",
  "accentColor": "Cor de destaque",
@@ -367,10 +367,10 @@
    }
   }
  },
- "noDevicesFound": "Nenhum outro aparelho encontrado. Abra o BKT Player no outro aparelho, com a mesma conta e na mesma rede.",
+ "noDevicesFound": "Nenhum outro aparelho encontrado. Abra o BK Music Player no outro aparelho, com a mesma conta e na mesma rede.",
  "addDeviceByAddress": "Adicionar pelo endereço",
  "addDeviceHint": "IP do aparelho (ex.: o do Tailscale, 100.x.y.z)",
- "deviceNotFound": "Nenhum BKT Player desta conta respondeu nesse endereço",
+ "deviceNotFound": "Nenhum BK Music Player desta conta respondeu nesse endereço",
  "connectFailed": "Não foi possível conectar a {device}",
  "@connectFailed": {
   "placeholders": {
@@ -387,10 +387,10 @@
  "useLocalMusic": "Usar só as músicas do aparelho",
  "useLocalMusicHint": "Sem servidor: toca os arquivos de uma pasta deste aparelho. Dá para configurar as pastas depois, nos Ajustes.",
  "musicFolder": "Pasta das músicas",
- "musicFolderHint": "O BKT Player lê as músicas desta pasta e das subpastas.",
+ "musicFolderHint": "O BK Music Player lê as músicas desta pasta e das subpastas.",
  "chooseOtherFolder": "Escolher outra",
  "useThisFolder": "Usar esta pasta",
- "musicPermissionDenied": "Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKT Player → Permissões.",
+ "musicPermissionDenied": "Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BK Music Player → Permissões.",
  "noLocalSongs": "Nenhuma música encontrada nessa pasta.",
  "scanningMusic": "Lendo as músicas… {count} arquivos",
  "@scanningMusic": {
@@ -440,7 +440,7 @@
  "accept": "Aceitar",
  "reject": "Recusar",
  "startJam": "Começar uma Festa",
- "startJamHint": "Quem estiver perto com o BKT Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.",
+ "startJamHint": "Quem estiver perto com o BK Music Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.",
  "jamWaiting": "Pedindo para entrar na Festa de {name}… Espere a pessoa aceitar.",
  "@jamWaiting": {
   "placeholders": {
@@ -452,7 +452,7 @@
  "jamRejected": "O pedido não foi aceito.",
  "jamEnded": "A Festa acabou.",
  "jamsNearby": "Festas por perto",
- "jamSearching": "Procurando… Peça para quem está tocando abrir uma Festa no BKT Player.",
+ "jamSearching": "Procurando… Peça para quem está tocando abrir uma Festa no BK Music Player.",
  "jamOf": "Festa de {name}",
  "@jamOf": {
   "placeholders": {
@@ -659,7 +659,7 @@
  "animOff": "Desligadas",
  "themes": "Temas",
  "themesHint": "Toque para aplicar; segure (ou ⋮) para mais opções.",
- "themeOriginal": "BKT Player (original)",
+ "themeOriginal": "BK Music Player (original)",
  "themeVinyl": "Vinil",
  "themePaper": "Papel",
  "themeContrast": "Alto contraste",
@@ -690,12 +690,12 @@
  "autoBackupsHint": "Feitos antes de cada troca grande (os 10 últimos)",
  "noAutoBackups": "Nenhum ainda: aparecem quando você troca de tema com mudanças não salvas, importa ou restaura.",
  "fileSaved": "Arquivo salvo",
- "invalidThemeFile": "Arquivo inválido: não é um tema ou backup do BKT Player",
+ "invalidThemeFile": "Arquivo inválido: não é um tema ou backup do BK Music Player",
  "textProfiles": "Como texto (área de transferência)",
  "deleteThemeConfirm": "Excluir o tema \"{name}\"?",
  "@deleteThemeConfirm": {"placeholders": {"name": {"type": "String"}}},
  "backToOriginal": "Voltar à aparência original",
- "backToOriginalHint": "O tema BKT Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).",
+ "backToOriginalHint": "O tema BK Music Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).",
  "party": "Festa",
  "lyricsSource": "Letra: {source}",
  "@lyricsSource": {"placeholders": {"source": {"type": "String"}}},
