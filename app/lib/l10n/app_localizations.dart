@@ -2112,6 +2112,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar.'**
   String get jamAllowlistHint;
+
+  /// No description provided for @jamNearbyAlerts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avisar quando houver uma Jam por perto'**
+  String get jamNearbyAlerts;
+
+  /// No description provided for @jamNearbyAlertsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usa o Bluetooth em modo econômico, mesmo com o app fechado.'**
+  String get jamNearbyAlertsHint;
+
+  /// No description provided for @joinJamNoAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar numa Jam por perto (sem conta)'**
+  String get joinJamNoAccount;
 }
 
 class _AppLocalizationsDelegate

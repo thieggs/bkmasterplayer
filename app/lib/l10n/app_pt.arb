@@ -520,5 +520,8 @@
  "jamMenuHint": "Tocar junto com quem está perto",
  "jamAllowlist": "Aceitos automaticamente na Jam",
  "jamAllowlistEmpty": "Ninguém: todo pedido espera você aceitar.",
- "jamAllowlistHint": "Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar."
+ "jamAllowlistHint": "Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar.",
+ "jamNearbyAlerts": "Avisar quando houver uma Jam por perto",
+ "jamNearbyAlertsHint": "Usa o Bluetooth em modo econômico, mesmo com o app fechado.",
+ "joinJamNoAccount": "Entrar numa Jam por perto (sem conta)"
 }

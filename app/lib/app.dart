@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -43,6 +44,8 @@ final _routerProvider = Provider<GoRouter>((ref) {
       if (session.isLoading && !session.hasValue) return null;
       final loggedIn = session.value != null;
       final atLogin = state.matchedLocation == '/login';
+      // A Jam funciona sem conta (o convidado usa as músicas do dono).
+      if (!loggedIn && state.matchedLocation == '/jam') return null;
       if (!loggedIn && !atLogin) return '/login';
       if (loggedIn && atLogin) return '/';
       return null;
@@ -128,11 +131,33 @@ final _schemeProvider = FutureProvider.family<ColorScheme, Brightness>((ref, bri
   }
 });
 
-class PlayerApp extends ConsumerWidget {
+class PlayerApp extends ConsumerStatefulWidget {
   const PlayerApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PlayerApp> createState() => _PlayerAppState();
+}
+
+class _PlayerAppState extends ConsumerState<PlayerApp> {
+  static const _system = MethodChannel('bkplayer/system');
+
+  @override
+  void initState() {
+    super.initState();
+    // Notificações do Android abrem uma tela (ex.: a Jam).
+    _system.setMethodCallHandler((call) async {
+      if (call.method == 'openRoute') ref.read(_routerProvider).push('${call.arguments}');
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final route = await _system.invokeMethod<String>('launchRoute');
+        if (route != null) ref.read(_routerProvider).push(route);
+      } catch (_) {}
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(_routerProvider);
     final settings = ref.watch(settingsProvider);
     // Mantém o controlador vivo desde o início (recebe eventos do motor).

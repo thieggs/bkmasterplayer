@@ -11,6 +11,7 @@ import '../../data/local/local_provider.dart';
 import '../../data/local/local_setup.dart';
 import '../../data/settings.dart';
 import '../../jam/jam_core.dart';
+import '../../jam/jam_permissions.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
 import '../../connect/connect_service.dart';
@@ -355,6 +356,17 @@ class SettingsPage extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (Platform.isAndroid)
+                SwitchListTile(
+                  secondary: const Icon(Icons.bluetooth_searching),
+                  title: Text(l10n.jamNearbyAlerts),
+                  subtitle: Text(l10n.jamNearbyAlertsHint),
+                  value: s.jamNearbyAlerts,
+                  onChanged: (v) async {
+                    set((x) => x.copyWith(jamNearbyAlerts: v));
+                    await setJamNearbyAlerts(v);
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.verified_user_outlined),
                 title: Text(l10n.jamAllowlist),

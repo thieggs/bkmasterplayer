@@ -1150,4 +1150,14 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get jamAllowlistHint =>
       'Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar.';
+
+  @override
+  String get jamNearbyAlerts => 'Avisar quando houver uma Jam por perto';
+
+  @override
+  String get jamNearbyAlertsHint =>
+      'Usa o Bluetooth em modo econômico, mesmo com o app fechado.';
+
+  @override
+  String get joinJamNoAccount => 'Entrar numa Jam por perto (sem conta)';
 }

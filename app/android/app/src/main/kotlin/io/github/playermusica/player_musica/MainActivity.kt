@@ -1,6 +1,8 @@
 package io.github.playermusica.player_musica
 
+import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -10,15 +12,42 @@ import io.flutter.plugin.common.MethodChannel
 // a música continua com a tela fechada, e os botões do fone/caixa Bluetooth, da
 // notificação e da tela de bloqueio chegam ao app.
 class MainActivity : AudioServiceActivity() {
+    private var system: MethodChannel? = null
+
+    /** Tela a abrir vinda de uma notificação (ex.: "/jam"). */
+    private var pendingRoute: String? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        pendingRoute = intent?.getStringExtra("route")
+        super.onCreate(savedInstanceState)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra("route")?.let { route ->
+            val ch = system
+            if (ch != null) ch.invokeMethod("openRoute", route) else pendingRoute = route
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "bkplayer/system").setMethodCallHandler { call, result ->
-            when (call.method) {
-                // Nome que o usuário vê no aparelho (ex.: "Galaxy M35 5G"), para o Connect.
-                "deviceName" -> result.success(deviceName())
-                else -> result.notImplemented()
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+        system = MethodChannel(messenger, "bkplayer/system").apply {
+            setMethodCallHandler { call, result ->
+                when (call.method) {
+                    // Nome que o usuário vê no aparelho (ex.: "Galaxy M35 5G"), para o Connect e a Jam.
+                    "deviceName" -> result.success(deviceName())
+                    "sdkInt" -> result.success(Build.VERSION.SDK_INT)
+                    "launchRoute" -> {
+                        result.success(pendingRoute)
+                        pendingRoute = null
+                    }
+                    else -> result.notImplemented()
+                }
             }
         }
+        JamNearby(applicationContext, messenger)
     }
 
     private fun deviceName(): String {

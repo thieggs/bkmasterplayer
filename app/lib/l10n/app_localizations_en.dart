@@ -1151,4 +1151,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get jamAllowlistHint =>
       'These people join your Jam without asking. Tap X to remove.';
+
+  @override
+  String get jamNearbyAlerts => 'Notify me when there\'s a Jam nearby';
+
+  @override
+  String get jamNearbyAlertsHint =>
+      'Uses Bluetooth in low-power mode, even with the app closed.';
+
+  @override
+  String get joinJamNoAccount => 'Join a Jam nearby (no account)';
 }

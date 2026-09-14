@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../data/local/local_setup.dart';
@@ -184,6 +185,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(l10n.useLocalMusicHint, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: _busy ? null : () => context.push('/jam'),
+                      icon: const Icon(Icons.groups_outlined),
+                      label: Text(l10n.joinJamNoAccount),
+                    ),
                   ],
                 ),
               ),

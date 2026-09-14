@@ -75,6 +75,7 @@ class _JamPageState extends ConsumerState<JamPage> {
       final guest = ref.read(jamGuestProvider);
       if (!ref.read(jamHostProvider).active && guest.phase != JamPhase.joined) {
         await ensureJamPermissions();
+        if (ref.read(settingsProvider).jamNearbyAlerts) await setJamNearbyAlerts(true);
         await ref.read(jamGuestProvider.notifier).search();
       }
     });

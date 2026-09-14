@@ -238,13 +238,13 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
     final customName = ref.watch(settingsProvider.select((s) => s.deviceName));
     final gen = ++_gen;
     ref.onDispose(_stop);
-    if (session == null) return const [];
-    _connectAllowed = enabled && !session.isLocal;
-    _username = session.account.username;
+    // Sem login: só a Jam usa a rede (convidado sem conta).
+    _connectAllowed = session != null && enabled && !session.isLocal;
+    _username = session?.account.username ?? '';
     _uh = _userHash(_username);
     ref.listen(playerProvider, _pushState);
     Future.microtask(() => _start(gen, customName));
-    return _manualDevices();
+    return _connectAllowed ? _manualDevices() : const [];
   }
 
   Future<void> _start(int gen, String? customName) async {

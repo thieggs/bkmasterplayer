@@ -439,5 +439,8 @@
  "jamMenuHint": "Play together with people nearby",
  "jamAllowlist": "Auto-accepted in the Jam",
  "jamAllowlistEmpty": "Nobody: every request waits for you to accept.",
- "jamAllowlistHint": "These people join your Jam without asking. Tap X to remove."
+ "jamAllowlistHint": "These people join your Jam without asking. Tap X to remove.",
+ "jamNearbyAlerts": "Notify me when there's a Jam nearby",
+ "jamNearbyAlertsHint": "Uses Bluetooth in low-power mode, even with the app closed.",
+ "joinJamNoAccount": "Join a Jam nearby (no account)"
 }

@@ -54,6 +54,7 @@ class AppSettings {
     this.localFolders = const [],
     this.lastFmApiKey,
     this.lastFmForRadio = true,
+    this.jamNearbyAlerts = true,
   });
 
   final ThemeMode themeMode;
@@ -114,6 +115,9 @@ class AppSettings {
   /// Usar o Last.fm na rádio e no mix quando o servidor não tem análise sônica.
   final bool lastFmForRadio;
 
+  /// Avisar quando passar perto de uma Jam (scan Bluetooth em segundo plano, Android).
+  final bool jamNearbyAlerts;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     int? seedColor,
@@ -158,6 +162,7 @@ class AppSettings {
     String? lastFmApiKey,
     bool clearLastFm = false,
     bool? lastFmForRadio,
+    bool? jamNearbyAlerts,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -198,6 +203,7 @@ class AppSettings {
         localFolders: localFolders ?? this.localFolders,
         lastFmApiKey: clearLastFm ? null : (lastFmApiKey ?? this.lastFmApiKey),
         lastFmForRadio: lastFmForRadio ?? this.lastFmForRadio,
+        jamNearbyAlerts: jamNearbyAlerts ?? this.jamNearbyAlerts,
       );
 
   Map<String, dynamic> toJson() => {
@@ -239,6 +245,7 @@ class AppSettings {
         'localFolders': localFolders,
         'lastFmApiKey': lastFmApiKey,
         'lastFmForRadio': lastFmForRadio,
+        'jamNearbyAlerts': jamNearbyAlerts,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -283,6 +290,7 @@ class AppSettings {
       localFolders: (j['localFolders'] as List?)?.whereType<String>().toList() ?? d.localFolders,
       lastFmApiKey: j['lastFmApiKey'] as String?,
       lastFmForRadio: pick('lastFmForRadio', d.lastFmForRadio),
+      jamNearbyAlerts: pick('jamNearbyAlerts', d.jamNearbyAlerts),
     );
   }
 

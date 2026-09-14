@@ -10,6 +10,8 @@ import 'app.dart';
 import 'core/providers.dart';
 import 'data/settings.dart';
 import 'desktop/desktop_integration.dart';
+import 'jam/jam_core.dart';
+import 'jam/jam_nearby.dart';
 import 'mobile/media_session.dart';
 import 'player/automix.dart';
 import 'src/rust/api/engine.dart' as engine;
@@ -84,6 +86,14 @@ Future<void> main() async {
       await initMobileMedia(container);
     } catch (e) {
       debugPrint('serviço de mídia indisponível: $e');
+    }
+    // Jam por Bluetooth/Wi-Fi Direct e o aviso de Jam por perto.
+    final nearby = await NearbyJam.create();
+    if (nearby != null) {
+      jamNearby = nearby;
+      jamShowRequest = NearbyJam.showRequest;
+      jamHideRequest = NearbyJam.hideRequest;
+      if (settings.jamNearbyAlerts) NearbyJam.setBeaconScan(true);
     }
   }
   runApp(UncontrolledProviderScope(container: container, child: const PlayerApp()));

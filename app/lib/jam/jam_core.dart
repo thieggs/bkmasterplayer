@@ -44,7 +44,8 @@ abstract class JamLink {
 
 /// Pedido para entrar na Jam (lado do dono).
 class JamJoinRequest {
-  JamJoinRequest({required this.guestId, required this.guestName, required this.via});
+  JamJoinRequest({required this.guestId, required this.guestName, required this.via}) : key = _randomId(10);
+  final String key;
   final String guestId;
   final String guestName;
   final String via;
@@ -82,6 +83,12 @@ abstract class JamTransport {
 
 /// Transporte Nearby registrado pelo Android (null no desktop).
 JamTransport? jamNearby;
+
+/// Avisos do sistema para pedidos de entrada (Android: notificação com
+/// Aceitar/Recusar/Sempre). A decisão volta por [jamDecisionSink].
+void Function(JamJoinRequest req)? jamShowRequest;
+void Function(JamJoinRequest req)? jamHideRequest;
+void Function(String key, String what)? jamDecisionSink;
 
 String _randomId([int len = 12]) {
   final r = Random.secure();
@@ -322,6 +329,11 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   @override
   JamHostState build() {
     ref.listen(playerProvider, (_, _) => _schedulePush());
+    // Botões da notificação do pedido (app em segundo plano).
+    jamDecisionSink = (key, what) {
+      final req = state.pending.where((r) => r.key == key).firstOrNull;
+      if (req != null) respond(req, accept: what != 'reject', always: what == 'always');
+    };
     ref.onDispose(_shutdown);
     return const JamHostState();
   }
@@ -394,6 +406,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
       return req.decision.future;
     }
     state = state.copyWith(pending: [...state.pending, req]);
+    jamShowRequest?.call(req);
     // Sem resposta em 2 minutos: recusa.
     Timer(const Duration(minutes: 2), () {
       if (!req.decision.isCompleted) respond(req, accept: false);
@@ -404,6 +417,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   void respond(JamJoinRequest req, {required bool accept, bool always = false}) {
     if (accept && always) ref.read(jamAllowlistProvider.notifier).add(req.guestId, req.guestName);
     state = state.copyWith(pending: state.pending.where((r) => r != req).toList());
+    jamHideRequest?.call(req);
     if (!req.decision.isCompleted) req.decision.complete(accept);
   }
 

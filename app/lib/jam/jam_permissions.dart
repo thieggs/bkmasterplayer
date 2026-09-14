@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'jam_core.dart';
+import 'jam_nearby.dart';
 
 /// Permissões da Jam por Bluetooth/Wi-Fi Direct (Android). Sem o transporte
 /// Nearby (desktop), a Jam usa só a rede local e não precisa de nada.
@@ -20,4 +21,11 @@ Future<void> ensureJamPermissions() async {
     if (sdk < 33) Permission.locationWhenInUse,
     Permission.notification,
   ].request();
+}
+
+/// Liga/desliga o aviso de Jam por perto (pede as permissões ao ligar).
+Future<void> setJamNearbyAlerts(bool on) async {
+  if (!Platform.isAndroid || jamNearby == null) return;
+  if (on) await ensureJamPermissions();
+  await NearbyJam.setBeaconScan(on);
 }

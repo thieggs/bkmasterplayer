@@ -80,6 +80,11 @@ flutter {
     source = "../.."
 }
 
+dependencies {
+    // Jam: Nearby Connections (Bluetooth + Wi-Fi Direct/hotspot entre celulares).
+    implementation("com.google.android.gms:play-services-nearby:19.3.0")
+}
+
 // O motor Rust liga no libc++_shared.so do NDK (a parte em C++ do time-stretch),
 // que o Flutter não empacota: copia do NDK, só para as ABIs deste build (Sync
 // apaga as de builds anteriores).
