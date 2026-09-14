@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -11,6 +12,7 @@ import '../connect/connect_service.dart';
 import '../core/providers.dart';
 import '../data/settings.dart';
 import '../data/similar.dart';
+import 'dj_mode.dart';
 import '../domain/models.dart';
 import '../data/offline_store.dart';
 import '../domain/music_provider.dart';
@@ -60,6 +62,7 @@ class PlayerState {
     this.plannedMix,
     this.plannedSynced = false,
     this.radio = false,
+    this.dj = false,
     this.remoteDevice,
     this.remoteDeviceId,
   });
@@ -93,6 +96,9 @@ class PlayerState {
   /// Rádio infinita: quando a fila acaba, completa com músicas parecidas.
   final bool radio;
 
+  /// Modo DJ: a próxima é escolhida pelo melhor encaixe (AudioMuse + AutoMix).
+  final bool dj;
+
   /// Controlando outro aparelho (BKplayer Connect): nome e id dele. O estado
   /// acima é o de lá.
   final String? remoteDevice;
@@ -121,8 +127,10 @@ class PlayerState {
     bool? plannedSynced,
     bool clearPlanned = false,
     bool? radio,
+    bool? dj,
   }) =>
       PlayerState(
+        dj: dj ?? this.dj,
         remoteDevice: remoteDevice,
         remoteDeviceId: remoteDeviceId,
         queue: queue ?? this.queue,
@@ -143,6 +151,9 @@ class PlayerState {
         radio: radio ?? this.radio,
       );
 }
+
+/// Formatos que o motor ainda não decodifica.
+const _undecodable = {'opus', 'wma', 'ape', 'wv', 'dsf', 'dff', 'mpc', 'tta', 'ac3', 'dts'};
 
 class PlayerController extends Notifier<PlayerState> {
   StreamSubscription<engine.PlayerEvent>? _sub;
@@ -237,6 +248,7 @@ class PlayerController extends Notifier<PlayerState> {
       'index': state.index - start,
       'position': state.position.inMilliseconds,
       'radio': state.radio,
+      'dj': state.dj,
       'queue': items.map((q) => q.song.toJson()).toList(),
     };
     try {
@@ -273,6 +285,7 @@ class PlayerController extends Notifier<PlayerState> {
     int index = 0;
     Duration position = Duration.zero;
     var radio = false;
+    var dj = false;
     try {
       if (await _queueFile.exists()) {
         final j = jsonDecode(await _queueFile.readAsString()) as Map<String, dynamic>;
@@ -281,6 +294,7 @@ class PlayerController extends Notifier<PlayerState> {
           index = (j['index'] as int?) ?? 0;
           position = Duration(milliseconds: (j['position'] as int?) ?? 0);
           radio = j['radio'] == true;
+          dj = j['dj'] == true;
         }
       }
     } catch (e) {
@@ -304,6 +318,7 @@ class PlayerController extends Notifier<PlayerState> {
       position: position,
       duration: items[index].song.duration ?? Duration.zero,
       radio: radio,
+      dj: dj,
     );
   }
 
@@ -382,7 +397,8 @@ class PlayerController extends Notifier<PlayerState> {
       items.insert(0, first);
       startIndex = 0;
     }
-    state = state.copyWith(queue: items, shuffle: shuffle, clearMessage: true);
+    // Lista nova escolhida: o Modo DJ só continua se foi ele que começou.
+    state = state.copyWith(queue: items, shuffle: shuffle, clearMessage: true, dj: _startingDj);
     _startAt(startIndex);
   }
 
@@ -686,8 +702,10 @@ class PlayerController extends Notifier<PlayerState> {
     if (p == null) return null;
     final s = ref.read(settingsProvider);
     final raw = offline || ref.read(offlineProvider.notifier).songIds.contains(song.id);
-    final format = raw ? null : s.transcodeFormat;
-    final bitrate = raw ? null : (s.maxBitRate > 0 ? s.maxBitRate : null);
+    // Formato que o motor não decodifica (Opus etc.): o servidor converte, até no download.
+    final convert = _undecodable.contains(song.suffix?.toLowerCase());
+    final format = convert ? (s.transcodeFormat ?? 'mp3') : (raw ? null : s.transcodeFormat);
+    final bitrate = raw && !convert ? null : (s.maxBitRate > 0 ? s.maxBitRate : null);
     final (g, peak) = gain ?? (0.0, null);
     return engine.TrackSource(
       id: uid ?? song.id,
@@ -722,7 +740,11 @@ class PlayerController extends Notifier<PlayerState> {
           _scheduleNext();
           _beginScrobble(item);
           _preAnalyze(i);
-          _maybeExtendRadio();
+          if (state.dj) {
+            _djExtend();
+          } else {
+            _maybeExtendRadio();
+          }
         }
       case engine.PlayerEvent_TrackEnded(:final id, :final error):
         if (error != null) {
@@ -760,10 +782,14 @@ class PlayerController extends Notifier<PlayerState> {
       case engine.PlayerEvent_Error(:final message):
         state = state.copyWith(message: message);
       case engine.PlayerEvent_Analysis(:final id, :final bpm, :final key, :final camelot, :final reliable):
-        state = state.copyWith(insights: {
-          ...state.insights,
-          id: TrackInsight(bpm: bpm, key: key, camelot: camelot, reliable: reliable),
-        });
+        final insight = TrackInsight(bpm: bpm, key: key, camelot: camelot, reliable: reliable);
+        // Candidatas do Modo DJ: só a espera, sem mexer no estado da fila.
+        final waiter = _analysisWaiters.remove(id);
+        if (waiter != null) {
+          waiter.complete(insight);
+        } else {
+          state = state.copyWith(insights: {...state.insights, id: insight});
+        }
       case engine.PlayerEvent_MixPlanned(:final summary, :final beatmatched):
         state = state.copyWith(plannedMix: summary, plannedSynced: beatmatched);
       case engine.PlayerEvent_MixStarted(:final summary, :final style, :final durationMs):
@@ -813,6 +839,123 @@ class PlayerController extends Notifier<PlayerState> {
         }
       case engine.MediaAction_Quit():
         exit(0);
+    }
+  }
+
+  // ---- Modo DJ ----
+
+  bool _startingDj = false;
+  bool _djBusy = false;
+  final _djHeard = <String>{};
+  final _analysisWaiters = <String, Completer<TrackInsight>>{};
+
+  /// Começa pelo [seed] e deixa o AudioMuse e o AutoMix escolherem as próximas.
+  void startDj(Song seed) {
+    if (_remote != null) return;
+    ref.read(settingsProvider.notifier).update((s) => s.automixEnabled ? s : s.copyWith(automixEnabled: true));
+    _djHeard.clear();
+    _startingDj = true;
+    playSongs([seed]);
+    _startingDj = false;
+    state = state.copyWith(dj: true, radio: false);
+    _djExtend();
+  }
+
+  void setDj(bool on) {
+    state = state.copyWith(dj: on, radio: on ? false : state.radio);
+    _persistSoon();
+    if (on) _djExtend();
+  }
+
+  /// Análise de uma candidata (BPM/tom) pelo motor do AutoMix; null se demorar.
+  Future<TrackInsight?> _analyzeFor(Song song, Duration wait) async {
+    final id = 'dj:${song.id}';
+    final src = sourceFor(song, uid: id);
+    if (src == null) return null;
+    final c = Completer<TrackInsight>();
+    _analysisWaiters[id] = c;
+    engine.playerAnalyze(track: src);
+    return c.future.timeout(wait, onTimeout: () {
+      _analysisWaiters.remove(id);
+      return const TrackInsight();
+    });
+  }
+
+  /// Dá para analisar sem gastar dados móveis (arquivo no aparelho ou já no cache)?
+  Future<bool> _freeToAnalyze(Song song) async {
+    if (song.path != null) return true;
+    final key = sourceFor(song)?.cacheKey;
+    try {
+      return key != null && await engine.playerIsCached(cacheKey: key);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Escolhe a próxima quando a fila está no fim: parecidas pelo AudioMuse
+  /// (ou Last.fm/servidor), as melhores analisadas pelo AutoMix (fora dos
+  /// dados móveis) e a de melhor encaixe entra na fila.
+  Future<void> _djExtend() async {
+    if (!state.dj || _djBusy || _remote != null) return;
+    final cur = state.current;
+    final p = _provider;
+    if (cur == null || p == null || state.queue.length - state.index - 1 >= 1) return;
+    _djBusy = true;
+    try {
+      _djHeard.add(cur.song.id);
+      var cands = <(Song, double)>[];
+      if (p.serverInfo?.sonicSimilarity ?? false) {
+        cands = [for (final m in await p.sonicSimilar(cur.song.id, count: 30)) (m.song, m.similarity)];
+      }
+      if (cands.isEmpty) {
+        final s = ref.read(settingsProvider);
+        final list = await findSimilar(p, cur.song, count: 30, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null);
+        cands = [for (final (i, x) in list.indexed) (x, 1 - 0.5 * i / max(1, list.length))];
+      }
+      final inQueue = state.queue.map((q) => q.song.id).toSet();
+      cands = cands.where((c) => !inQueue.contains(c.$1.id) && !_djHeard.contains(c.$1.id)).toList();
+      if (cands.isEmpty) {
+        final random = await p.randomSongs(size: 10);
+        cands = [for (final x in random) if (!inQueue.contains(x.id)) (x, 0.3)];
+      }
+      if (cands.isEmpty || !state.dj) return;
+      final here = state.insights[cur.uid];
+      final hereBpm = here?.reliable == true ? here?.bpm : cur.song.bpm?.toDouble();
+      final conn = await Connectivity().checkConnectivity();
+      final mobileData = conn.contains(ConnectivityResult.mobile) && !conn.contains(ConnectivityResult.wifi);
+      final top = cands.take(5).toList();
+      final analyzed = <String, TrackInsight>{};
+      // Espera as análises só enquanto sobra tempo antes do fim da atual (o
+      // AutoMix ainda precisa planejar a transição); as do cache voltam na hora.
+      final left = (cur.song.duration ?? const Duration(minutes: 3)) - state.position;
+      final wait = Duration(seconds: (left.inSeconds - 25).clamp(2, 40));
+      await Future.wait(top.map((c) async {
+        // Nos dados móveis, só o que já está analisado (sem baixar as candidatas).
+        if (mobileData && !(await _freeToAnalyze(c.$1))) return;
+        final ins = await _analyzeFor(c.$1, wait);
+        if (ins != null) analyzed[c.$1.id] = ins;
+      }));
+      final recent = state.queue.skip(max(0, state.index - 3)).map((q) => q.song.artistId).toSet();
+      (Song, double)? best;
+      for (final (song, sim) in top) {
+        final ins = analyzed[song.id];
+        final bpm = ins?.reliable == true ? ins?.bpm : song.bpm?.toDouble();
+        final score = djScore(
+          similarity: sim,
+          tempo: tempoFit(hereBpm, bpm),
+          key: keyFit(here?.camelot, ins?.camelot),
+          sameArtist: song.artistId != null && song.artistId == cur.song.artistId,
+          recentArtist: recent.contains(song.artistId),
+        );
+        if (best == null || score > best.$2) best = (song, score);
+      }
+      if (best != null && state.dj && state.queue.length - state.index - 1 < 1) {
+        enqueue([best.$1]);
+      }
+    } catch (e) {
+      debugPrint('modo DJ: $e');
+    } finally {
+      _djBusy = false;
     }
   }
 

@@ -154,6 +154,9 @@ struct Inner {
     automix: Mutex<AutomixSettings>,
     /// Plano enviado ao mixer (de, para, plano).
     planned: Mutex<Option<(String, String, MixPlan)>>,
+    /// Pedidos avulsos de análise (chave → ids) que esperam resposta, mesmo sem
+    /// estar na fila de reprodução (ex.: candidatas do Modo DJ).
+    watchers: Mutex<HashMap<String, Vec<String>>>,
 }
 
 pub struct Engine {
@@ -432,6 +435,7 @@ impl Inner {
 
     /// Chamado pela fila de análise quando um resultado fica pronto.
     fn on_analysis(self: &Arc<Self>, key: &str, result: Option<&Arc<TrackAnalysis>>) {
+        let asked = self.watchers.lock().remove(key).unwrap_or_default();
         // Informa a UI (BPM/tom) para as entradas da fila com essa música.
         if let Some(a) = result {
             let ids: Vec<String> = self
@@ -443,14 +447,13 @@ impl Inner {
                 .collect();
             let next_id = self.ctl.lock().next.as_ref().and_then(|(r, _)| (r.analysis_key.as_deref() == Some(key)).then(|| r.id.clone()));
             let mut seen = std::collections::HashSet::new();
-            for id in ids.into_iter().chain(next_id).filter(|id| seen.insert(id.clone())) {
-                self.emit(EngineEvent::Analysis {
-                    id,
-                    bpm: a.bpm,
-                    key: a.key.clone(),
-                    camelot: a.camelot.clone(),
-                    reliable: a.has_beat(),
-                });
+            for id in ids.into_iter().chain(next_id).chain(asked).filter(|id| seen.insert(id.clone())) {
+                self.emit(analysis_event(id, a));
+            }
+        } else {
+            // Falhou: quem pediu avulso não fica esperando à toa.
+            for id in asked {
+                self.emit(EngineEvent::Analysis { id, bpm: None, key: None, camelot: None, reliable: false });
             }
         }
         self.try_plan();
@@ -462,6 +465,10 @@ impl Inner {
             cb(ev);
         }
     }
+}
+
+fn analysis_event(id: String, a: &TrackAnalysis) -> EngineEvent {
+    EngineEvent::Analysis { id, bpm: a.bpm, key: a.key.clone(), camelot: a.camelot.clone(), reliable: a.has_beat() }
 }
 
 fn replay_gain(gain_db: f32, peak: Option<f32>) -> f32 {
@@ -512,6 +519,7 @@ impl Engine {
             analysis: Mutex::new(None),
             automix: Mutex::new(AutomixSettings::default()),
             planned: Mutex::new(None),
+            watchers: Mutex::new(HashMap::new()),
         });
 
         if let Some(model_dir) = config.model_dir.clone() {
@@ -600,7 +608,23 @@ impl Engine {
     }
 
     /// Pré-análise (prioridade baixa) de faixas que vêm depois na fila.
+    /// Analisa avulso e responde com `EngineEvent::Analysis` para `req.id`
+    /// (na hora, se já estiver pronta; sem BPM, se falhar).
     pub fn analyze(&self, req: &TrackRequest) {
+        let Some(worker) = self.inner.analysis.lock().clone() else {
+            self.inner.emit(EngineEvent::Analysis { id: req.id.clone(), bpm: None, key: None, camelot: None, reliable: false });
+            return;
+        };
+        let Some(key) = req.analysis_key.clone() else { return };
+        if let Some(a) = worker.get(&key) {
+            self.inner.emit(analysis_event(req.id.clone(), &a));
+            return;
+        }
+        if worker.has_failed(&key) {
+            self.inner.emit(EngineEvent::Analysis { id: req.id.clone(), bpm: None, key: None, camelot: None, reliable: false });
+            return;
+        }
+        self.inner.watchers.lock().entry(key).or_default().push(req.id.clone());
         self.inner.request_analysis(req, 5);
     }
 

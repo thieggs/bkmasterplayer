@@ -1218,4 +1218,15 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get onlineCoversHint =>
       'Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer.';
+
+  @override
+  String get djModeFrom => 'Modo DJ a partir desta música';
+
+  @override
+  String get djModeOn =>
+      'Modo DJ ligado: o AudioMuse e o AutoMix escolhem a próxima pelo melhor encaixe (toque para desligar)';
+
+  @override
+  String get djModeOff =>
+      'Modo DJ: deixar o AudioMuse e o AutoMix escolherem as próximas';
 }

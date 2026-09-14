@@ -475,5 +475,8 @@
  "musixmatchKeyHint": "Optional: without it, lyrics come from LRCLIB and lyrics.ovh.",
  "musixmatchKeyHelp": "From a developer account at developer.musixmatch.com. The free plan only returns part of the lyrics; then the app uses the other sources.",
  "onlineCovers": "Fetch missing covers",
- "onlineCoversHint": "For this device's music without covers: looks the album up on iTunes and Deezer."
+ "onlineCoversHint": "For this device's music without covers: looks the album up on iTunes and Deezer.",
+ "djModeFrom": "DJ mode from this song",
+ "djModeOn": "DJ mode on: AudioMuse and AutoMix pick the next song by the best fit (tap to turn off)",
+ "djModeOff": "DJ mode: let AudioMuse and AutoMix pick the next songs"
 }

@@ -2226,6 +2226,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer.'**
   String get onlineCoversHint;
+
+  /// No description provided for @djModeFrom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo DJ a partir desta música'**
+  String get djModeFrom;
+
+  /// No description provided for @djModeOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo DJ ligado: o AudioMuse e o AutoMix escolhem a próxima pelo melhor encaixe (toque para desligar)'**
+  String get djModeOn;
+
+  /// No description provided for @djModeOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modo DJ: deixar o AudioMuse e o AutoMix escolherem as próximas'**
+  String get djModeOff;
 }
 
 class _AppLocalizationsDelegate

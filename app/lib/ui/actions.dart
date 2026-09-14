@@ -230,6 +230,7 @@ Future<void> showSongMenu(BuildContext context, WidgetRef ref, Song song, {Offse
     (Icons.playlist_play, l10n.playNext, () => player.playNext([song])),
     (Icons.queue_music, l10n.addToQueue, () => player.enqueue([song])),
     (Icons.auto_awesome, l10n.instantMix, () => LibraryActions.instantMix(context, ref, song)),
+    (Icons.auto_awesome_motion, l10n.djModeFrom, () => ref.read(playerProvider.notifier).startDj(song)),
     if (info?.sonicSimilarity ?? false) ...[
       (Icons.graphic_eq, l10n.sonicRadio, () => LibraryActions.sonicRadio(context, ref, song)),
       (Icons.route, l10n.sonicPath, () => LibraryActions.sonicPath(context, ref, song)),
