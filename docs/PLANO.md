@@ -13,7 +13,7 @@ A pasta do projeto está vazia. Este arquivo é o documento central: na Fase 0 e
 
 ---
 
-## Status (14/09/2026): PC (Linux) completo · Android funcionando
+## Status (14/09/2026): PC (Linux) completo · Android completo (com Android Auto e Jam)
 
 Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 
@@ -26,7 +26,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 | 4. Customização | ✅ tema, capas, 4 layouts do tocando agora (incl. vinil), layout, botões, seções, comportamento, perfis JSON |
 | 5. AutoMix DJ | ✅ análise (Beat This!), grade, tom, estrutura, planejador, time-stretch, estilos, configurações, modelo por potência |
 | 6. Windows | ⏳ |
-| 7. Android | 🔶 APK arm64 (Android 8+): tudo do PC menos bandeja/mini player, com notificação de mídia, botões do fone/Bluetooth, foco de áudio e AutoMix; testado no emulador Android 15 · ⏳ teste no celular, Android Auto, análise econômica |
+| 7. Android | ✅ APK arm64 (Android 8+): tudo do PC menos bandeja/mini player, com notificação de mídia, botões do fone/Bluetooth, foco de áudio, AutoMix, Jam por Bluetooth e Android Auto; instalado no celular (Galaxy M35, Android 16) · ⏳ Jam entre dois celulares reais, Android Auto num carro/DHU, análise econômica |
 | 8. iOS/macOS | ⏳ |
 
 ### Medições (testes automatizados)
@@ -67,8 +67,41 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
   - **Uso:** o botão "Aparelhos" abre "Tocar em". Se o outro aparelho já toca, passa a controlá-lo; se está parado, a fila daqui vai para lá do mesmo ponto. "Este aparelho" traz a música de volta e pausa lá.
   - **Testado:** PC (instância de teste) controlado por script e pelo app no emulador (conectar, play, próxima, pausar, trazer de volta).
 
+### Músicas do aparelho e Last.fm (14/09)
+- **Sem servidor:** no login, "Usar só as músicas do aparelho" (ou pastas nos Ajustes). O motor lê tags, duração, ReplayGain e capa (embutida ou da pasta) com índice incremental (76 faixas reais em 2,7 s; 1 ms na releitura). `LocalProvider` (`lib/data/local/`) monta álbuns, artistas, gêneros, busca sem acento, favoritos, execuções, playlists e letras `.lrc`.
+- **Last.fm** (chave grátis do usuário, Ajustes): músicas e artistas parecidos para o mix e a rádio quando não há AudioMuse (casados com o servidor ou com as músicas do aparelho), mais tocadas e bio do artista (`lib/data/lastfm.dart`, `similar.dart`).
+
+### Jam (14/09)
+Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o que toca no aparelho do dono (`lib/jam/`).
+- **Entrada só com aprovação:** cada pedido aparece em qualquer tela ou na notificação (Recusar / Aceitar / "Aceitar sempre"). Ninguém entra sozinho, a não ser quem está na lista de aceitos automaticamente (editável nos Ajustes).
+- **Meios:** rede local (anúncio UDP + WebSocket `/jam` e upload `/jam/upload` no servidor do Connect) e, no Android, Bluetooth/Wi-Fi Direct (Nearby Connections, `JamNearby.kt`), que dispensa Wi-Fi em comum (convidado no 4G). A lógica é a mesma nos dois (`JamLink`).
+- **Músicas:** "Adicionar" busca nas músicas do dono pelo próprio dono (o convidado não precisa de conta no servidor dele); "Minhas" manda do servidor do convidado (MP3 320), do aparelho ou de um arquivo, como arquivo, pelo meio mais rápido que o Nearby negociar. O dono só toca o que ele mesmo mostrou ou recebeu como arquivo (nunca um caminho vindo do convidado).
+- **Beacon:** com a Jam aberta, o dono anuncia por Bluetooth LE; o convidado tem um scan econômico registrado no sistema (funciona com o app fechado) e recebe "Tem uma Jam do BKplayer perto de você" (no máximo a cada 30 min).
+- **Sem conta:** "Entrar numa Jam por perto" direto no login.
+- **Testado:** no emulador e na instância de teste do PC, com scripts no papel do outro lado (recusar, aceitar, aceitar sempre, busca, adicionar, controlar, arquivo de 3,5 MB). Falta testar entre dois celulares reais (Nearby e beacon).
+
+### Modo DJ (14/09)
+"Modo DJ a partir desta música" (menu da música; botão na fila): o AudioMuse e o AutoMix escolhem juntos a próxima pelo melhor encaixe (`lib/player/dj_mode.dart`).
+- **Candidatas:** parecidas do AudioMuse (ou Last.fm/servidor), sem repetir o que já tocou.
+- **Nota:** 45% parecença + 30% andamento (inclui meio/dobro do tempo, dentro do que o time-stretch alcança) + 25% tom na roda Camelot, com penalidade para o mesmo artista ou um recente.
+- **Análise:** o motor analisa as 5 melhores (BPM e tom) enquanto sobra tempo antes do fim da atual; nos dados móveis, só as que não precisam ser baixadas. Com cache, a escolha sai em ~1 s.
+
+### Android Auto e o caminho para o CarPlay (14/09)
+- **Navegação no carro** (`lib/mobile/auto_browser.dart`): abas Início (aleatórias, Modo DJ e mix da atual, favoritas, mais tocados, álbuns aleatórios), Recentes, Álbuns (grade) e Playlists; tocar uma música toca a pasta a partir dela. Busca na tela do carro, pedido de voz ("tocar X no BKplayer", com o foco em artista/álbum/música), "Continuar ouvindo" e fila (janela de 100 em volta da atual).
+- **Capas:** o carro só aceita `content://`. O `BkArtProvider` serve pela chave; a URL com o token fica num arquivo privado do app.
+- **Aberto pelo carro com o app fechado:** o serviço espera o login e a fila salva antes de responder.
+- **Testado** no emulador com um cliente MediaBrowser próprio (navegar, capas lidas por outro app, busca, voz, tocar por id, pular na fila, abertura a frio). Para ver a tela do carro: Android Auto no celular → Configurações → tocar 10× na versão → "Iniciar servidor da unidade principal"; no PC, `adb forward tcp:5277 tcp:5277` e `~/android-sdk/extras/google/auto/desktop-head-unit`.
+- **CarPlay (quando houver o Mac):** a árvore do `AutoBrowser` não depende do Android. No iOS, um adaptador de templates (`CPTabBarTemplate` com as mesmas abas, `CPListTemplate` para pastas, `CPNowPlayingTemplate`) chama `children`, `search`, `resolve` e `voice` e toca pelo mesmo `PlayerController`. Exige o entitlement `com.apple.developer.carplay-audio` pedido à Apple.
+
+### Outros (14/09)
+- **Celular deitado e tablet:** barra lateral compacta no celular deitado; layout de computador no tablet (menor lado ≥ 600 dp), com barra lateral e botões do player que rolam; tocando agora com pouca altura põe a capa ao lado dos controles.
+- **Logo pelo tema:** `BkLogo` desenhada com as cores do tema ativo (nunca some no fundo); abertura do Android clara/escura conforme o aparelho.
+- **Baixar a biblioteca inteira** (Downloads): mostra quantas músicas e o tamanho, avisa nos dados móveis; depois vira "Baixar as novas".
+- **Letras e capas que faltam:** letras do LRCLIB (sincronizadas), do Musixmatch (API oficial, com a chave do usuário) e do lyrics.ovh; capas do iTunes e do Deezer para as músicas do aparelho. Cache no disco; liga/desliga nos Ajustes.
+- **Opus e outros formatos que o motor não decodifica:** o servidor converte para MP3 automaticamente, também no download offline.
+
 ### Limitações conhecidas
-- **Opus:** o symphonia não decodifica; use "qualidade de streaming" com transcodificação para MP3 ou deixe o servidor converter.
+- **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.
 - **Análise:** decodifica a faixa inteira na memória (~130 MB por faixa de 4 min), também no Android (fazer só nas regiões usadas ⏳).
 - **Android com o app fechado** (processo encerrado): o botão da caixa/fone não abre o app; abra e toque uma vez.
@@ -78,10 +111,12 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - **Modelo completo x pequeno:** na música real, os dois têm confiabilidade parecida (cada um erra em faixas diferentes); o completo não é automaticamente melhor.
 
 ### Próximos passos
-1. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
-2. **Android:** teste no celular (JBL), Android Auto (navegar pela biblioteca no carro), análise econômica (só Wi-Fi/carregando, só as regiões usadas).
-3. **AudioMuse API direta** (precisa do token): busca por texto, Alchemy, Music Map.
-4. **Jellyfin** como segundo provedor; cache da biblioteca para navegar offline; karaokê palavra por palavra; editor de smart playlist; estatísticas/retrospectiva; Chromecast/DLNA; controle remoto pelo celular.
+1. **Ajustes em telas por categoria + personalização gráfica total** (temas completos, arquivos de backup): aguardando o usuário confirmar o entendimento.
+2. **Testes com aparelhos reais:** Jam entre dois celulares (Nearby e beacon; o Bluetooth do PC ajuda), Android Auto no DHU ou no carro.
+3. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
+4. **Android:** análise econômica (só Wi-Fi/carregando, só as regiões usadas); Opus local.
+5. **AudioMuse API direta** (precisa do token): busca por texto, Alchemy, Music Map.
+6. **CarPlay** (com o Mac), **Jellyfin** como segundo provedor; karaokê palavra por palavra; editor de smart playlist; estatísticas/retrospectiva; Chromecast/DLNA.
 
 ---
 
