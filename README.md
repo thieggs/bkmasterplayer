@@ -46,6 +46,8 @@ flutter build linux --release         # versão otimizada
 ../dev/install_linux.sh               # instala no menu de aplicativos (--remove desfaz)
 ```
 
+Se o CMake não achar o `ld.lld` (Debian só instala `ld.lld-19`), compile com `PATH=/usr/lib/llvm-19/bin:$PATH flutter build linux --release` (depois de trocar de compilador, apague `app/build/linux`).
+
 Ambiente de teste (opcional): `./dev/setup_navidrome.sh` gera as músicas e sobe um Navidrome em http://localhost:4534 (dev/dev).
 
 ## Android
