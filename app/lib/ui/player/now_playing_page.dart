@@ -53,75 +53,81 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
       _spin.stop();
     }
 
-    final info = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        LayoutBuilder(builder: (context, c) {
-          final size = (c.maxWidth).clamp(160.0, layout == 'minimal' ? 560.0 : 460.0);
-          if (vinyl) {
-            return Hero(
-              tag: 'now-cover',
-              child: RotationTransition(
-                turns: _spin,
-                child: Container(
-                  width: size,
-                  height: size,
-                  padding: EdgeInsets.all(size * 0.06),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
-                    gradient: RadialGradient(
-                      colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900, Colors.black],
-                      stops: const [0.3, 0.55, 0.8, 1],
-                    ),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CoverArt(coverArtId: song?.coverArt, size: size * 0.88, radius: size),
-                      Container(
-                        width: size * 0.05,
-                        height: size * 0.05,
-                        decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-                      ),
-                    ],
-                  ),
+    Widget cover(double size) {
+      if (vinyl) {
+        return Hero(
+          tag: 'now-cover',
+          child: RotationTransition(
+            turns: _spin,
+            child: Container(
+              width: size,
+              height: size,
+              padding: EdgeInsets.all(size * 0.06),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
+                gradient: RadialGradient(
+                  colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900, Colors.black],
+                  stops: const [0.3, 0.55, 0.8, 1],
                 ),
               ),
-            );
-          }
-          return Hero(
-            tag: 'now-cover',
-            child: Material(
-              elevation: 12,
-              borderRadius: BorderRadius.circular(ui.coverRadius(size)),
-              clipBehavior: Clip.antiAlias,
-              child: CoverArt(coverArtId: song?.coverArt, size: size),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CoverArt(coverArtId: song?.coverArt, size: size * 0.88, radius: size),
+                  Container(
+                    width: size * 0.05,
+                    height: size * 0.05,
+                    decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                  ),
+                ],
+              ),
             ),
-          );
-        }),
-        const SizedBox(height: 24),
-        const RemoteLabel(),
-        Text(song?.title ?? l10n.nothingPlaying,
-            textAlign: TextAlign.center, style: theme.textTheme.headlineSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 4),
-        if (song != null)
-          Wrap(
-            alignment: WrapAlignment.center,
-            children: [
-              TextButton(
-                onPressed: song.artistId == null ? null : () => context.push('/artist/${song.artistId}'),
-                child: Text(song.displayArtist),
-              ),
-              if (song.album != null)
-                TextButton(
-                  onPressed: song.albumId == null ? null : () => context.push('/album/${song.albumId}'),
-                  child: Text(song.album!),
-                ),
-            ],
           ),
-        if (song != null) _TechInfo(song: song, insight: ref.watch(playerProvider.select((s) => s.insights[item?.uid]))),
-        Builder(builder: (context) {
+        );
+      }
+      return Hero(
+        tag: 'now-cover',
+        child: Material(
+          elevation: 12,
+          borderRadius: BorderRadius.circular(ui.coverRadius(size)),
+          clipBehavior: Clip.antiAlias,
+          child: CoverArt(coverArtId: song?.coverArt, size: size),
+        ),
+      );
+    }
+
+    // Celular deitado: pouca altura; a capa vai ao lado das informações.
+    final short = MediaQuery.sizeOf(context).height < 560;
+
+    final details = <Widget>[
+      const RemoteLabel(),
+      Text(
+        song?.title ?? l10n.nothingPlaying,
+        textAlign: TextAlign.center,
+        style: theme.textTheme.headlineSmall,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      const SizedBox(height: 4),
+      if (song != null)
+        Wrap(
+          alignment: WrapAlignment.center,
+          children: [
+            TextButton(
+              onPressed: song.artistId == null ? null : () => context.push('/artist/${song.artistId}'),
+              child: Text(song.displayArtist),
+            ),
+            if (song.album != null)
+              TextButton(
+                onPressed: song.albumId == null ? null : () => context.push('/album/${song.albumId}'),
+                child: Text(song.album!),
+              ),
+          ],
+        ),
+      if (song != null) _TechInfo(song: song, insight: ref.watch(playerProvider.select((s) => s.insights[item?.uid]))),
+      Builder(
+        builder: (context) {
           final mix = ref.watch(playerProvider.select((s) => s.mix));
           if (mix == null) return const SizedBox.shrink();
           return Padding(
@@ -131,53 +137,84 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
               label: Text('${l10n.mixing}: ${mix.summary}', maxLines: 2, overflow: TextOverflow.ellipsis),
             ),
           );
-        }),
-        const SizedBox(height: 12),
-        const SizedBox(width: 520, child: SeekBar()),
-        const TransportControls(big: true),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (song != null)
-              IconButton(
-                icon: Icon(isSongStarred(ref, song) ? Icons.favorite : Icons.favorite_border),
-                color: isSongStarred(ref, song) ? theme.colorScheme.primary : null,
-                onPressed: () => LibraryActions.toggleStar(context, ref, song),
-              ),
-            if (song != null)
-              IconButton(
-                tooltip: l10n.instantMix,
-                icon: const Icon(Icons.auto_awesome),
-                onPressed: () => LibraryActions.instantMix(context, ref, song),
-              ),
-            const DevicesButton(),
-            const VolumeControl(),
-          ],
-        ),
+        },
+      ),
+      const SizedBox(height: 12),
+      const SizedBox(width: 520, child: SeekBar()),
+      const TransportControls(big: true),
+      const SizedBox(height: 8),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (song != null)
+            IconButton(
+              icon: Icon(isSongStarred(ref, song) ? Icons.favorite : Icons.favorite_border),
+              color: isSongStarred(ref, song) ? theme.colorScheme.primary : null,
+              onPressed: () => LibraryActions.toggleStar(context, ref, song),
+            ),
+          if (song != null)
+            IconButton(
+              tooltip: l10n.instantMix,
+              icon: const Icon(Icons.auto_awesome),
+              onPressed: () => LibraryActions.instantMix(context, ref, song),
+            ),
+          const DevicesButton(),
+          const VolumeControl(),
+        ],
+      ),
+    ];
+
+    final info = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        LayoutBuilder(builder: (context, c) => cover((c.maxWidth).clamp(160.0, layout == 'minimal' ? 560.0 : 460.0))),
+        const SizedBox(height: 24),
+        ...details,
       ],
+    );
+
+    // Deitado: capa (pela altura) | informações e controles.
+    final landscapeInfo = LayoutBuilder(
+      builder: (context, c) {
+        final side = (c.maxHeight - 16).clamp(120.0, c.maxWidth * 0.45);
+        return Row(
+          children: [
+            const SizedBox(width: 16),
+            cover(side),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: details),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
 
     final side = layout == 'lyrics'
         ? (song == null ? const SizedBox() : LyricsView(song: song))
         : Column(
-      children: [
-        SegmentedButton<_Side>(
-          segments: [
-            ButtonSegment(value: _Side.lyrics, label: Text(l10n.lyrics), icon: const Icon(Icons.lyrics_outlined)),
-            ButtonSegment(value: _Side.queue, label: Text(l10n.queue), icon: const Icon(Icons.queue_music)),
-          ],
-          selected: {_side},
-          onSelectionChanged: (v) => setState(() => _side = v.first),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: _side == _Side.lyrics
-              ? (song == null ? const SizedBox() : LyricsView(song: song))
-              : const QueuePanel(),
-        ),
-      ],
-    );
+            children: [
+              SegmentedButton<_Side>(
+                segments: [
+                  ButtonSegment(value: _Side.lyrics, label: Text(l10n.lyrics), icon: const Icon(Icons.lyrics_outlined)),
+                  ButtonSegment(value: _Side.queue, label: Text(l10n.queue), icon: const Icon(Icons.queue_music)),
+                ],
+                selected: {_side},
+                onSelectionChanged: (v) => setState(() => _side = v.first),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _side == _Side.lyrics
+                    ? (song == null ? const SizedBox() : LyricsView(song: song))
+                    : const QueuePanel(),
+              ),
+            ],
+          );
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -201,7 +238,14 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
                   ),
                 ),
                 Expanded(
-                  child: layout == 'minimal'
+                  child: short
+                      ? PageView(
+                          children: [
+                            landscapeInfo,
+                            Padding(padding: const EdgeInsets.all(12), child: side),
+                          ],
+                        )
+                      : layout == 'minimal'
                       ? Center(
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -219,7 +263,10 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
                                 ),
                               ),
                             ),
-                            SizedBox(width: 440, child: Padding(padding: const EdgeInsets.all(16), child: side)),
+                            SizedBox(
+                              width: 440,
+                              child: Padding(padding: const EdgeInsets.all(16), child: side),
+                            ),
                           ],
                         )
                       : DefaultTabController(
@@ -256,7 +303,8 @@ class _TechInfo extends StatelessWidget {
     final parts = [
       if (song.suffix != null) song.suffix!.toUpperCase(),
       if (song.bitDepth != null && song.bitDepth! > 0) '${song.bitDepth} bit',
-      if (song.sampleRate != null) '${(song.sampleRate! / 1000).toStringAsFixed(song.sampleRate! % 1000 == 0 ? 0 : 1)} kHz',
+      if (song.sampleRate != null)
+        '${(song.sampleRate! / 1000).toStringAsFixed(song.sampleRate! % 1000 == 0 ? 0 : 1)} kHz',
       if (song.bitRate != null && song.bitRate! > 0) '${song.bitRate} kbps',
       if (insight?.bpm != null && insight!.reliable)
         '${insight!.bpm!.toStringAsFixed(insight!.bpm! % 1 == 0 ? 0 : 1)} BPM'
@@ -295,7 +343,12 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = _keys[active]?.currentContext;
       if (ctx != null) {
-        Scrollable.ensureVisible(ctx, alignment: 0.4, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.4,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }

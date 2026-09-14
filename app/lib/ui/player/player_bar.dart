@@ -32,9 +32,9 @@ class _SeekBarState extends ConsumerState<SeekBar> {
     final value = (_drag ?? pos.inMilliseconds.toDouble()).clamp(0.0, max);
     final theme = Theme.of(context);
     final slider = SliderTheme(
-      data: SliderTheme.of(context).copyWith(
-        secondaryActiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-      ),
+      data: SliderTheme.of(
+        context,
+      ).copyWith(secondaryActiveTrackColor: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
       child: Slider(
         value: value,
         max: max,
@@ -50,7 +50,14 @@ class _SeekBarState extends ConsumerState<SeekBar> {
     final style = theme.textTheme.bodySmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
     return Row(
       children: [
-        SizedBox(width: 44, child: Text(formatDuration(Duration(milliseconds: value.round())), style: style, textAlign: TextAlign.right)),
+        SizedBox(
+          width: 44,
+          child: Text(
+            formatDuration(Duration(milliseconds: value.round())),
+            style: style,
+            textAlign: TextAlign.right,
+          ),
+        ),
         Expanded(child: slider),
         SizedBox(width: 44, child: Text(formatDuration(dur), style: style)),
       ],
@@ -61,7 +68,6 @@ class _SeekBarState extends ConsumerState<SeekBar> {
 class TransportControls extends ConsumerWidget {
   const TransportControls({super.key, this.big = false});
   final bool big;
-
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,13 +82,13 @@ class TransportControls extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (big || buttons.contains('shuffle'))
-        IconButton(
-          tooltip: l10n.shuffle,
-          iconSize: iconSize * 0.8,
-          color: shuffle ? scheme.primary : null,
-          icon: const Icon(Icons.shuffle),
-          onPressed: hasTrack ? p.toggleShuffle : null,
-        ),
+          IconButton(
+            tooltip: l10n.shuffle,
+            iconSize: iconSize * 0.8,
+            color: shuffle ? scheme.primary : null,
+            icon: const Icon(Icons.shuffle),
+            onPressed: hasTrack ? p.toggleShuffle : null,
+          ),
         IconButton(
           tooltip: l10n.previous,
           iconSize: iconSize,
@@ -119,13 +125,13 @@ class TransportControls extends ConsumerWidget {
           onPressed: hasTrack ? p.next : null,
         ),
         if (big || buttons.contains('repeat'))
-        IconButton(
-          tooltip: l10n.repeat,
-          iconSize: iconSize * 0.8,
-          color: repeat != LoopMode.off ? scheme.primary : null,
-          icon: Icon(repeat == LoopMode.one ? Icons.repeat_one : Icons.repeat),
-          onPressed: p.cycleRepeat,
-        ),
+          IconButton(
+            tooltip: l10n.repeat,
+            iconSize: iconSize * 0.8,
+            color: repeat != LoopMode.off ? scheme.primary : null,
+            icon: Icon(repeat == LoopMode.one ? Icons.repeat_one : Icons.repeat),
+            onPressed: p.cycleRepeat,
+          ),
       ],
     );
   }
@@ -178,20 +184,29 @@ class PlayerBar extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
-                      Hero(tag: 'now-cover', child: CoverArt(coverArtId: song?.coverArt, size: 56)),
+                      Hero(
+                        tag: 'now-cover',
+                        child: CoverArt(coverArtId: song?.coverArt, size: 56),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(song?.title ?? l10n.nothingPlaying,
-                                maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+                            Text(
+                              song?.title ?? l10n.nothingPlaying,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall,
+                            ),
                             if (song != null)
-                              Text(song.displayArtist,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text(
+                                song.displayArtist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                              ),
                             const RemoteLabel(),
                           ],
                         ),
@@ -218,42 +233,46 @@ class PlayerBar extends ConsumerWidget {
                 ],
               ),
             ),
-            // Extras (configuráveis)
+            // Extras (configuráveis); rolam de lado quando não cabem (tablet em pé).
             Expanded(
               flex: 3,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  for (final b in buttons)
-                    switch (b) {
-                      'mix' => const _MixChip(),
-                      'eq' => IconButton(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    for (final b in buttons)
+                      switch (b) {
+                        'mix' => const _MixChip(),
+                        'eq' => IconButton(
                           tooltip: l10n.openEqualizer,
                           icon: const Icon(Icons.tune),
                           onPressed: () => context.go('/equalizer'),
                         ),
-                      'lyrics' => IconButton(
+                        'lyrics' => IconButton(
                           tooltip: l10n.lyrics,
                           icon: const Icon(Icons.lyrics_outlined),
                           onPressed: song == null ? null : () => context.push('/now-playing?lyrics=1'),
                         ),
-                      'queue' => IconButton(
+                        'queue' => IconButton(
                           tooltip: l10n.queue,
                           isSelected: queueOpen,
                           icon: const Icon(Icons.queue_music),
                           onPressed: onToggleQueue,
                         ),
-                      'volume' => const VolumeControl(),
-                      'devices' => const DevicesButton(),
-                      'mini' => IconButton(
+                        'volume' => const VolumeControl(),
+                        'devices' => const DevicesButton(),
+                        'mini' => IconButton(
                           tooltip: l10n.miniPlayer,
                           icon: const Icon(Icons.picture_in_picture_alt_outlined),
                           onPressed: () => ref.read(miniModeProvider.notifier).enter(),
                         ),
-                      _ => const SizedBox.shrink(),
-                    },
-                  const SizedBox(width: 12),
-                ],
+                        _ => const SizedBox.shrink(),
+                      },
+                    const SizedBox(width: 12),
+                  ],
+                ),
               ),
             ),
           ],
@@ -279,19 +298,15 @@ class _MixChip extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     void toggle() => ref.read(settingsProvider.notifier).update((s) => s.copyWith(automixEnabled: !s.automixEnabled));
     if (!enabled) {
-      return IconButton(
-        tooltip: l10n.automixOffTap,
-        icon: const Icon(Icons.auto_awesome_outlined),
-        onPressed: toggle,
-      );
+      return IconButton(tooltip: l10n.automixOffTap, icon: const Icon(Icons.auto_awesome_outlined), onPressed: toggle);
     }
     final active = mix != null;
     final kind = synced ? l10n.mixSynced : l10n.mixSimple;
     final status = active
         ? '${l10n.mixing}: ${mix.summary}'
         : planned != null
-            ? '${l10n.nextMix} ($kind): $planned'
-            : l10n.automixOnWaiting;
+        ? '${l10n.nextMix} ($kind): $planned'
+        : l10n.automixOnWaiting;
     // Batidas casadas (ou ainda sem plano): ícone de sincronia; transição simples: o de troca.
     final icon = active || synced || planned == null ? Icons.auto_awesome : Icons.swap_horiz;
     if (compact) {
@@ -352,8 +367,18 @@ class MiniPlayer extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
-                        Text(item.song.displayArtist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                        Text(
+                          item.song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        Text(
+                          item.song.displayArtist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
                         const RemoteLabel(),
                       ],
                     ),

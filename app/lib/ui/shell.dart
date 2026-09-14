@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,7 +88,13 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final wide = MediaQuery.sizeOf(context).width >= 720;
+    final size = MediaQuery.sizeOf(context);
+    final mobile = Platform.isAndroid || Platform.isIOS;
+    // Tablet: layout de computador. Celular deitado: barra lateral compacta
+    // com as abas do celular e o mini player (não cabe a barra do player).
+    final tablet = mobile && size.shortestSide >= 600;
+    final phoneLandscape = mobile && !tablet && size.width > size.height;
+    final wide = mobile ? tablet : size.width >= 720;
     final sidebar = ref.watch(uiPrefsProvider.select((p) => p.sidebar));
     final veryWide = switch (sidebar) {
       'expanded' => true,
@@ -127,16 +135,55 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     if (!wide) {
       final loc = widget.location;
+      Future<bool> onBack() async {
+        final router = GoRouter.of(context);
+        // Página aberta por cima (álbum, artista, tocando agora): o go_router volta.
+        if (router.canPop()) return false;
+        final target = _backTarget(loc);
+        if (target == null) return false;
+        router.go(target);
+        return true;
+      }
+
+      if (phoneLandscape) {
+        return BackButtonListener(
+          onBackButtonPressed: onBack,
+          child: Scaffold(
+            body: SafeArea(
+              child: Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _mobileSelected(loc),
+                    labelType: NavigationRailLabelType.all,
+                    groupAlignment: 0,
+                    onDestinationSelected: (i) => context.go(_mobileDests[i].path),
+                    destinations: [
+                      for (final d in _mobileDests)
+                        NavigationRailDestination(
+                          icon: Icon(d.icon),
+                          selectedIcon: Icon(d.selectedIcon),
+                          label: Text(d.label(l10n)),
+                        ),
+                    ],
+                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(child: content),
+                        const MiniPlayer(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
       return BackButtonListener(
-        onBackButtonPressed: () async {
-          final router = GoRouter.of(context);
-          // Página aberta por cima (álbum, artista, tocando agora): o go_router volta.
-          if (router.canPop()) return false;
-          final target = _backTarget(loc);
-          if (target == null) return false;
-          router.go(target);
-          return true;
-        },
+        onBackButtonPressed: onBack,
         child: Scaffold(
           body: SafeArea(child: content),
           bottomNavigationBar: Column(
@@ -167,7 +214,10 @@ class _AppShellState extends ConsumerState<AppShell> {
               Expanded(
                 child: Row(
                   children: [
-                    _Sidebar(selected: _selected, extended: veryWide),
+                    SafeArea(
+                      right: false,
+                      child: _Sidebar(selected: _selected, extended: veryWide),
+                    ),
                     const VerticalDivider(width: 1),
                     Expanded(child: content),
                     if (_queueOpen) ...[
@@ -195,6 +245,18 @@ class _Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    // Rola quando as abas não cabem na altura (tablet deitado, janela baixa).
+    return LayoutBuilder(
+      builder: (context, c) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: c.maxHeight),
+          child: IntrinsicHeight(child: _rail(context, l10n)),
+        ),
+      ),
+    );
+  }
+
+  Widget _rail(BuildContext context, AppLocalizations l10n) {
     return NavigationRail(
       extended: extended,
       minExtendedWidth: 210,
