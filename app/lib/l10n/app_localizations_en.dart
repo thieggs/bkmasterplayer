@@ -919,4 +919,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceName => 'This device\'s name';
+
+  @override
+  String get or => 'or';
+
+  @override
+  String get useLocalMusic => 'Use only this device\'s music';
+
+  @override
+  String get useLocalMusicHint =>
+      'No server: plays the files in a folder on this device. You can change the folders later in Settings.';
+
+  @override
+  String get musicFolder => 'Music folder';
+
+  @override
+  String get musicFolderHint =>
+      'BKplayer reads the music in this folder and its subfolders.';
+
+  @override
+  String get chooseOtherFolder => 'Choose another';
+
+  @override
+  String get useThisFolder => 'Use this folder';
+
+  @override
+  String get musicPermissionDenied =>
+      'No permission to read this device\'s music. Allow it in Android Settings → Apps → BKplayer → Permissions.';
+
+  @override
+  String get noLocalSongs => 'No music found in that folder.';
+
+  @override
+  String scanningMusic(int count) {
+    return 'Reading the music… $count files';
+  }
+
+  @override
+  String localSongCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+      zero: 'No songs',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get addFolder => 'Add folder';
+
+  @override
+  String get rescanLibrary => 'Refresh the library';
+
+  @override
+  String get lastFmKey => 'Last.fm API key';
+
+  @override
+  String get lastFmKeyHint =>
+      'Not set: radio and mix without AudioMuse use only the server';
+
+  @override
+  String get lastFmKeySet => 'Set';
+
+  @override
+  String get lastFmKeyHelp =>
+      'Free: create one at last.fm/api/account/create and copy the \"API key\".';
+
+  @override
+  String get lastFmKeyOk => 'Last.fm key works';
+
+  @override
+  String get lastFmKeyBad =>
+      'Last.fm rejected that key (check that you copied the right API key)';
+
+  @override
+  String get lastFmForRadio => 'Use Last.fm for similar songs';
+
+  @override
+  String get lastFmForRadioHint =>
+      'In instant mix and radio, when the server has no AudioMuse, and for this device\'s music.';
 }

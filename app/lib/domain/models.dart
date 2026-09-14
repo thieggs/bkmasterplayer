@@ -58,6 +58,7 @@ class Song {
     this.musicBrainzId,
     this.comment,
     this.explicitStatus,
+    this.path,
   });
 
   final String id;
@@ -91,6 +92,9 @@ class Song {
   final String? comment;
   final String? explicitStatus;
 
+  /// Arquivo no aparelho (biblioteca local ou música recebida numa Jam).
+  final String? path;
+
   String get displayArtist =>
       artist ?? (artists.isNotEmpty ? artists.map((a) => a.name).join(', ') : '');
 
@@ -117,6 +121,7 @@ class Song {
         if (suffix != null) 'suffix': suffix,
         if (starred != null) 'starred': starred!.toIso8601String(),
         if (bpm != null) 'bpm': bpm,
+        if (path != null) 'path': path,
         if (replayGain != null)
           'rg': [replayGain!.trackGain, replayGain!.albumGain, replayGain!.trackPeak, replayGain!.albumPeak, replayGain!.baseGain, replayGain!.fallbackGain],
       };
@@ -144,6 +149,7 @@ class Song {
       suffix: j['suffix'] as String?,
       starred: j['starred'] is String ? DateTime.tryParse(j['starred'] as String) : null,
       bpm: j['bpm'] as int?,
+      path: j['path'] as String?,
       replayGain: rg == null
           ? null
           : ReplayGain(trackGain: d(rg, 0), albumGain: d(rg, 1), trackPeak: d(rg, 2), albumPeak: d(rg, 3), baseGain: d(rg, 4), fallbackGain: d(rg, 5)),
@@ -181,6 +187,7 @@ class Song {
         musicBrainzId: musicBrainzId,
         comment: comment,
         explicitStatus: explicitStatus,
+        path: path,
       );
 }
 

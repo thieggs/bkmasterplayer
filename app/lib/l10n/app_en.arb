@@ -301,5 +301,40 @@
  "connectSection": "Other devices (Connect)",
  "connectEnable": "Play and control across devices",
  "connectEnableHint": "This device shows up for your other devices with the same account and can be controlled by them, like Spotify Connect.",
- "deviceName": "This device's name"
+ "deviceName": "This device's name",
+ "or": "or",
+ "useLocalMusic": "Use only this device's music",
+ "useLocalMusicHint": "No server: plays the files in a folder on this device. You can change the folders later in Settings.",
+ "musicFolder": "Music folder",
+ "musicFolderHint": "BKplayer reads the music in this folder and its subfolders.",
+ "chooseOtherFolder": "Choose another",
+ "useThisFolder": "Use this folder",
+ "musicPermissionDenied": "No permission to read this device's music. Allow it in Android Settings → Apps → BKplayer → Permissions.",
+ "noLocalSongs": "No music found in that folder.",
+ "scanningMusic": "Reading the music… {count} files",
+ "@scanningMusic": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "localSongCount": "{count, plural, =0{No songs} =1{1 song} other{{count} songs}}",
+ "@localSongCount": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "addFolder": "Add folder",
+ "rescanLibrary": "Refresh the library",
+ "lastFmKey": "Last.fm API key",
+ "lastFmKeyHint": "Not set: radio and mix without AudioMuse use only the server",
+ "lastFmKeySet": "Set",
+ "lastFmKeyHelp": "Free: create one at last.fm/api/account/create and copy the \"API key\".",
+ "lastFmKeyOk": "Last.fm key works",
+ "lastFmKeyBad": "Last.fm rejected that key (check that you copied the right API key)",
+ "lastFmForRadio": "Use Last.fm for similar songs",
+ "lastFmForRadioHint": "In instant mix and radio, when the server has no AudioMuse, and for this device's music."
 }

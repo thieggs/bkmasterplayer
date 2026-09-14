@@ -51,6 +51,9 @@ class AppSettings {
     this.closeToTray = false,
     this.connectEnabled = true,
     this.deviceName,
+    this.localFolders = const [],
+    this.lastFmApiKey,
+    this.lastFmForRadio = true,
   });
 
   final ThemeMode themeMode;
@@ -102,6 +105,15 @@ class AppSettings {
   /// Nome mostrado aos outros aparelhos (null = nome do sistema).
   final String? deviceName;
 
+  /// Pastas das músicas do aparelho (modo sem servidor).
+  final List<String> localFolders;
+
+  /// Chave da API do Last.fm (músicas parecidas sem AudioMuse).
+  final String? lastFmApiKey;
+
+  /// Usar o Last.fm na rádio e no mix quando o servidor não tem análise sônica.
+  final bool lastFmForRadio;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     int? seedColor,
@@ -142,6 +154,10 @@ class AppSettings {
     bool? connectEnabled,
     String? deviceName,
     bool clearDeviceName = false,
+    List<String>? localFolders,
+    String? lastFmApiKey,
+    bool clearLastFm = false,
+    bool? lastFmForRadio,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -179,6 +195,9 @@ class AppSettings {
         closeToTray: closeToTray ?? this.closeToTray,
         connectEnabled: connectEnabled ?? this.connectEnabled,
         deviceName: clearDeviceName ? null : (deviceName ?? this.deviceName),
+        localFolders: localFolders ?? this.localFolders,
+        lastFmApiKey: clearLastFm ? null : (lastFmApiKey ?? this.lastFmApiKey),
+        lastFmForRadio: lastFmForRadio ?? this.lastFmForRadio,
       );
 
   Map<String, dynamic> toJson() => {
@@ -217,6 +236,9 @@ class AppSettings {
         'closeToTray': closeToTray,
         'connectEnabled': connectEnabled,
         'deviceName': deviceName,
+        'localFolders': localFolders,
+        'lastFmApiKey': lastFmApiKey,
+        'lastFmForRadio': lastFmForRadio,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -258,6 +280,9 @@ class AppSettings {
       closeToTray: pick('closeToTray', d.closeToTray),
       connectEnabled: pick('connectEnabled', d.connectEnabled),
       deviceName: j['deviceName'] as String?,
+      localFolders: (j['localFolders'] as List?)?.whereType<String>().toList() ?? d.localFolders,
+      lastFmApiKey: j['lastFmApiKey'] as String?,
+      lastFmForRadio: pick('lastFmForRadio', d.lastFmForRadio),
     );
   }
 

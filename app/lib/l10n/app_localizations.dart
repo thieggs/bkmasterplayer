@@ -1746,6 +1746,132 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nome deste aparelho'**
   String get deviceName;
+
+  /// No description provided for @or.
+  ///
+  /// In pt, this message translates to:
+  /// **'ou'**
+  String get or;
+
+  /// No description provided for @useLocalMusic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar só as músicas do aparelho'**
+  String get useLocalMusic;
+
+  /// No description provided for @useLocalMusicHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem servidor: toca os arquivos de uma pasta deste aparelho. Dá para configurar as pastas depois, nos Ajustes.'**
+  String get useLocalMusicHint;
+
+  /// No description provided for @musicFolder.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pasta das músicas'**
+  String get musicFolder;
+
+  /// No description provided for @musicFolderHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O BKplayer lê as músicas desta pasta e das subpastas.'**
+  String get musicFolderHint;
+
+  /// No description provided for @chooseOtherFolder.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher outra'**
+  String get chooseOtherFolder;
+
+  /// No description provided for @useThisFolder.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar esta pasta'**
+  String get useThisFolder;
+
+  /// No description provided for @musicPermissionDenied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKplayer → Permissões.'**
+  String get musicPermissionDenied;
+
+  /// No description provided for @noLocalSongs.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma música encontrada nessa pasta.'**
+  String get noLocalSongs;
+
+  /// No description provided for @scanningMusic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lendo as músicas… {count} arquivos'**
+  String scanningMusic(int count);
+
+  /// No description provided for @localSongCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{Nenhuma música} =1{1 música} other{{count} músicas}}'**
+  String localSongCount(int count);
+
+  /// No description provided for @addFolder.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar pasta'**
+  String get addFolder;
+
+  /// No description provided for @rescanLibrary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar a biblioteca'**
+  String get rescanLibrary;
+
+  /// No description provided for @lastFmKey.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave da API do Last.fm'**
+  String get lastFmKey;
+
+  /// No description provided for @lastFmKeyHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não configurada: rádio e mix sem AudioMuse usam só o servidor'**
+  String get lastFmKeyHint;
+
+  /// No description provided for @lastFmKeySet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configurada'**
+  String get lastFmKeySet;
+
+  /// No description provided for @lastFmKeyHelp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Grátis: crie em last.fm/api/account/create e copie a \"API key\".'**
+  String get lastFmKeyHelp;
+
+  /// No description provided for @lastFmKeyOk.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave do Last.fm funcionando'**
+  String get lastFmKeyOk;
+
+  /// No description provided for @lastFmKeyBad.
+  ///
+  /// In pt, this message translates to:
+  /// **'O Last.fm recusou essa chave (confira se copiou a API key certa)'**
+  String get lastFmKeyBad;
+
+  /// No description provided for @lastFmForRadio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar o Last.fm para músicas parecidas'**
+  String get lastFmForRadio;
+
+  /// No description provided for @lastFmForRadioHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'No mix instantâneo e na rádio, quando o servidor não tem o AudioMuse e nas músicas do aparelho.'**
+  String get lastFmForRadioHint;
 }
 
 class _AppLocalizationsDelegate

@@ -2125,6 +2125,7 @@ dependencies = [
  "ndk-context",
  "notify-rust",
  "parking_lot",
+ "rayon",
  "rtrb",
  "rubato 5.0.0",
  "rustfft",

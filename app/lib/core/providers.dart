@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/accounts.dart';
+import '../data/lastfm.dart';
+import '../data/local/local_provider.dart';
 import '../data/settings.dart';
 import '../data/ui_prefs.dart';
 import '../data/subsonic/subsonic_client.dart';
@@ -110,8 +112,17 @@ class UiPrefsNotifier extends Notifier<UiPrefs> {
 
 final uiPrefsProvider = NotifierProvider<UiPrefsNotifier, UiPrefs>(UiPrefsNotifier.new);
 
+/// Last.fm configurado (null = sem chave).
+final lastFmProvider = Provider<LastFm?>((ref) {
+  final key = ref.watch(settingsProvider.select((s) => s.lastFmApiKey));
+  return (key == null || key.trim().isEmpty) ? null : LastFm(key.trim());
+});
+
 class Session {
   const Session({required this.account, required this.provider, this.offlineReason});
+
+  /// Músicas do aparelho, sem servidor.
+  bool get isLocal => provider is LocalProvider;
   final ServerAccount account;
   final MusicProvider provider;
 
@@ -127,6 +138,16 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     final store = ref.watch(accountStoreProvider);
     final account = store.active;
     if (account == null) return null;
+    if (account.baseUrl == localBaseUrl) {
+      final local = LocalProvider(
+        supportDir: ref.read(supportDirProvider).path,
+        folders: ref.read(settingsProvider).localFolders,
+        lastFm: ref.read(lastFmProvider),
+      );
+      ref.listen(lastFmProvider, (_, fm) => local.lastFm = fm);
+      await local.connect();
+      return Session(account: account, provider: local);
+    }
     final auth = await store.auth(account.id);
     if (auth == null) return null;
     final provider = SubsonicProvider(
@@ -183,6 +204,25 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       return;
     }
     throw error!;
+  }
+
+  static const localBaseUrl = 'local:';
+
+  /// Entra sem servidor, com as músicas das [folders] do aparelho. Devolve
+  /// quantas músicas encontrou.
+  Future<int> loginLocal(List<String> folders) async {
+    ref.read(settingsProvider.notifier).update((s) => s.copyWith(localFolders: folders));
+    final local = LocalProvider(
+      supportDir: ref.read(supportDirProvider).path,
+      folders: folders,
+      lastFm: ref.read(lastFmProvider),
+    );
+    await local.connect();
+    final count = await local.rescan();
+    const account = ServerAccount(id: LocalProvider.accountIdValue, name: '', baseUrl: localBaseUrl, username: '');
+    await ref.read(accountStoreProvider).saveLocal(account);
+    state = AsyncData(Session(account: account, provider: local));
+    return count;
   }
 
   /// Define o endereço da rede de casa (null = não usar). Devolve se ele

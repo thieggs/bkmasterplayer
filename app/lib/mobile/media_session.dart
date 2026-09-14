@@ -132,6 +132,11 @@ class _BkAudioHandler extends BaseAudioHandler {
   /// token do login, e os metadados da sessão de mídia são visíveis a outros apps.
   Future<void> _loadArt(QueueItem item) async {
     try {
+      if (isFileCover(item.song.coverArt)) {
+        final cur = mediaItem.value;
+        if (cur != null && cur.id == item.uid) mediaItem.add(cur.copyWith(artUri: Uri.file(item.song.coverArt!)));
+        return;
+      }
       final p = _container.read(musicProvider);
       final uri = p.coverUri(item.song.coverArt, size: 600);
       final key = p.coverCacheKey(item.song.coverArt, size: 600);

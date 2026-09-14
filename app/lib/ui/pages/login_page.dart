@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../data/local/local_setup.dart';
 import '../../data/subsonic/subsonic_client.dart';
 import '../../l10n/l10n.dart';
 
@@ -48,6 +49,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       setState(() => _error = e.isAuthError ? context.l10n.wrongCredentials : e.message);
     } catch (e) {
       setState(() => _error = '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Sem servidor: só as músicas do aparelho.
+  Future<void> _useLocal() async {
+    final l10n = context.l10n;
+    if (!await ensureMusicPermission()) {
+      setState(() => _error = l10n.musicPermissionDenied);
+      return;
+    }
+    if (!mounted) return;
+    final folder = await chooseMusicFolder(context);
+    if (folder == null || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final n = await runWithScanProgress(context, () => ref.read(sessionProvider.notifier).loginLocal([folder]));
+      if (n == 0 && mounted) setState(() => _error = l10n.noLocalSongs);
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -144,6 +169,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(l10n.loginHint, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      const Expanded(child: Divider()),
+                      Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(l10n.or)),
+                      const Expanded(child: Divider()),
+                    ]),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _useLocal,
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                      icon: const Icon(Icons.folder_open),
+                      label: Text(l10n.useLocalMusic),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(l10n.useLocalMusicHint, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),

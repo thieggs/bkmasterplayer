@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../connect/devices_sheet.dart';
 import '../../core/providers.dart';
+import '../../data/lastfm.dart';
+import '../../data/local/local_provider.dart';
+import '../../data/local/local_setup.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
@@ -47,7 +50,45 @@ class SettingsPage extends ConsumerWidget {
 
         // ---- Servidor ----
         section(l10n.server),
-        if (session != null)
+        if (session != null && session.isLocal) ...[
+          ListTile(
+            leading: const Icon(Icons.folder_open),
+            title: Text(l10n.useLocalMusic),
+            subtitle: Text(l10n.localSongCount((session.provider as LocalProvider).songCount)),
+            trailing: TextButton(
+              onPressed: () => ref.read(sessionProvider.notifier).logout(),
+              child: Text(l10n.logout),
+            ),
+          ),
+          for (final f in s.localFolders)
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(f),
+              trailing: IconButton(
+                tooltip: l10n.remove,
+                icon: const Icon(Icons.close),
+                onPressed: s.localFolders.length <= 1
+                    ? null
+                    : () => _setFolders(context, ref, s.localFolders.where((x) => x != f).toList()),
+              ),
+            ),
+          ListTile(
+            leading: const Icon(Icons.create_new_folder_outlined),
+            title: Text(l10n.addFolder),
+            onTap: () async {
+              final picked = await pickFolder(l10n.musicFolder);
+              if (picked != null && !s.localFolders.contains(picked) && context.mounted) {
+                await _setFolders(context, ref, [...s.localFolders, picked]);
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.refresh),
+            title: Text(l10n.rescanLibrary),
+            onTap: () => _setFolders(context, ref, s.localFolders),
+          ),
+        ],
+        if (session != null && !session.isLocal)
           ListTile(
             leading: const Icon(Icons.dns_outlined),
             title: Text(session.account.name),
@@ -61,7 +102,7 @@ class SettingsPage extends ConsumerWidget {
               child: Text(l10n.logout),
             ),
           ),
-        if (session != null)
+        if (session != null && !session.isLocal)
           Consumer(builder: (context, ref, _) {
             final onLocal = ref.watch(endpointProvider);
             final local = session.account.localUrl;
@@ -264,6 +305,23 @@ class SettingsPage extends ConsumerWidget {
         section(l10n.automix),
         const AutomixSettingsSection(),
 
+        // ---- Last.fm ----
+        section('Last.fm'),
+        ListTile(
+          leading: const Icon(Icons.radio_outlined),
+          title: Text(l10n.lastFmKey),
+          subtitle: Text(s.lastFmApiKey == null ? l10n.lastFmKeyHint : l10n.lastFmKeySet),
+          trailing: const Icon(Icons.edit_outlined),
+          onTap: () => _editLastFmKey(context, ref, s.lastFmApiKey),
+        ),
+        SwitchListTile(
+          secondary: const SizedBox(),
+          title: Text(l10n.lastFmForRadio),
+          subtitle: Text(l10n.lastFmForRadioHint),
+          value: s.lastFmForRadio && s.lastFmApiKey != null,
+          onChanged: s.lastFmApiKey == null ? null : (v) => set((x) => x.copyWith(lastFmForRadio: v)),
+        ),
+
         // ---- Outros aparelhos (Connect) ----
         section(l10n.connectSection),
         SwitchListTile(
@@ -427,5 +485,38 @@ Future<void> _editDeviceName(BuildContext context, WidgetRef ref, String? curren
   if (text == null) return;
   final name = text.trim();
   ref.read(settingsProvider.notifier).update((x) => name.isEmpty ? x.copyWith(clearDeviceName: true) : x.copyWith(deviceName: name));
+}
+
+/// Troca as pastas das músicas do aparelho e varre de novo.
+Future<void> _setFolders(BuildContext context, WidgetRef ref, List<String> folders) async {
+  final session = ref.read(sessionProvider).value;
+  final local = session?.provider;
+  if (local is! LocalProvider) return;
+  ref.read(settingsProvider.notifier).update((x) => x.copyWith(localFolders: folders));
+  local.folders = folders;
+  final n = await runWithScanProgress(context, local.rescan);
+  refreshLibrary(ref);
+  if (context.mounted) showSnack(context, context.l10n.localSongCount(n));
+}
+
+Future<void> _editLastFmKey(BuildContext context, WidgetRef ref, String? current) async {
+  final l10n = context.l10n;
+  final text = await _askText(
+    context,
+    title: l10n.lastFmKey,
+    initial: current,
+    hint: 'abc123…',
+    helper: l10n.lastFmKeyHelp,
+    canRemove: current != null,
+  );
+  if (text == null) return;
+  final key = text.trim();
+  if (key.isEmpty) {
+    ref.read(settingsProvider.notifier).update((x) => x.copyWith(clearLastFm: true));
+    return;
+  }
+  final ok = await LastFm(key).check();
+  ref.read(settingsProvider.notifier).update((x) => x.copyWith(lastFmApiKey: key));
+  if (context.mounted) showSnack(context, ok ? l10n.lastFmKeyOk : l10n.lastFmKeyBad);
 }
 

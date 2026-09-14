@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -98,6 +100,16 @@ final _schemeProvider = FutureProvider.family<ColorScheme, Brightness>((ref, bri
   if (!s.dynamicColorFromCover) return fallback;
   final cover = ref.watch(playerProvider.select((p) => p.current?.song.coverArt));
   if (cover == null) return fallback;
+  if (isFileCover(cover)) {
+    try {
+      return await ColorScheme.fromImageProvider(
+        provider: ResizeImage(FileImage(File(cover)), width: 128),
+        brightness: brightness,
+      );
+    } catch (_) {
+      return fallback;
+    }
+  }
   final session = ref.watch(sessionProvider).value;
   if (session == null) return fallback;
   final uri = session.provider.coverUri(cover, size: 128);

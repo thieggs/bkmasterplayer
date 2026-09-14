@@ -919,4 +919,85 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get deviceName => 'Nome deste aparelho';
+
+  @override
+  String get or => 'ou';
+
+  @override
+  String get useLocalMusic => 'Usar só as músicas do aparelho';
+
+  @override
+  String get useLocalMusicHint =>
+      'Sem servidor: toca os arquivos de uma pasta deste aparelho. Dá para configurar as pastas depois, nos Ajustes.';
+
+  @override
+  String get musicFolder => 'Pasta das músicas';
+
+  @override
+  String get musicFolderHint =>
+      'O BKplayer lê as músicas desta pasta e das subpastas.';
+
+  @override
+  String get chooseOtherFolder => 'Escolher outra';
+
+  @override
+  String get useThisFolder => 'Usar esta pasta';
+
+  @override
+  String get musicPermissionDenied =>
+      'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKplayer → Permissões.';
+
+  @override
+  String get noLocalSongs => 'Nenhuma música encontrada nessa pasta.';
+
+  @override
+  String scanningMusic(int count) {
+    return 'Lendo as músicas… $count arquivos';
+  }
+
+  @override
+  String localSongCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count músicas',
+      one: '1 música',
+      zero: 'Nenhuma música',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get addFolder => 'Adicionar pasta';
+
+  @override
+  String get rescanLibrary => 'Atualizar a biblioteca';
+
+  @override
+  String get lastFmKey => 'Chave da API do Last.fm';
+
+  @override
+  String get lastFmKeyHint =>
+      'Não configurada: rádio e mix sem AudioMuse usam só o servidor';
+
+  @override
+  String get lastFmKeySet => 'Configurada';
+
+  @override
+  String get lastFmKeyHelp =>
+      'Grátis: crie em last.fm/api/account/create e copie a \"API key\".';
+
+  @override
+  String get lastFmKeyOk => 'Chave do Last.fm funcionando';
+
+  @override
+  String get lastFmKeyBad =>
+      'O Last.fm recusou essa chave (confira se copiou a API key certa)';
+
+  @override
+  String get lastFmForRadio => 'Usar o Last.fm para músicas parecidas';
+
+  @override
+  String get lastFmForRadioHint =>
+      'No mix instantâneo e na rádio, quando o servidor não tem o AudioMuse e nas músicas do aparelho.';
 }

@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import '../connect/connect_service.dart';
 import '../core/providers.dart';
 import '../data/settings.dart';
+import '../data/similar.dart';
 import '../domain/models.dart';
 import '../data/offline_store.dart';
 import '../domain/music_provider.dart';
@@ -180,6 +181,19 @@ class PlayerController extends Notifier<PlayerState> {
       _scheduleNext();
     });
     ref.listen(sessionProvider, (_, next) {
+      final account = next.value?.provider.accountId;
+      if (account != null && _accountId != null && account != _accountId) {
+        // Outra conta (ou do servidor para as músicas do aparelho): a fila
+        // antiga não toca aqui; carrega a desta conta.
+        _mixTimer?.cancel();
+        engine.playerStop();
+        _engineHasTrack = false;
+        _unshuffled = null;
+        _scheduledKey = null;
+        state = PlayerState(volume: state.volume);
+        _restored = false;
+      }
+      if (account != null) _accountId = account;
       if (next.value != null && !_restored) {
         _restored = true;
         // Depois do build: com o login já pronto, isto dispara durante o
@@ -197,6 +211,7 @@ class PlayerController extends Notifier<PlayerState> {
   // ---- Fila salva (disco) e sincronizada (servidor) ----
 
   bool _restored = false;
+  String? _accountId;
   Duration? _resumeAt;
   Timer? _saveTimer;
   Timer? _syncTimer;
@@ -324,7 +339,10 @@ class PlayerController extends Notifier<PlayerState> {
       if (p.serverInfo?.sonicSimilarity ?? false) {
         songs = (await p.sonicSimilar(seed.id, count: 40)).map((m) => m.song).toList();
       }
-      if (songs.isEmpty) songs = await p.similarSongs(seed.id, count: 40);
+      if (songs.isEmpty) {
+        final s = ref.read(settingsProvider);
+        songs = await findSimilar(p, seed, count: 40, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null);
+      }
       if (songs.isEmpty) songs = await p.randomSongs(size: 20);
       final seen = state.queue.map((q) => q.song.id).toSet();
       final lastArtist = seed.artistId;
@@ -645,6 +663,25 @@ class PlayerController extends Notifier<PlayerState> {
   /// sempre usam o arquivo original ("raw"), para achar o download mesmo que
   /// a qualidade de streaming mude depois.
   engine.TrackSource? sourceFor(Song song, {String? uid, (double, double?)? gain, bool offline = false}) {
+    final (g0, peak0) = gain ?? (0.0, null);
+    final path = song.path;
+    if (path != null) {
+      // Arquivo no aparelho: o motor lê direto, sem cache.
+      final cover = song.coverArt;
+      return engine.TrackSource(
+        id: uid ?? song.id,
+        url: path,
+        formatHint: song.suffix,
+        durationMs: song.duration?.inMilliseconds,
+        gainDb: g0,
+        peak: peak0,
+        title: song.title,
+        artist: song.displayArtist,
+        album: song.album ?? '',
+        coverUrl: cover != null && cover.startsWith('/') ? cover : null,
+        analysisKey: 'file:$path:${song.size ?? 0}',
+      );
+    }
     final p = _provider;
     if (p == null) return null;
     final s = ref.read(settingsProvider);

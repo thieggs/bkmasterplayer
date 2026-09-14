@@ -382,5 +382,40 @@
  "connectSection": "Outros aparelhos (Connect)",
  "connectEnable": "Tocar e controlar entre aparelhos",
  "connectEnableHint": "Este aparelho aparece para os outros com a mesma conta e pode ser controlado por eles, como no Spotify Connect.",
- "deviceName": "Nome deste aparelho"
+ "deviceName": "Nome deste aparelho",
+ "or": "ou",
+ "useLocalMusic": "Usar só as músicas do aparelho",
+ "useLocalMusicHint": "Sem servidor: toca os arquivos de uma pasta deste aparelho. Dá para configurar as pastas depois, nos Ajustes.",
+ "musicFolder": "Pasta das músicas",
+ "musicFolderHint": "O BKplayer lê as músicas desta pasta e das subpastas.",
+ "chooseOtherFolder": "Escolher outra",
+ "useThisFolder": "Usar esta pasta",
+ "musicPermissionDenied": "Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKplayer → Permissões.",
+ "noLocalSongs": "Nenhuma música encontrada nessa pasta.",
+ "scanningMusic": "Lendo as músicas… {count} arquivos",
+ "@scanningMusic": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "localSongCount": "{count, plural, =0{Nenhuma música} =1{1 música} other{{count} músicas}}",
+ "@localSongCount": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "addFolder": "Adicionar pasta",
+ "rescanLibrary": "Atualizar a biblioteca",
+ "lastFmKey": "Chave da API do Last.fm",
+ "lastFmKeyHint": "Não configurada: rádio e mix sem AudioMuse usam só o servidor",
+ "lastFmKeySet": "Configurada",
+ "lastFmKeyHelp": "Grátis: crie em last.fm/api/account/create e copie a \"API key\".",
+ "lastFmKeyOk": "Chave do Last.fm funcionando",
+ "lastFmKeyBad": "O Last.fm recusou essa chave (confira se copiou a API key certa)",
+ "lastFmForRadio": "Usar o Last.fm para músicas parecidas",
+ "lastFmForRadioHint": "No mix instantâneo e na rádio, quando o servidor não tem o AudioMuse e nas músicas do aparelho."
 }

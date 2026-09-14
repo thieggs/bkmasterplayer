@@ -78,6 +78,14 @@ class AccountStore {
     await setActive(account.id);
   }
 
+  /// Conta sem servidor (músicas do aparelho): sem credenciais.
+  Future<void> saveLocal(ServerAccount account) async {
+    final all = list()..removeWhere((a) => a.id == account.id);
+    all.add(account);
+    await _prefs.setString(_kAccounts, jsonEncode(all.map((a) => a.toJson()).toList()));
+    await setActive(account.id);
+  }
+
   /// Atualiza os dados da conta (sem mexer nas credenciais).
   Future<void> update(ServerAccount account) async {
     final all = list().map((a) => a.id == account.id ? account : a).toList();

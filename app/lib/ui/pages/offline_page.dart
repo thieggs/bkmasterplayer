@@ -61,6 +61,8 @@ class _OfflineButtonState extends ConsumerState<OfflineButton> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    // Músicas do aparelho já estão offline.
+    if (ref.watch(sessionProvider).value?.isLocal ?? false) return const SizedBox.shrink();
     final pinned = ref.watch(offlineProvider).any((c) => c.id == widget.id);
     final total = widget.songs.length;
     if (!pinned) {

@@ -67,8 +67,14 @@ int coverRequestSize(double logicalSize) {
   return 1200;
 }
 
+/// Capa guardada num arquivo do aparelho (biblioteca local, música de Jam).
+bool isFileCover(String? coverArtId) => coverArtId != null && coverArtId.startsWith('/');
+
 ImageProvider? coverProvider(WidgetRef ref, String? coverArtId, double logicalSize) {
   if (coverArtId == null) return null;
+  if (isFileCover(coverArtId)) {
+    return ResizeImage(FileImage(File(coverArtId)), width: coverRequestSize(logicalSize), allowUpscaling: false);
+  }
   final session = ref.watch(sessionProvider).value;
   if (session == null) return null;
   final size = coverRequestSize(logicalSize);
