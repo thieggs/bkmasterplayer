@@ -442,5 +442,30 @@
  "jamAllowlistHint": "These people join your Jam without asking. Tap X to remove.",
  "jamNearbyAlerts": "Notify me when there's a Jam nearby",
  "jamNearbyAlertsHint": "Uses Bluetooth in low-power mode, even with the app closed.",
- "joinJamNoAccount": "Join a Jam nearby (no account)"
+ "joinJamNoAccount": "Join a Jam nearby (no account)",
+ "downloadAll": "Download every song on the server",
+ "downloadAllHint": "To listen to everything offline. Takes a lot of space.",
+ "readingLibrary": "Reading the library… {count} songs",
+ "@readingLibrary": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "downloadAllConfirm": "Download {count} songs (about {size})? They stay on this device and play without internet; you can remove them later in Downloads.",
+ "@downloadAllConfirm": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   },
+   "size": {
+    "type": "String"
+   }
+  }
+ },
+ "downloadAllMobileData": "You're on mobile data: better to download on Wi-Fi.",
+ "wholeLibrary": "Whole library",
+ "downloadNew": "Download new ones",
+ "download": "Download"
 }

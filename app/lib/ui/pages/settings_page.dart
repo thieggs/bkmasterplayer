@@ -119,13 +119,13 @@ class SettingsPage extends ConsumerWidget {
               onTap: () => _editLocalAddress(context, ref, local),
             );
           }),
-        if (info != null)
+        if (info != null && !(session?.isLocal ?? false))
           ListTile(
             leading: Icon(Icons.graphic_eq, color: info.sonicSimilarity ? theme.colorScheme.primary : null),
             title: Text(l10n.audioMuse),
             subtitle: Text(info.sonicSimilarity ? l10n.audioMuseActive : l10n.audioMuseInactive),
           ),
-        if (info != null && info.extensions.isNotEmpty)
+        if (info != null && info.extensions.isNotEmpty && !(session?.isLocal ?? false))
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Wrap(

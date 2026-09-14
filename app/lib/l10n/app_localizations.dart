@@ -2130,6 +2130,54 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Entrar numa Jam por perto (sem conta)'**
   String get joinJamNoAccount;
+
+  /// No description provided for @downloadAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar todas as músicas do servidor'**
+  String get downloadAll;
+
+  /// No description provided for @downloadAllHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para ouvir tudo sem internet. Ocupa bastante espaço.'**
+  String get downloadAllHint;
+
+  /// No description provided for @readingLibrary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lendo a biblioteca… {count} músicas'**
+  String readingLibrary(int count);
+
+  /// No description provided for @downloadAllConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar {count} músicas (cerca de {size})? Elas ficam neste aparelho e tocam sem internet; dá para tirar depois em Downloads.'**
+  String downloadAllConfirm(int count, String size);
+
+  /// No description provided for @downloadAllMobileData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você está nos dados móveis: é melhor baixar no Wi-Fi.'**
+  String get downloadAllMobileData;
+
+  /// No description provided for @wholeLibrary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Biblioteca inteira'**
+  String get wholeLibrary;
+
+  /// No description provided for @downloadNew.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar as novas'**
+  String get downloadNew;
+
+  /// No description provided for @download.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar'**
+  String get download;
 }
 
 class _AppLocalizationsDelegate

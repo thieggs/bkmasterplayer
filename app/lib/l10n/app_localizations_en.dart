@@ -1161,4 +1161,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get joinJamNoAccount => 'Join a Jam nearby (no account)';
+
+  @override
+  String get downloadAll => 'Download every song on the server';
+
+  @override
+  String get downloadAllHint =>
+      'To listen to everything offline. Takes a lot of space.';
+
+  @override
+  String readingLibrary(int count) {
+    return 'Reading the library… $count songs';
+  }
+
+  @override
+  String downloadAllConfirm(int count, String size) {
+    return 'Download $count songs (about $size)? They stay on this device and play without internet; you can remove them later in Downloads.';
+  }
+
+  @override
+  String get downloadAllMobileData =>
+      'You\'re on mobile data: better to download on Wi-Fi.';
+
+  @override
+  String get wholeLibrary => 'Whole library';
+
+  @override
+  String get downloadNew => 'Download new ones';
+
+  @override
+  String get download => 'Download';
 }

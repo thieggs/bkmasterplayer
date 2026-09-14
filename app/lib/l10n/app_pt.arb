@@ -523,5 +523,30 @@
  "jamAllowlistHint": "Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar.",
  "jamNearbyAlerts": "Avisar quando houver uma Jam por perto",
  "jamNearbyAlertsHint": "Usa o Bluetooth em modo econômico, mesmo com o app fechado.",
- "joinJamNoAccount": "Entrar numa Jam por perto (sem conta)"
+ "joinJamNoAccount": "Entrar numa Jam por perto (sem conta)",
+ "downloadAll": "Baixar todas as músicas do servidor",
+ "downloadAllHint": "Para ouvir tudo sem internet. Ocupa bastante espaço.",
+ "readingLibrary": "Lendo a biblioteca… {count} músicas",
+ "@readingLibrary": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "downloadAllConfirm": "Baixar {count} músicas (cerca de {size})? Elas ficam neste aparelho e tocam sem internet; dá para tirar depois em Downloads.",
+ "@downloadAllConfirm": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   },
+   "size": {
+    "type": "String"
+   }
+  }
+ },
+ "downloadAllMobileData": "Você está nos dados móveis: é melhor baixar no Wi-Fi.",
+ "wholeLibrary": "Biblioteca inteira",
+ "downloadNew": "Baixar as novas",
+ "download": "Baixar"
 }

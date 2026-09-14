@@ -76,8 +76,18 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
 
   bool contains(String id) => state.any((c) => c.id == id);
 
-  /// Músicas disponíveis offline (para tocar a versão baixada).
-  Set<String> get songIds => {for (final c in state) ...c.songs.map((s) => s.id)};
+  List<OfflineCollection>? _idsFor;
+  Set<String> _ids = const {};
+
+  /// Músicas disponíveis offline (para tocar a versão baixada). Guardado: a
+  /// biblioteca inteira pode ter milhares e isto é consultado a cada faixa.
+  Set<String> get songIds {
+    if (!identical(_idsFor, state)) {
+      _idsFor = state;
+      _ids = {for (final c in state) ...c.songs.map((s) => s.id)};
+    }
+    return _ids;
+  }
 
   Future<void> add(OfflineCollection c) async {
     state = [...state.where((x) => x.id != c.id), c];
