@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In pt, this message translates to:
-  /// **'BKplayer 🎵'**
+  /// **'BKT Player 🎵'**
   String get appTitle;
 
   /// No description provided for @about.
@@ -113,7 +113,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutText.
   ///
   /// In pt, this message translates to:
-  /// **'Player open source para servidores OpenSubsonic (Navidrome), com AudioMuse-AI e AutoMix. Licença GPL-3.0.'**
+  /// **'Player open source para servidores OpenSubsonic (Navidrome), com AudioMuse-AI e AutoMix. Licença MIT.'**
   String get aboutText;
 
   /// No description provided for @accentColor.
@@ -1696,7 +1696,7 @@ abstract class AppLocalizations {
   /// No description provided for @noDevicesFound.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhum outro aparelho encontrado. Abra o BKplayer no outro aparelho, com a mesma conta e na mesma rede.'**
+  /// **'Nenhum outro aparelho encontrado. Abra o BKT Player no outro aparelho, com a mesma conta e na mesma rede.'**
   String get noDevicesFound;
 
   /// No description provided for @addDeviceByAddress.
@@ -1714,7 +1714,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceNotFound.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhum BKplayer desta conta respondeu nesse endereço'**
+  /// **'Nenhum BKT Player desta conta respondeu nesse endereço'**
   String get deviceNotFound;
 
   /// No description provided for @connectFailed.
@@ -1774,7 +1774,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicFolderHint.
   ///
   /// In pt, this message translates to:
-  /// **'O BKplayer lê as músicas desta pasta e das subpastas.'**
+  /// **'O BKT Player lê as músicas desta pasta e das subpastas.'**
   String get musicFolderHint;
 
   /// No description provided for @chooseOtherFolder.
@@ -1792,7 +1792,7 @@ abstract class AppLocalizations {
   /// No description provided for @musicPermissionDenied.
   ///
   /// In pt, this message translates to:
-  /// **'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKplayer → Permissões.'**
+  /// **'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKT Player → Permissões.'**
   String get musicPermissionDenied;
 
   /// No description provided for @noLocalSongs.
@@ -1924,7 +1924,7 @@ abstract class AppLocalizations {
   /// No description provided for @startJamHint.
   ///
   /// In pt, this message translates to:
-  /// **'Quem estiver perto com o BKplayer pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.'**
+  /// **'Quem estiver perto com o BKT Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.'**
   String get startJamHint;
 
   /// No description provided for @jamWaiting.
@@ -1954,7 +1954,7 @@ abstract class AppLocalizations {
   /// No description provided for @jamSearching.
   ///
   /// In pt, this message translates to:
-  /// **'Procurando… Peça para quem está tocando abrir uma Festa no BKplayer.'**
+  /// **'Procurando… Peça para quem está tocando abrir uma Festa no BKT Player.'**
   String get jamSearching;
 
   /// No description provided for @jamOf.
@@ -2194,7 +2194,7 @@ abstract class AppLocalizations {
   /// No description provided for @onlineLyricsHint.
   ///
   /// In pt, this message translates to:
-  /// **'Quando o servidor ou o arquivo não tem a letra: LRCLIB (com letras sincronizadas), Musixmatch e lyrics.ovh.'**
+  /// **'Quando o servidor ou o arquivo não tem a letra: LRCLIB (com letras sincronizadas) e, com a sua chave, Musixmatch. A fonte aparece embaixo da letra.'**
   String get onlineLyricsHint;
 
   /// No description provided for @musixmatchKey.
@@ -2206,13 +2206,13 @@ abstract class AppLocalizations {
   /// No description provided for @musixmatchKeyHint.
   ///
   /// In pt, this message translates to:
-  /// **'Opcional: sem ela, as letras vêm do LRCLIB e do lyrics.ovh.'**
+  /// **'Opcional: sem ela, as letras vêm do LRCLIB.'**
   String get musixmatchKeyHint;
 
   /// No description provided for @musixmatchKeyHelp.
   ///
   /// In pt, this message translates to:
-  /// **'Da conta de desenvolvedor em developer.musixmatch.com. O plano gratuito só libera parte da letra; nesse caso o app usa as outras fontes.'**
+  /// **'Da conta de desenvolvedor em developer.musixmatch.com. Letra inteira exige um plano comercial da Musixmatch; o app mostra o aviso de direitos e faz o registro de exibição que os termos pedem. No plano gratuito (só parte da letra), o app usa as outras fontes.'**
   String get musixmatchKeyHelp;
 
   /// No description provided for @onlineCovers.
@@ -2224,7 +2224,7 @@ abstract class AppLocalizations {
   /// No description provided for @onlineCoversHint.
   ///
   /// In pt, this message translates to:
-  /// **'Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer.'**
+  /// **'Nas músicas do aparelho sem capa: procura o álbum no Cover Art Archive (MusicBrainz) e no Deezer.'**
   String get onlineCoversHint;
 
   /// No description provided for @djModeFrom.
@@ -2842,7 +2842,7 @@ abstract class AppLocalizations {
   /// No description provided for @themeOriginal.
   ///
   /// In pt, this message translates to:
-  /// **'BKplayer (original)'**
+  /// **'BKT Player (original)'**
   String get themeOriginal;
 
   /// No description provided for @themeVinyl.
@@ -3010,7 +3010,7 @@ abstract class AppLocalizations {
   /// No description provided for @invalidThemeFile.
   ///
   /// In pt, this message translates to:
-  /// **'Arquivo inválido: não é um tema ou backup do BKplayer'**
+  /// **'Arquivo inválido: não é um tema ou backup do BKT Player'**
   String get invalidThemeFile;
 
   /// No description provided for @textProfiles.
@@ -3034,7 +3034,7 @@ abstract class AppLocalizations {
   /// No description provided for @backToOriginalHint.
   ///
   /// In pt, this message translates to:
-  /// **'O tema BKplayer, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).'**
+  /// **'O tema BKT Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).'**
   String get backToOriginalHint;
 
   /// No description provided for @party.
@@ -3042,6 +3042,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Festa'**
   String get party;
+
+  /// No description provided for @lyricsSource.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra: {source}'**
+  String lyricsSource(String source);
+
+  /// No description provided for @lastFmCredit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados do Last.fm'**
+  String get lastFmCredit;
+
+  /// No description provided for @lastFmCreditHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Músicas e artistas parecidos, mais tocadas e biografias vêm do Last.fm. Toque para abrir o site.'**
+  String get lastFmCreditHint;
+
+  /// No description provided for @openOnLastFm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver no Last.fm'**
+  String get openOnLastFm;
 }
 
 class _AppLocalizationsDelegate

@@ -353,6 +353,8 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
     _name = await _myName(ref);
     final id = _randomId();
     state = JamHostState(active: true, jamId: id);
+    // Músicas que convidados mandaram numa Festa anterior não ficam guardadas.
+    await clearJamFiles(ref.read(cacheDirProvider).path);
     await _dir.create(recursive: true);
     final connect = ref.read(connectProvider.notifier);
     connect.jamRoutes = this;
@@ -979,3 +981,11 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
 
 final jamGuestProvider = NotifierProvider<JamGuestNotifier, JamGuestState>(JamGuestNotifier.new);
 
+/// Apaga as músicas que convidados mandaram para tocar na Festa (ficam só
+/// enquanto ela dura: não viram cópia no aparelho de quem recebeu).
+Future<void> clearJamFiles(String cacheDir) async {
+  try {
+    final dir = Directory(p.join(cacheDir, 'jam'));
+    if (await dir.exists()) await dir.delete(recursive: true);
+  } catch (_) {}
+}

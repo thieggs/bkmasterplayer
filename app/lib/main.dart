@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -20,7 +22,7 @@ import 'src/rust/api/engine.dart' as engine;
 import 'src/rust/frb_generated.dart';
 
 const appId = 'player_musica';
-const appName = 'BKplayer 🎵';
+const appName = 'BKT Player 🎵';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +36,12 @@ Future<void> main() async {
       ('Bebas Neue', 'bebasneue'),
     ]) {
       yield LicenseEntryWithLineBreaks([name], await rootBundle.loadString('assets/fonts/OFL-$file.txt'));
+    }
+    // Pacotes do motor em Rust e bibliotecas do Android (os pacotes Dart o Flutter já lista).
+    for (final asset in const ['assets/licenses/rust.json', 'assets/licenses/android.json']) {
+      for (final e in jsonDecode(await rootBundle.loadString(asset)) as List) {
+        yield LicenseEntryWithLineBreaks(List<String>.from(e['packages'] as List), e['text'] as String);
+      }
     }
   });
   final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
@@ -58,6 +66,8 @@ Future<void> main() async {
   final cacheDir = await getApplicationCacheDirectory();
   final supportDir = await getApplicationSupportDirectory();
   await Directory('${cacheDir.path}/ui_covers').create(recursive: true);
+  // Músicas recebidas numa Festa que já acabou (o app foi fechado): apaga.
+  unawaited(clearJamFiles(cacheDir.path));
   Directory? modelDir;
   try {
     modelDir = await prepareModels();

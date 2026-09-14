@@ -5,6 +5,13 @@
 //! compasso dela), por quantos compassos as duas tocam juntas, qual a
 //! velocidade de B para as batidas baterem (time-stretch sem mudar o tom) e
 //! qual o estilo (troca de grave, filtro, mistura, corte).
+//!
+//! Regra de projeto (patente): o ponto de cada faixa sai da estrutura dela
+//! mesma (outro/fim de A, primeiro compasso de B). Não escolher a janela da
+//! transição comparando trechos das duas faixas (janela deslizante sobre
+//! descritores de áudio): é o que reivindica a patente US 8.280.539 da
+//! Spotify, ativa até 2031. Entre as faixas só se comparam BPM e tom. Ver
+//! docs/JURIDICO.md.
 
 use serde::{Deserialize, Serialize};
 

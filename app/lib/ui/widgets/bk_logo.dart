@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Logo do BKplayer desenhada com as cores do tema (claro, escuro, AMOLED,
+/// Logo do BKT Player desenhada com as cores do tema (claro, escuro, AMOLED,
 /// cor da capa): nunca some no fundo. [mono] desenha só as barras, na cor
 /// dada (ou na primária), para lugares pequenos.
 class BkLogo extends StatelessWidget {

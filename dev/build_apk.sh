@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Gera o APK do BKplayer para celulares Android (arm64, quase todos os atuais).
+# Gera o APK do BKT Player para celulares Android (arm64, quase todos os atuais).
 # Uso: ./dev/build_apk.sh            (ou ALL_ABIS=1 para incluir arm 32 bits e x86_64)
-# Saída: dist/bkplayer_<versão>_<abi>.apk
+# Saída: dist/bktplayer_<versão>_<abi>.apk
 #
 # Requisitos: Android SDK com NDK 28.2 (ANDROID_HOME, padrão ~/android-sdk).
 # A assinatura vem de app/android/key.properties (fora do git); sem ele, o APK
@@ -18,6 +18,6 @@ cd "$ROOT/app"
 rm -rf build/player_engine/jniLibs
 flutter build apk --release --target-platform "$PLATFORMS" --build-name "$BASE" --build-number "$CODE"
 mkdir -p "$ROOT/dist"
-OUT="$ROOT/dist/bkplayer_${BASE}+${CODE}_${ABI}.apk"
+OUT="$ROOT/dist/bktplayer_${BASE}+${CODE}_${ABI}.apk"
 cp build/app/outputs/flutter-apk/app-release.apk "$OUT"
 echo "$OUT"

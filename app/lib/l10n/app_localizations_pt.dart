@@ -9,14 +9,14 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appTitle => 'BKplayer 🎵';
+  String get appTitle => 'BKT Player 🎵';
 
   @override
   String get about => 'Sobre';
 
   @override
   String get aboutText =>
-      'Player open source para servidores OpenSubsonic (Navidrome), com AudioMuse-AI e AutoMix. Licença GPL-3.0.';
+      'Player open source para servidores OpenSubsonic (Navidrome), com AudioMuse-AI e AutoMix. Licença MIT.';
 
   @override
   String get accentColor => 'Cor de destaque';
@@ -890,7 +890,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get noDevicesFound =>
-      'Nenhum outro aparelho encontrado. Abra o BKplayer no outro aparelho, com a mesma conta e na mesma rede.';
+      'Nenhum outro aparelho encontrado. Abra o BKT Player no outro aparelho, com a mesma conta e na mesma rede.';
 
   @override
   String get addDeviceByAddress => 'Adicionar pelo endereço';
@@ -900,7 +900,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get deviceNotFound =>
-      'Nenhum BKplayer desta conta respondeu nesse endereço';
+      'Nenhum BKT Player desta conta respondeu nesse endereço';
 
   @override
   String connectFailed(String device) {
@@ -935,7 +935,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get musicFolderHint =>
-      'O BKplayer lê as músicas desta pasta e das subpastas.';
+      'O BKT Player lê as músicas desta pasta e das subpastas.';
 
   @override
   String get chooseOtherFolder => 'Escolher outra';
@@ -945,7 +945,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get musicPermissionDenied =>
-      'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKplayer → Permissões.';
+      'Sem permissão para ler as músicas do aparelho. Libere em Configurações do Android → Apps → BKT Player → Permissões.';
 
   @override
   String get noLocalSongs => 'Nenhuma música encontrada nessa pasta.';
@@ -1031,7 +1031,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get startJamHint =>
-      'Quem estiver perto com o BKplayer pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.';
+      'Quem estiver perto com o BKT Player pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.';
 
   @override
   String jamWaiting(String name) {
@@ -1049,7 +1049,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get jamSearching =>
-      'Procurando… Peça para quem está tocando abrir uma Festa no BKplayer.';
+      'Procurando… Peça para quem está tocando abrir uma Festa no BKT Player.';
 
   @override
   String jamOf(String name) {
@@ -1199,25 +1199,24 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get onlineLyricsHint =>
-      'Quando o servidor ou o arquivo não tem a letra: LRCLIB (com letras sincronizadas), Musixmatch e lyrics.ovh.';
+      'Quando o servidor ou o arquivo não tem a letra: LRCLIB (com letras sincronizadas) e, com a sua chave, Musixmatch. A fonte aparece embaixo da letra.';
 
   @override
   String get musixmatchKey => 'Chave da API do Musixmatch';
 
   @override
-  String get musixmatchKeyHint =>
-      'Opcional: sem ela, as letras vêm do LRCLIB e do lyrics.ovh.';
+  String get musixmatchKeyHint => 'Opcional: sem ela, as letras vêm do LRCLIB.';
 
   @override
   String get musixmatchKeyHelp =>
-      'Da conta de desenvolvedor em developer.musixmatch.com. O plano gratuito só libera parte da letra; nesse caso o app usa as outras fontes.';
+      'Da conta de desenvolvedor em developer.musixmatch.com. Letra inteira exige um plano comercial da Musixmatch; o app mostra o aviso de direitos e faz o registro de exibição que os termos pedem. No plano gratuito (só parte da letra), o app usa as outras fontes.';
 
   @override
   String get onlineCovers => 'Buscar capas que faltam';
 
   @override
   String get onlineCoversHint =>
-      'Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer.';
+      'Nas músicas do aparelho sem capa: procura o álbum no Cover Art Archive (MusicBrainz) e no Deezer.';
 
   @override
   String get djModeFrom => 'Modo DJ a partir desta música';
@@ -1537,7 +1536,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Toque para aplicar; segure (ou ⋮) para mais opções.';
 
   @override
-  String get themeOriginal => 'BKplayer (original)';
+  String get themeOriginal => 'BKT Player (original)';
 
   @override
   String get themeVinyl => 'Vinil';
@@ -1632,7 +1631,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get invalidThemeFile =>
-      'Arquivo inválido: não é um tema ou backup do BKplayer';
+      'Arquivo inválido: não é um tema ou backup do BKT Player';
 
   @override
   String get textProfiles => 'Como texto (área de transferência)';
@@ -1647,8 +1646,23 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get backToOriginalHint =>
-      'O tema BKplayer, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).';
+      'O tema BKT Player, como o app vem (o visual de agora fica nos backups automáticos se não estiver salvo).';
 
   @override
   String get party => 'Festa';
+
+  @override
+  String lyricsSource(String source) {
+    return 'Letra: $source';
+  }
+
+  @override
+  String get lastFmCredit => 'Dados do Last.fm';
+
+  @override
+  String get lastFmCreditHint =>
+      'Músicas e artistas parecidos, mais tocadas e biografias vêm do Last.fm. Toque para abrir o site.';
+
+  @override
+  String get openOnLastFm => 'Ver no Last.fm';
 }

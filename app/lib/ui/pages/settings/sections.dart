@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../connect/connect_service.dart';
 import '../../../connect/devices_sheet.dart';
@@ -395,6 +396,13 @@ class SourcesSettingsPage extends ConsumerWidget {
           subtitle: Text(s.lastFmApiKey == null ? l10n.lastFmKeyHint : l10n.lastFmKeySet),
           trailing: const Icon(Icons.edit_outlined),
           onTap: () => _editLastFmKey(context, ref, s.lastFmApiKey),
+        ),
+        ListTile(
+          leading: const SizedBox(),
+          title: Text(l10n.lastFmCredit),
+          subtitle: Text(l10n.lastFmCreditHint),
+          trailing: const Icon(Icons.open_in_new),
+          onTap: () => launchUrl(Uri.parse('https://www.last.fm'), mode: LaunchMode.externalApplication),
         ),
         SwitchListTile(
           secondary: const SizedBox(),

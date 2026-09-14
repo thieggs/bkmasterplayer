@@ -59,7 +59,7 @@ class SubsonicAuth {
 }
 
 class SubsonicClient {
-  SubsonicClient({required String baseUrl, String? localUrl, required this.auth, this.clientName = 'BKplayer'})
+  SubsonicClient({required String baseUrl, String? localUrl, required this.auth, this.clientName = 'BKTPlayer'})
       : remoteUrl = normalizeBaseUrl(baseUrl),
         _localUrl = _normalizeOptional(localUrl),
         _dio = Dio(BaseOptions(
@@ -132,7 +132,7 @@ class SubsonicClient {
     }
   }
 
-  /// Confere credenciais de outro aparelho (BKplayer Connect) neste servidor:
+  /// Confere credenciais de outro aparelho (BKT Player Connect) neste servidor:
   /// só quem sabe a senha da conta gera um token que o servidor aceita.
   Future<bool> validate(Map<String, String> authParams) async {
     try {

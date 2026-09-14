@@ -1,8 +1,8 @@
 {
  "@@locale": "en",
- "appTitle": "BKplayer 🎵",
+ "appTitle": "BKT Player 🎵",
  "about": "About",
- "aboutText": "Open source player for OpenSubsonic servers (Navidrome), with AudioMuse-AI and AutoMix. GPL-3.0 license.",
+ "aboutText": "Open source player for OpenSubsonic servers (Navidrome), with AudioMuse-AI and AutoMix. MIT license.",
  "accentColor": "Accent color",
  "addedToPlaylist": "Added to playlist",
  "addToPlaylist": "Add to playlist",
@@ -286,10 +286,10 @@
    }
   }
  },
- "noDevicesFound": "No other devices found. Open BKplayer on the other device, with the same account and on the same network.",
+ "noDevicesFound": "No other devices found. Open BKT Player on the other device, with the same account and on the same network.",
  "addDeviceByAddress": "Add by address",
  "addDeviceHint": "Device IP (e.g., its Tailscale address, 100.x.y.z)",
- "deviceNotFound": "No BKplayer of this account answered at that address",
+ "deviceNotFound": "No BKT Player of this account answered at that address",
  "connectFailed": "Couldn't connect to {device}",
  "@connectFailed": {
   "placeholders": {
@@ -306,10 +306,10 @@
  "useLocalMusic": "Use only this device's music",
  "useLocalMusicHint": "No server: plays the files in a folder on this device. You can change the folders later in Settings.",
  "musicFolder": "Music folder",
- "musicFolderHint": "BKplayer reads the music in this folder and its subfolders.",
+ "musicFolderHint": "BKT Player reads the music in this folder and its subfolders.",
  "chooseOtherFolder": "Choose another",
  "useThisFolder": "Use this folder",
- "musicPermissionDenied": "No permission to read this device's music. Allow it in Android Settings → Apps → BKplayer → Permissions.",
+ "musicPermissionDenied": "No permission to read this device's music. Allow it in Android Settings → Apps → BKT Player → Permissions.",
  "noLocalSongs": "No music found in that folder.",
  "scanningMusic": "Reading the music… {count} files",
  "@scanningMusic": {
@@ -359,7 +359,7 @@
  "accept": "Accept",
  "reject": "Decline",
  "startJam": "Start a Party",
- "startJamHint": "People nearby with BKplayer can ask to join, add songs and control playback. You approve each person.",
+ "startJamHint": "People nearby with BKT Player can ask to join, add songs and control playback. You approve each person.",
  "jamWaiting": "Asking to join {name}'s Party… Wait for them to accept.",
  "@jamWaiting": {
   "placeholders": {
@@ -371,7 +371,7 @@
  "jamRejected": "The request wasn't accepted.",
  "jamEnded": "The Party ended.",
  "jamsNearby": "Parties nearby",
- "jamSearching": "Searching… Ask whoever is playing to open a Party in BKplayer.",
+ "jamSearching": "Searching… Ask whoever is playing to open a Party in BKT Player.",
  "jamOf": "{name}'s Party",
  "@jamOf": {
   "placeholders": {
@@ -470,12 +470,12 @@
  "download": "Download",
  "onlineMeta": "Lyrics and covers from the internet",
  "onlineLyrics": "Fetch missing lyrics",
- "onlineLyricsHint": "When the server or the file has no lyrics: LRCLIB (with synced lyrics), Musixmatch and lyrics.ovh.",
+ "onlineLyricsHint": "When the server or the file has no lyrics: LRCLIB (with synced lyrics) and, with your key, Musixmatch. The source is shown below the lyrics.",
  "musixmatchKey": "Musixmatch API key",
- "musixmatchKeyHint": "Optional: without it, lyrics come from LRCLIB and lyrics.ovh.",
- "musixmatchKeyHelp": "From a developer account at developer.musixmatch.com. The free plan only returns part of the lyrics; then the app uses the other sources.",
+ "musixmatchKeyHint": "Optional: without it, lyrics come from LRCLIB.",
+ "musixmatchKeyHelp": "From a developer account at developer.musixmatch.com. Full lyrics require a Musixmatch commercial plan; the app shows the rights notice and reports the display as the terms require. On the free plan (partial lyrics only), the app uses the other sources.",
  "onlineCovers": "Fetch missing covers",
- "onlineCoversHint": "For this device's music without covers: looks the album up on iTunes and Deezer.",
+ "onlineCoversHint": "For this device's music without covers: looks the album up on Cover Art Archive (MusicBrainz) and Deezer.",
  "djModeFrom": "DJ mode from this song",
  "djModeOn": "DJ mode on: AudioMuse and AutoMix pick the next song by the best fit (tap to turn off)",
  "djModeOff": "DJ mode: let AudioMuse and AutoMix pick the next songs",
@@ -578,7 +578,7 @@
  "animOff": "Off",
  "themes": "Themes",
  "themesHint": "Tap to apply; long-press (or ⋮) for more options.",
- "themeOriginal": "BKplayer (original)",
+ "themeOriginal": "BKT Player (original)",
  "themeVinyl": "Vinyl",
  "themePaper": "Paper",
  "themeContrast": "High contrast",
@@ -609,11 +609,16 @@
  "autoBackupsHint": "Made before every big change (the last 10)",
  "noAutoBackups": "None yet: they appear when you switch themes with unsaved changes, import or restore.",
  "fileSaved": "File saved",
- "invalidThemeFile": "Invalid file: not a BKplayer theme or backup",
+ "invalidThemeFile": "Invalid file: not a BKT Player theme or backup",
  "textProfiles": "As text (clipboard)",
  "deleteThemeConfirm": "Delete theme \"{name}\"?",
  "@deleteThemeConfirm": {"placeholders": {"name": {"type": "String"}}},
  "backToOriginal": "Back to the original look",
- "backToOriginalHint": "The BKplayer theme, as the app ships (the current look goes to automatic backups if not saved).",
- "party": "Party"
+ "backToOriginalHint": "The BKT Player theme, as the app ships (the current look goes to automatic backups if not saved).",
+ "party": "Party",
+ "lyricsSource": "Lyrics: {source}",
+ "@lyricsSource": {"placeholders": {"source": {"type": "String"}}},
+ "lastFmCredit": "Data from Last.fm",
+ "lastFmCreditHint": "Similar songs and artists, top tracks and biographies come from Last.fm. Tap to open the site.",
+ "openOnLastFm": "View on Last.fm"
 }

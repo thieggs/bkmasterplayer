@@ -19,7 +19,7 @@ void main() {
   });
   tearDown(() => dir.delete(recursive: true));
 
-  test('o tema BKplayer pronto é o visual original', () {
+  test('o tema BKT Player pronto é o visual original', () {
     expect(const UiPrefs().sameTheme(builtInThemes.first.theme), isTrue);
     expect(builtInThemes.map((t) => t.id).toSet(), hasLength(builtInThemes.length));
   });

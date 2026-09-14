@@ -94,7 +94,7 @@ class AppSettings {
   final bool trayIcon;
   final bool closeToTray;
 
-  /// Aparece para os outros aparelhos da mesma conta (BKplayer Connect) e
+  /// Aparece para os outros aparelhos da mesma conta (BKT Player Connect) e
   /// aceita ser controlado por eles.
   final bool connectEnabled;
 

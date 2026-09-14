@@ -1,4 +1,4 @@
-# BKplayer 🎵
+# BKT Player 🎵
 
 Player open source para servidores **OpenSubsonic** (Navidrome, Gonic, Ampache…),
 com integração ao **AudioMuse-AI**, **AutoMix DJ** (transições sincronizadas por
@@ -22,9 +22,9 @@ seguir.
 - **Sem servidor:** toca as músicas do aparelho (pastas escolhidas); o Last.fm dá as parecidas quando não há AudioMuse.
 - **Festa:** quem está perto entra na sua música, adiciona (da sua biblioteca ou das dele) e controla. Pela rede local ou, no Android, por Bluetooth/Wi-Fi Direct; cada pessoa só entra com a sua aprovação (ou se estiver na lista de aceitos).
 - **Fila:** salva no disco e sincronizada com o servidor (continuar em outro aparelho).
-- **Connect:** escolher em qual aparelho tocar e controlá-lo (PC, notebook, celular da mesma conta), como no Spotify Connect.
+- **Connect:** escolher em qual aparelho tocar e controlá-lo (PC, notebook, celular da mesma conta).
 - **Endereço de casa:** usa o endereço da rede local quando ele responde (mais rápido) e o principal fora de casa.
-- **Letras e capas que faltam:** LRCLIB, Musixmatch (com a sua chave) e lyrics.ovh; capas do iTunes/Deezer.
+- **Letras e capas que faltam:** LRCLIB e Musixmatch (com a sua chave), com a fonte mostrada; capas do Cover Art Archive (MusicBrainz) e do Deezer.
 - **Desktop:**
   - MPRIS com capa (KDE Connect, widgets), notificação que não empilha.
   - Bandeja do sistema, mini player, atalhos de teclado.
@@ -79,4 +79,4 @@ cd app && flutter test                 # app
 
 ## Licença
 
-GPL-3.0-or-later.
+MIT (ver [`LICENSE`](LICENSE)). As bibliotecas, fontes e o modelo de análise usados têm licenças próprias, todas compatíveis (ver [`docs/JURIDICO.md`](docs/JURIDICO.md) e Ajustes → Sobre → Licenças no app).

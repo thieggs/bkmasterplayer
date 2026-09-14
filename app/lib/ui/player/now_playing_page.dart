@@ -363,10 +363,26 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
       error: (e, _) => Center(child: Text(l10n.noLyrics)),
       data: (l) {
         if (l == null || l.lines.isEmpty) return Center(child: Text(l10n.noLyrics));
+        // Crédito da fonte (e o aviso de direitos que a Musixmatch exige).
+        final credit = l.source == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
+                child: Text(
+                  [l10n.lyricsSource(l.source!), if (l.copyright != null && l.copyright!.trim().isNotEmpty) l.copyright!.trim()].join('\n'),
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              );
         if (!l.synced) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Text(l.lines.map((e) => e.text).join('\n'), style: theme.textTheme.bodyLarge?.copyWith(height: 1.6)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.lines.map((e) => e.text).join('\n'), style: theme.textTheme.bodyLarge?.copyWith(height: 1.6)),
+                ?credit,
+              ],
+            ),
           );
         }
         final pos = ref.watch(playerProvider.select((s) => s.position)) + l.offset;
@@ -378,8 +394,9 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
         return ListView.builder(
           controller: _scroll,
           padding: const EdgeInsets.symmetric(vertical: 120, horizontal: 12),
-          itemCount: l.lines.length,
+          itemCount: l.lines.length + (credit == null ? 0 : 1),
           itemBuilder: (context, i) {
+            if (i == l.lines.length) return credit!;
             final line = l.lines[i];
             final isActive = i == active;
             return InkWell(

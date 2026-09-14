@@ -2,7 +2,7 @@
 name = "player_engine"
 version = "0.1.0"
 edition = "2021"
-license = "GPL-3.0-or-later"
+license = "MIT"
 description = "Motor de áudio do player: streaming com cache, decodificação, 2 decks, mixer e (futuro) AutoMix DJ"
 
 [lib]

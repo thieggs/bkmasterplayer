@@ -306,11 +306,21 @@ class LyricLine {
 }
 
 class Lyrics {
-  const Lyrics({required this.synced, required this.lines, this.lang, this.offset = Duration.zero});
+  const Lyrics({required this.synced, required this.lines, this.lang, this.offset = Duration.zero, this.source, this.copyright});
   final bool synced;
   final List<LyricLine> lines;
   final String? lang;
   final Duration offset;
+
+  /// De onde veio, quando não é do servidor/arquivo (ex.: LRCLIB, Musixmatch):
+  /// aparece como crédito embaixo da letra.
+  final String? source;
+
+  /// Aviso de direitos que a fonte exige mostrar junto (Musixmatch).
+  final String? copyright;
+
+  Lyrics withSource(String source, {String? copyright}) =>
+      Lyrics(synced: synced, lines: lines, lang: lang, offset: offset, source: source, copyright: copyright);
 }
 
 class SonicMatch {

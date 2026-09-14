@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
 import '../../domain/models.dart';
@@ -172,6 +173,20 @@ class _ArtistView extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(bio, maxLines: 4, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium),
+          ),
+        // Biografia/parecidos do Last.fm (direto ou pelo servidor): o crédito com
+        // link para a página do artista é exigido pelos termos da API.
+        if (info?.lastFmUrl != null && (bio?.isNotEmpty == true || info!.similarArtists.isNotEmpty))
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextButton.icon(
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text('${l10n.lastFmCredit} · ${l10n.openOnLastFm}'),
+                onPressed: () => launchUrl(Uri.parse(info!.lastFmUrl!), mode: LaunchMode.externalApplication),
+              ),
+            ),
           ),
         if (top.isNotEmpty) ...[
           SectionHeader(l10n.topSongs),

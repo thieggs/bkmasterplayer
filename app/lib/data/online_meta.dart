@@ -13,16 +13,19 @@ final _dio = Dio(BaseOptions(
   connectTimeout: const Duration(seconds: 8),
   receiveTimeout: const Duration(seconds: 15),
   // Só ASCII: o HttpClient recusa acento em cabeçalho.
-  headers: {'User-Agent': 'BKplayer/1.0 (open source music player)'},
+  headers: {'User-Agent': 'BKTPlayer/1.0 (open source music player)'},
   validateStatus: (_) => true,
 ));
 
 String _hash(String s) => sha1.convert(utf8.encode(s)).toString().substring(0, 20);
 
 /// Letras que faltam no servidor/arquivo, buscadas na internet:
-/// LRCLIB (aberto, com letras sincronizadas) → Musixmatch (API oficial, com a
-/// chave do usuário; só letras completas) → lyrics.ovh (texto). Guarda o
-/// resultado (ou a falta dele, por 7 dias) no disco.
+/// - LRCLIB (aberto, com letras sincronizadas): guardada no disco;
+/// - Musixmatch (API oficial, com a chave do usuário; só letra inteira, que
+///   exige plano comercial): mostra o aviso de direitos, avisa o rastreio que
+///   a API pede e não guarda a letra no disco, como os termos pedem.
+/// Falta de letra fica guardada por 7 dias. (O lyrics.ovh saiu: ele copia de
+/// sites de letras sem autorização.)
 class OnlineLyrics {
   OnlineLyrics({required this.cacheDir, this.musixmatchKey});
   final String cacheDir;
@@ -35,24 +38,33 @@ class OnlineLyrics {
     try {
       if (await file.exists()) {
         final j = jsonDecode(await file.readAsString()) as Map;
-        if (j['lrc'] is String) return parseLrc(j['lrc'] as String);
+        // Só vale o cache com a fonte anotada (os antigos podiam ser do lyrics.ovh).
+        if (j['lrc'] is String && j['source'] == 'LRCLIB') return parseLrc(j['lrc'] as String)?.withSource('LRCLIB');
         final missed = DateTime.fromMillisecondsSinceEpoch(j['missed'] as int? ?? 0);
-        if (DateTime.now().difference(missed) < const Duration(days: 7)) return null;
+        if (j['missed'] != null && DateTime.now().difference(missed) < const Duration(days: 7)) return null;
       }
     } catch (_) {}
     String? lrc;
-    for (final source in [_lrclib, _musixmatch, _lyricsOvh]) {
-      try {
-        lrc = await source(song, artist);
-      } catch (_) {}
-      if (lrc != null && lrc.trim().isNotEmpty) break;
-      lrc = null;
+    try {
+      lrc = await _lrclib(song, artist);
+    } catch (_) {}
+    if (lrc != null && lrc.trim().isNotEmpty) {
+      await _save(file, {'lrc': lrc, 'source': 'LRCLIB'});
+      return parseLrc(lrc)?.withSource('LRCLIB');
     }
     try {
-      await file.parent.create(recursive: true);
-      await file.writeAsString(jsonEncode(lrc == null ? {'missed': DateTime.now().millisecondsSinceEpoch} : {'lrc': lrc}));
+      final mxm = await _musixmatch(song, artist);
+      if (mxm != null) return mxm;
     } catch (_) {}
-    return lrc == null ? null : parseLrc(lrc);
+    await _save(file, {'missed': DateTime.now().millisecondsSinceEpoch});
+    return null;
+  }
+
+  Future<void> _save(File file, Map<String, dynamic> data) async {
+    try {
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(data));
+    } catch (_) {}
   }
 
   Future<String?> _lrclib(Song s, String artist) async {
@@ -81,10 +93,13 @@ class OnlineLyrics {
     return (hit['syncedLyrics'] as String?) ?? (hit['plainLyrics'] as String?);
   }
 
-  Future<String?> _musixmatch(Song s, String artist) async {
+  /// Musixmatch: sincronizada (subtitle) ou texto, sempre com o aviso de
+  /// direitos e o rastreio que os termos da API exigem.
+  Future<Lyrics?> _musixmatch(Song s, String artist) async {
     final key = musixmatchKey;
     if (key == null || key.isEmpty) return null;
     const base = 'https://api.musixmatch.com/ws/1.1';
+    Map? bodyOf(Response r) => (((r.data is String ? jsonDecode(r.data as String) : r.data) as Map?)?['message'] as Map?)?['body'] as Map?;
     final sub = await _dio.get('$base/matcher.subtitle.get', queryParameters: {
       'q_track': s.title,
       'q_artist': artist,
@@ -92,52 +107,34 @@ class OnlineLyrics {
       'f_subtitle_length_max_deviation': 3,
       'apikey': key,
     });
-    final body = (((sub.data is String ? jsonDecode(sub.data as String) : sub.data) as Map?)?['message'] as Map?)?['body'];
-    final lrc = body is Map ? ((body['subtitle'] as Map?)?['subtitle_body'] as String?) : null;
-    if (lrc != null && lrc.isNotEmpty) return lrc;
+    final subtitle = bodyOf(sub)?['subtitle'];
+    if (subtitle is Map && (subtitle['subtitle_body'] as String?)?.isNotEmpty == true) {
+      _track(subtitle);
+      return parseLrc(subtitle['subtitle_body'] as String)?.withSource('Musixmatch', copyright: subtitle['lyrics_copyright'] as String?);
+    }
     final ly = await _dio.get('$base/matcher.lyrics.get', queryParameters: {'q_track': s.title, 'q_artist': artist, 'apikey': key});
-    final lb = (((ly.data is String ? jsonDecode(ly.data as String) : ly.data) as Map?)?['message'] as Map?)?['body'];
-    final text = lb is Map ? ((lb['lyrics'] as Map?)?['lyrics_body'] as String?) : null;
+    final lyrics = bodyOf(ly)?['lyrics'];
+    final text = lyrics is Map ? lyrics['lyrics_body'] as String? : null;
     // O plano gratuito devolve só um pedaço ("...NOT for Commercial use"): não serve.
-    if (text == null || text.contains('NOT for Commercial use')) return null;
-    return text;
+    if (text == null || text.trim().isEmpty || text.contains('NOT for Commercial use')) return null;
+    _track(lyrics as Map);
+    return parseLrc(text)?.withSource('Musixmatch', copyright: lyrics['lyrics_copyright'] as String?);
   }
 
-  Future<String?> _lyricsOvh(Song s, String artist) async {
-    final res = await _dio.get('https://api.lyrics.ovh/v1/${Uri.encodeComponent(artist)}/${Uri.encodeComponent(s.title)}');
-    return res.statusCode == 200 && res.data is Map ? (res.data as Map)['lyrics'] as String? : null;
+  /// Rastreio de exibição que a Musixmatch pede em cada letra mostrada.
+  void _track(Map m) {
+    final url = m['pixel_tracking_url'];
+    if (url is String && url.startsWith('https://')) {
+      _dio.get<void>(url).catchError((_) => Response<void>(requestOptions: RequestOptions()));
+    }
   }
 }
 
-/// Capa de álbum que falta, buscada na internet (iTunes, Deezer). Salva em
-/// [dir] e devolve o caminho (null = não achou).
+/// Capa de álbum que falta, buscada na internet: Cover Art Archive
+/// (MusicBrainz) e, se não achar, Deezer (API pública, uso não comercial).
+/// Salva em [dir] e devolve o caminho (null = não achou).
 Future<String?> fetchAlbumCover({required String artist, required String album, required String dir, required String id}) async {
-  final want = (matchKey(artist), matchKey(album));
-  bool same(String? a, String? b) =>
-      a != null && b != null && matchKey(b).contains(want.$2) && (want.$1.isEmpty || matchKey(a).contains(want.$1));
-  String? url;
-  try {
-    final r = await _dio.get('https://itunes.apple.com/search',
-        queryParameters: {'term': '$artist $album', 'entity': 'album', 'limit': 8});
-    final data = r.data is String ? jsonDecode(r.data as String) : r.data;
-    for (final e in ((data as Map?)?['results'] as List? ?? const [])) {
-      if (e is Map && same(e['artistName'] as String?, e['collectionName'] as String?)) {
-        url = (e['artworkUrl100'] as String?)?.replaceAll('100x100bb', '600x600bb');
-        break;
-      }
-    }
-  } catch (_) {}
-  if (url == null) {
-    try {
-      final r = await _dio.get('https://api.deezer.com/search/album', queryParameters: {'q': '$artist $album', 'limit': 8});
-      for (final e in ((r.data as Map?)?['data'] as List? ?? const [])) {
-        if (e is Map && same((e['artist'] as Map?)?['name'] as String?, e['title'] as String?)) {
-          url = e['cover_xl'] as String? ?? e['cover_big'] as String?;
-          break;
-        }
-      }
-    } catch (_) {}
-  }
+  final url = await _coverArtArchive(artist, album) ?? await _deezerCover(artist, album);
   if (url == null) return null;
   try {
     final r = await _dio.get<List<int>>(url, options: Options(responseType: ResponseType.bytes));
@@ -149,4 +146,48 @@ Future<String?> fetchAlbumCover({required String artist, required String album, 
   } catch (_) {
     return null;
   }
+}
+
+bool _sameAlbum(String artist, String album, String? a, String? b) {
+  final wantArtist = matchKey(artist), wantAlbum = matchKey(album);
+  return a != null && b != null && matchKey(b).contains(wantAlbum) && (wantArtist.isEmpty || matchKey(a).contains(wantArtist));
+}
+
+/// MusicBrainz pede no máximo 1 consulta por segundo.
+DateTime _lastMusicBrainz = DateTime.fromMillisecondsSinceEpoch(0);
+
+Future<String?> _coverArtArchive(String artist, String album) async {
+  try {
+    final wait = const Duration(milliseconds: 1100) - DateTime.now().difference(_lastMusicBrainz);
+    if (wait > Duration.zero) await Future<void>.delayed(wait);
+    _lastMusicBrainz = DateTime.now();
+    String q(String v) => v.replaceAll(RegExp(r'["\\]'), ' ');
+    final r = await _dio.get('https://musicbrainz.org/ws/2/release-group/', queryParameters: {
+      'query': 'releasegroup:"${q(album)}" AND artist:"${q(artist)}"',
+      'fmt': 'json',
+      'limit': 5,
+    });
+    final groups = (r.data is Map ? (r.data as Map)['release-groups'] : null) as List? ?? const [];
+    for (final g in groups) {
+      if (g is! Map || ((g['score'] as num?) ?? 0) < 90) continue;
+      final credit = (g['artist-credit'] as List?)?.whereType<Map>().map((c) => c['name']).join(' ');
+      if (!_sameAlbum(artist, album, credit, g['title'] as String?)) continue;
+      final url = 'https://coverartarchive.org/release-group/${g['id']}/front-500';
+      final head = await _dio.head(url);
+      if (head.statusCode == 200 || head.statusCode == 307 || head.statusCode == 302) return url;
+    }
+  } catch (_) {}
+  return null;
+}
+
+Future<String?> _deezerCover(String artist, String album) async {
+  try {
+    final r = await _dio.get('https://api.deezer.com/search/album', queryParameters: {'q': '$artist $album', 'limit': 8});
+    for (final e in ((r.data as Map?)?['data'] as List? ?? const [])) {
+      if (e is Map && _sameAlbum(artist, album, (e['artist'] as Map?)?['name'] as String?, e['title'] as String?)) {
+        return e['cover_xl'] as String? ?? e['cover_big'] as String?;
+      }
+    }
+  } catch (_) {}
+  return null;
 }

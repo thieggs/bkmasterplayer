@@ -14,7 +14,7 @@ import '../data/settings.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
 
-/// BKplayer Connect: escolher em qual aparelho tocar e controlá-lo (estilo
+/// BKT Player Connect: escolher em qual aparelho tocar e controlá-lo (estilo
 /// Spotify Connect), entre aparelhos logados na mesma conta.
 ///
 /// - Descoberta: cada aparelho se anuncia na rede local por UDP a cada 15 s e
@@ -533,7 +533,7 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
   }
 
   /// Adiciona pelo endereço (host ou host:porta). Devolve o aparelho, ou null
-  /// se não achou um BKplayer da mesma conta lá.
+  /// se não achou um BKT Player da mesma conta lá.
   Future<ConnectDevice?> addManual(String text) async {
     final parsed = _parseAddress(text);
     if (parsed == null) return null;

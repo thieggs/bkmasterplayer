@@ -1,0 +1,15 @@
+[
+ {
+  "packages": [
+   "AndroidX (core, media, lifecycle…)",
+   "Kotlin"
+  ],
+  "text": "[Apache License 2.0: texto completo na entrada \"Apache License 2.0\" desta lista]"
+ },
+ {
+  "packages": [
+   "Google Play services (Nearby, base, basement, tasks)"
+  ],
+  "text": "Google Play services SDK, usado pela Festa por Bluetooth/Wi-Fi Direct no Android.\nUso sujeito ao Android Software Development Kit License Agreement (https://developer.android.com/studio/terms) e aos Termos de Serviço das APIs do Google (https://developers.google.com/terms)."
+ }
+]

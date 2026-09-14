@@ -1,4 +1,4 @@
-# Plano — BKplayer 🎵 (player de música multiplataforma)
+# Plano — BKT Player 🎵 (player de música multiplataforma)
 
 ## Contexto
 
@@ -7,7 +7,7 @@ Queremos um player de música próprio, open source, que:
 - toque de **servidores de streaming open source**, principalmente o **Navidrome** (API Subsonic/OpenSubsonic), e depois outros (Gonic, Ampache, LMS, Jellyfin...);
 - seja compatível com o **AudioMuse-AI** (análise sônica por IA) pelo plugin do Navidrome, e também pela API direta dele;
 - tenha **customização completa** (tema, layout, comportamento, áudio);
-- tenha **transição automática estilo DJ** (beatmatching por BPM, alinhamento de compasso/frase, tom harmônico, time-stretch sem mudar o tom), igual ao AutoMix da Apple Music, só que aberto e configurável.
+- tenha **transição automática estilo DJ** (beatmatching por BPM, alinhamento de compasso/frase, tom harmônico, time-stretch sem mudar o tom), aberta e configurável.
 
 A pasta do projeto está vazia. Este arquivo é o documento central: na Fase 0 ele vira `docs/PLANO.md` no repositório.
 
@@ -19,7 +19,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 
 | Fase | Status |
 |---|---|
-| 0. Setup | ✅ repo, licença GPL-3.0, Navidrome de teste em Docker, gerador de músicas com gabarito |
+| 0. Setup | ✅ repo, licença MIT (era GPL-3.0 até 14/09), Navidrome de teste em Docker, gerador de músicas com gabarito |
 | 1. MVP Linux | ✅ login, biblioteca, busca, streaming com cache, fila, gapless, MPRIS com capa |
 | 2. Player completo | ✅ ReplayGain, EQ, crossfade, letras, favoritos, playlists, fila salva/sincronizada, offline, mini player, bandeja, atalhos |
 | 3. AudioMuse | ✅ via Navidrome (Mix instantâneo, rádio sônica, caminho sônico, rádio infinita) · ⏳ API direta (busca por texto/CLAP, Alchemy, Music Map) |
@@ -43,10 +43,10 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - Duração da transição quando a música não é clara.
 - Modelo de análise escolhido pela potência do aparelho.
 - Segue a saída padrão do sistema (Bluetooth), sem travadas.
-- Nome **BKplayer 🎵**; aba "Músicas" com a biblioteca inteira; botão do AutoMix que liga/desliga na barra.
+- Nome **BKT Player 🎵** (era BKT Player até 14/09); aba "Músicas" com a biblioteca inteira; botão do AutoMix que liga/desliga na barra.
 - Botões da caixa Bluetooth (JBL): o app se registra direto no BlueZ como player AVRCP (o `mpris-proxy` foi desativado com `systemctl --user mask mpris-proxy`, porque entregava os botões ao primeiro player registrado, ex.: o celular via KDE Connect).
 - Álbum tocado em ordem só fica sem mixagem se o áudio for contínuo (ao vivo, mixado); álbuns com silêncio entre as faixas são mixados.
-- Backup do estado de 13/09 em `~/Documentos/BKplayer-backup-2026-09-13` e na tag git `backup-2026-09-13`.
+- Backup do estado de 13/09 em `~/Documentos/BKT Player-backup-2026-09-13` e na tag git `backup-2026-09-13`.
 
 ### Android (14/09)
 - **Motor em Rust no celular:** o cpal abre o áudio pela AAudio, que precisa da JVM e do `Context`. O Dart carrega a biblioteca por FFI (`dlopen`), sem JVM; por isso o `BkApplication` (Kotlin) carrega o motor antes com `System.loadLibrary` e entrega o `Context` pelo JNI (`app/rust/src/android.rs`). Mínimo Android 8.0 (API 26, onde a AAudio começa).
@@ -61,7 +61,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 
 ### Endereço de casa e Connect (14/09)
 - **Endereço de casa:** a conta tem um endereço opcional da rede local (login e Ajustes). O app usa esse endereço quando o `ping` dele responde (~1,5 s no máximo). Volta ao principal na primeira chamada que falhar e testa de novo quando a rede muda (Wi-Fi/dados), quando o app volta ao primeiro plano e a cada 45 s fora de casa. Ao trocar, a próxima faixa é reagendada pelo endereço novo; o cache não muda, porque as chaves são por conta. Teste: `test/local_address_test.dart`.
-- **BKplayer Connect** (`lib/connect/`), estilo Spotify Connect entre aparelhos da mesma conta:
+- **BKT Player Connect** (`lib/connect/`), tocar e controlar entre aparelhos da mesma conta:
   - **Descoberta:** anúncio UDP (porta 47801) com id, nome, plataforma, porta e hash do usuário. Pela internet (ex.: Tailscale), dá para "Adicionar pelo endereço".
   - **Controle:** WebSocket (TCP 47800). O aparelho controlado confere as credenciais no próprio servidor (`ping` com o token de quem controla), com limite de tentativas.
   - **Uso:** o botão "Aparelhos" abre "Tocar em". Se o outro aparelho já toca, passa a controlá-lo; se está parado, a fila daqui vai para lá do mesmo ponto. "Este aparelho" traz a música de volta e pausa lá.
@@ -77,7 +77,7 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 - **Entrada só com aprovação:** cada pedido aparece em qualquer tela ou na notificação (Recusar / Aceitar / "Aceitar sempre"). Ninguém entra sozinho, a não ser quem está na lista de aceitos automaticamente (editável nos Ajustes).
 - **Meios:** rede local (anúncio UDP + WebSocket `/jam` e upload `/jam/upload` no servidor do Connect) e, no Android, Bluetooth/Wi-Fi Direct (Nearby Connections, `JamNearby.kt`), que dispensa Wi-Fi em comum (convidado no 4G). A lógica é a mesma nos dois (`JamLink`).
 - **Músicas:** "Adicionar" busca nas músicas do dono pelo próprio dono (o convidado não precisa de conta no servidor dele); "Minhas" manda do servidor do convidado (MP3 320), do aparelho ou de um arquivo, como arquivo, pelo meio mais rápido que o Nearby negociar. O dono só toca o que ele mesmo mostrou ou recebeu como arquivo (nunca um caminho vindo do convidado).
-- **Beacon:** com a Festa aberta, o dono anuncia por Bluetooth LE; o convidado tem um scan econômico registrado no sistema (funciona com o app fechado) e recebe "Tem uma Festa do BKplayer perto de você" (no máximo a cada 30 min).
+- **Beacon:** com a Festa aberta, o dono anuncia por Bluetooth LE; o convidado tem um scan econômico registrado no sistema (funciona com o app fechado) e recebe "Tem uma Festa do BKT Player perto de você" (no máximo a cada 30 min).
 - **Sem conta:** "Entrar numa Festa por perto" direto no login.
 - **Testado:** no emulador e na instância de teste do PC, com scripts no papel do outro lado (recusar, aceitar, aceitar sempre, busca, adicionar, controlar, arquivo de 3,5 MB). Falta testar entre dois celulares reais (Nearby e beacon).
 
@@ -88,7 +88,7 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 - **Análise:** o motor analisa as 5 melhores (BPM e tom) enquanto sobra tempo antes do fim da atual; nos dados móveis, só as que não precisam ser baixadas. Com cache, a escolha sai em ~1 s.
 
 ### Android Auto e o caminho para o CarPlay (14/09)
-- **Navegação no carro** (`lib/mobile/auto_browser.dart`): abas Início (aleatórias, Modo DJ e mix da atual, favoritas, mais tocados, álbuns aleatórios), Recentes, Álbuns (grade) e Playlists; tocar uma música toca a pasta a partir dela. Busca na tela do carro, pedido de voz ("tocar X no BKplayer", com o foco em artista/álbum/música), "Continuar ouvindo" e fila (janela de 100 em volta da atual).
+- **Navegação no carro** (`lib/mobile/auto_browser.dart`): abas Início (aleatórias, Modo DJ e mix da atual, favoritas, mais tocados, álbuns aleatórios), Recentes, Álbuns (grade) e Playlists; tocar uma música toca a pasta a partir dela. Busca na tela do carro, pedido de voz ("tocar X no BKT Player", com o foco em artista/álbum/música), "Continuar ouvindo" e fila (janela de 100 em volta da atual).
 - **Capas:** o carro só aceita `content://`. O `BkArtProvider` serve pela chave; a URL com o token fica num arquivo privado do app.
 - **Aberto pelo carro com o app fechado:** o serviço espera o login e a fila salva antes de responder.
 - **Testado** no emulador com um cliente MediaBrowser próprio (navegar, capas lidas por outro app, busca, voz, tocar por id, pular na fila, abertura a frio). Para ver a tela do carro: Android Auto no celular → Configurações → tocar 10× na versão → "Iniciar servidor da unidade principal"; no PC, `adb forward tcp:5277 tcp:5277` e `~/android-sdk/extras/google/auto/desktop-head-unit`.
@@ -98,7 +98,7 @@ Ouvir junto com quem está perto: os convidados adicionam músicas e controlam o
 - **Celular deitado e tablet:** barra lateral compacta no celular deitado; layout de computador no tablet (menor lado ≥ 600 dp), com barra lateral e botões do player que rolam; tocando agora com pouca altura põe a capa ao lado dos controles.
 - **Logo pelo tema:** `BkLogo` desenhada com as cores do tema ativo (nunca some no fundo); abertura do Android clara/escura conforme o aparelho.
 - **Baixar a biblioteca inteira** (Downloads): mostra quantas músicas e o tamanho, avisa nos dados móveis; depois vira "Baixar as novas".
-- **Letras e capas que faltam:** letras do LRCLIB (sincronizadas), do Musixmatch (API oficial, com a chave do usuário) e do lyrics.ovh; capas do iTunes e do Deezer para as músicas do aparelho. Cache no disco; liga/desliga nos Ajustes.
+- **Letras e capas que faltam:** letras do LRCLIB (sincronizadas) e do Musixmatch (API oficial, com a chave do usuário, com o aviso de direitos e o rastreio que os termos pedem); capas do Cover Art Archive (MusicBrainz) e do Deezer para as músicas do aparelho. A fonte aparece embaixo da letra; liga/desliga nos Ajustes. (iTunes e lyrics.ovh saíram em 14/09 por causa dos termos de uso; ver `docs/JURIDICO.md`.)
 - **Opus e outros formatos que o motor não decodifica:** o servidor converte para MP3 automaticamente, também no download offline.
 
 ### Ajustes em telas e Personalização gráfica (14/09)
@@ -106,7 +106,7 @@ Pedido do usuário: cada tipo de configuração na própria tela e tudo da apar�
 - **Ajustes** (`lib/ui/pages/settings/`): lista de categorias com resumo (Conta e servidor, Personalização gráfica, Reprodução, AutoMix, Downloads e cache, Letras/capas/Last.fm, Aparelhos e Festa, Comportamento, Computador, Sobre); cada uma abre em `/settings/<categoria>` com a seta de voltar. Comportamento ganhou o idioma (Sistema/Português/English); Sobre mostra as licenças (inclusive das fontes).
 - **Tema = aparência + estrutura** (`UiPrefs.themeJson()`, `lib/data/ui_prefs.dart`); comportamento (toque na música, tela inicial) fica de fora. Migração única dos campos que ficavam nas configurações gerais (modo, cor, cor da capa, escala).
 - **Editores** (`look_page.dart`, 7 áreas): cores (modo, AMOLED, capa ou fixa, cor base com seletor HSV/hex, 9 estilos de paleta do Material, contraste, cores à mão), fontes de título e texto (Nunito, Space Grotesk, JetBrains Mono, Playfair Display, Bebas Neue — OFL, embutidas), formas e tamanhos, fundo (liso, gradiente, capa desfocada, imagem própria + cor do tema por cima), tocando agora, estrutura (abas do celular 2–4 + Ajustes, abas da barra lateral, rótulos, player grudado/flutuante, botões, seções do Início) e animações. Cada escolha marca a opção original.
-- **Galeria** (`theme_gallery.dart`): miniaturas desenhadas com cada tema; 8 prontos (BKplayer original, AMOLED, Vinil, Neon, Papel, Terminal, Alto contraste, Automático) e os do usuário (salvar, duplicar, renomear, salvar mudanças, exportar, excluir); ✓ no tema em uso e ✱ quando foi mexido.
+- **Galeria** (`theme_gallery.dart`): miniaturas desenhadas com cada tema; 8 prontos (BKT Player original, AMOLED, Vinil, Neon, Papel, Terminal, Alto contraste, Automático) e os do usuário (salvar, duplicar, renomear, salvar mudanças, exportar, excluir); ✓ no tema em uso e ✱ quando foi mexido.
 - **Backup** (`lib/data/theme_library.dart`): tema em `.bktheme.json` e backup completo em `.bkbackup.json` (imagens de fundo dentro, em base64), pelo seletor de arquivos do sistema; backups automáticos (os 10 últimos) antes de trocas grandes; tudo validado ao importar.
 - **Garantia do visual original:** teste compara o tema padrão com o antigo campo a campo (`test/app_theme_test.dart`) e as telas no emulador ficaram iguais pixel a pixel.
 
@@ -143,7 +143,7 @@ Por quê:
 
 **Dart/Flutter:** Riverpod (estado), go_router (rotas), drift/SQLite (cache da biblioteca, análises, configurações), dio (HTTP), window_manager, tray_manager, hotkey_manager, audio_service (mídia em segundo plano no Android/iOS).
 **Rust:** motor, streaming e cache de arquivo, DSP, análise e AutoMix. Controles de mídia no desktop pelo `souvlaki` (MPRIS no Linux, SMTC no Windows, macOS).
-**Licença:** GPL-3.0 (padrão do ecossistema, a mesma do Feishin). As dependências são MIT/Apache/MPL e são compatíveis.
+**Licença:** MIT (trocada da GPL-3.0 em 14/09/2026, para publicar no GitHub). As dependências são MIT/Apache/BSD/MPL e são compatíveis (ver `docs/JURIDICO.md`).
 
 ---
 
