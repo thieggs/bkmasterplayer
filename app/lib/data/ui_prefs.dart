@@ -3,39 +3,118 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Preferências de aparência e layout (customização completa). Guardadas à
-/// parte das configurações de áudio para poderem ser exportadas/importadas
-/// como um "perfil visual".
+/// Aparência e estrutura das telas (personalização gráfica).
+///
+/// O "tema" são os campos de aparência e estrutura ([themeJson]): é o que a
+/// galeria salva, exporta e aplica. Comportamento ([startPage], [showQueue],
+/// [songTap]) e o tema escolhido ([themeId]) ficam de fora e não mudam quando
+/// se troca de tema.
 @immutable
 class UiPrefs {
   const UiPrefs({
+    this.themeMode = 'dark',
+    this.colorSource = 'cover',
+    this.seed = 0xFF7C4DFF,
+    this.variant = 'tonalSpot',
+    this.contrast = 0.0,
     this.amoled = false,
+    this.colors = const {},
+    this.bodyFont = 'system',
+    this.titleFont = 'system',
     this.radius = 12,
-    this.density = 'auto',
     this.coverShape = 'rounded',
+    this.buttonStyle = 'filled',
+    this.cardStyle = 'flat',
+    this.density = 'auto',
+    this.uiScale = 1.0,
+    this.cardSize = 'medium',
+    this.background = 'solid',
+    this.backgroundImage,
+    this.backgroundDim = 0.6,
     this.nowPlayingLayout = 'side',
     this.nowPlayingBlur = 0.6,
     this.sidebar = 'auto',
+    this.sidebarTabs = defaultSidebarTabs,
+    this.mobileTabs = defaultMobileTabs,
+    this.navLabels = 'auto',
+    this.playerStyle = 'docked',
+    this.playerButtons = allPlayerButtons,
+    this.homeSections = const ['newest', 'recent', 'frequent', 'random'],
+    this.transitions = 'default',
+    this.animations = 'normal',
     this.startPage = '/',
     this.showQueue = false,
-    this.cardSize = 'medium',
-    this.playerButtons = const ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'devices', 'mini', 'volume'],
-    this.homeSections = const ['newest', 'recent', 'frequent', 'random'],
     this.songTap = 'playFromHere',
-    this.customColor,
+    this.themeId,
   });
+
+  // ---- Cores ----
+
+  /// system | light | dark
+  final String themeMode;
+
+  /// cover (cor tirada da capa que toca) | accent (cor fixa [seed])
+  final String colorSource;
+
+  /// Cor base da paleta (ARGB).
+  final int seed;
+
+  /// Estilo da paleta: nome de um `DynamicSchemeVariant` (tonalSpot, vibrant…).
+  final String variant;
+
+  /// Contraste da paleta, de -1 (suave) a 1 (máximo).
+  final double contrast;
 
   /// Fundo preto puro no tema escuro (telas OLED).
   final bool amoled;
 
+  /// Cores trocadas à mão por cima da paleta: primary, secondary, tertiary,
+  /// background, text (ARGB).
+  final Map<String, int> colors;
+
+  // ---- Fontes ----
+
+  /// system | nunito | spaceGrotesk | jetbrainsMono (texto)
+  final String bodyFont;
+
+  /// Fontes do texto e também playfair | bebas (títulos).
+  final String titleFont;
+
+  // ---- Formas e tamanhos ----
+
   /// Arredondamento dos cantos (0 = quadrado).
   final double radius;
+
+  /// square | rounded | circle
+  final String coverShape;
+
+  /// filled | tonal | outlined
+  final String buttonStyle;
+
+  /// flat | elevated | outlined
+  final String cardStyle;
 
   /// auto | compact | standard | comfortable
   final String density;
 
-  /// square | rounded | circle
-  final String coverShape;
+  /// Escala da interface (texto).
+  final double uiScale;
+
+  /// small | medium | large
+  final String cardSize;
+
+  // ---- Fundo ----
+
+  /// solid | gradient | cover (capa desfocada) | image
+  final String background;
+
+  /// Imagem de fundo (nome do arquivo na pasta de imagens dos temas).
+  final String? backgroundImage;
+
+  /// Quanto a cor do tema cobre a capa/imagem do fundo (0 a 1): legibilidade.
+  final double backgroundDim;
+
+  // ---- Tocando agora ----
 
   /// side (capa + fila/letra) | lyrics (capa + letra) | minimal | vinyl
   final String nowPlayingLayout;
@@ -43,13 +122,22 @@ class UiPrefs {
   /// Intensidade do fundo desfocado da capa (0 a 1).
   final double nowPlayingBlur;
 
+  // ---- Estrutura ----
+
   /// auto | expanded | rail
   final String sidebar;
-  final String startPage;
-  final bool showQueue;
 
-  /// small | medium | large
-  final String cardSize;
+  /// Abas da barra lateral (computador/tablet), na ordem.
+  final List<String> sidebarTabs;
+
+  /// Abas da barra de baixo do celular, na ordem (Ajustes fica sempre no fim).
+  final List<String> mobileTabs;
+
+  /// Rótulos das abas: auto (como o app vem) | all | selected | none
+  final String navLabels;
+
+  /// docked (grudado embaixo) | floating (cartão flutuante)
+  final String playerStyle;
 
   /// Botões visíveis (e na ordem) na barra do player.
   final List<String> playerButtons;
@@ -57,14 +145,47 @@ class UiPrefs {
   /// Seções do Início, na ordem.
   final List<String> homeSections;
 
+  // ---- Animações ----
+
+  /// default | fade | slide | none (troca de telas)
+  final String transitions;
+
+  /// normal | fast | off
+  final String animations;
+
+  // ---- Comportamento (fora do tema) ----
+
+  final String startPage;
+  final bool showQueue;
+
   /// playFromHere | playOne | enqueue
   final String songTap;
 
-  /// Cor de destaque livre (ARGB), além da paleta.
-  final int? customColor;
+  /// Tema da galeria aplicado por último (null = nenhum).
+  final String? themeId;
 
   static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'devices', 'mini', 'volume'];
   static const allHomeSections = ['newest', 'recent', 'frequent', 'random', 'starred', 'highest'];
+  static const allTabs = ['home', 'search', 'library', 'albums', 'songs', 'artists', 'playlists', 'genres', 'favorites', 'downloads'];
+  static const defaultSidebarTabs = ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'favorites', 'downloads'];
+  static const defaultMobileTabs = ['home', 'search', 'library'];
+  static const bodyFonts = ['system', 'nunito', 'spaceGrotesk', 'jetbrainsMono'];
+  static const titleFonts = ['system', 'nunito', 'spaceGrotesk', 'jetbrainsMono', 'playfair', 'bebas'];
+  static const variants = ['tonalSpot', 'fidelity', 'monochrome', 'neutral', 'vibrant', 'expressive', 'content', 'rainbow', 'fruitSalad'];
+  static const colorKeys = ['primary', 'secondary', 'tertiary', 'background', 'text'];
+
+  /// No celular: de 2 a 4 abas além de Ajustes.
+  static const maxMobileTabs = 4;
+
+  /// Família da fonte (null = a do sistema).
+  static String? fontFamily(String font) => switch (font) {
+        'nunito' => 'Nunito',
+        'spaceGrotesk' => 'Space Grotesk',
+        'jetbrainsMono' => 'JetBrains Mono',
+        'playfair' => 'Playfair Display',
+        'bebas' => 'Bebas Neue',
+        _ => null,
+      };
 
   double get cardWidth => switch (cardSize) {
         'small' => 140,
@@ -78,82 +199,207 @@ class UiPrefs {
         _ => (radius * 0.6).clamp(0.0, size / 2),
       };
 
+  Duration get animationDuration => switch (animations) {
+        'off' => Duration.zero,
+        'fast' => const Duration(milliseconds: 200),
+        _ => const Duration(milliseconds: 600),
+      };
+
   UiPrefs copyWith({
+    String? themeMode,
+    String? colorSource,
+    int? seed,
+    String? variant,
+    double? contrast,
     bool? amoled,
+    Map<String, int>? colors,
+    String? bodyFont,
+    String? titleFont,
     double? radius,
-    String? density,
     String? coverShape,
+    String? buttonStyle,
+    String? cardStyle,
+    String? density,
+    double? uiScale,
+    String? cardSize,
+    String? background,
+    String? backgroundImage,
+    bool clearBackgroundImage = false,
+    double? backgroundDim,
     String? nowPlayingLayout,
     double? nowPlayingBlur,
     String? sidebar,
-    String? startPage,
-    bool? showQueue,
-    String? cardSize,
+    List<String>? sidebarTabs,
+    List<String>? mobileTabs,
+    String? navLabels,
+    String? playerStyle,
     List<String>? playerButtons,
     List<String>? homeSections,
+    String? transitions,
+    String? animations,
+    String? startPage,
+    bool? showQueue,
     String? songTap,
-    int? customColor,
-    bool clearCustomColor = false,
+    String? themeId,
+    bool clearThemeId = false,
   }) =>
       UiPrefs(
+        themeMode: themeMode ?? this.themeMode,
+        colorSource: colorSource ?? this.colorSource,
+        seed: seed ?? this.seed,
+        variant: variant ?? this.variant,
+        contrast: contrast ?? this.contrast,
         amoled: amoled ?? this.amoled,
+        colors: colors ?? this.colors,
+        bodyFont: bodyFont ?? this.bodyFont,
+        titleFont: titleFont ?? this.titleFont,
         radius: radius ?? this.radius,
-        density: density ?? this.density,
         coverShape: coverShape ?? this.coverShape,
+        buttonStyle: buttonStyle ?? this.buttonStyle,
+        cardStyle: cardStyle ?? this.cardStyle,
+        density: density ?? this.density,
+        uiScale: uiScale ?? this.uiScale,
+        cardSize: cardSize ?? this.cardSize,
+        background: background ?? this.background,
+        backgroundImage: clearBackgroundImage ? null : (backgroundImage ?? this.backgroundImage),
+        backgroundDim: backgroundDim ?? this.backgroundDim,
         nowPlayingLayout: nowPlayingLayout ?? this.nowPlayingLayout,
         nowPlayingBlur: nowPlayingBlur ?? this.nowPlayingBlur,
         sidebar: sidebar ?? this.sidebar,
-        startPage: startPage ?? this.startPage,
-        showQueue: showQueue ?? this.showQueue,
-        cardSize: cardSize ?? this.cardSize,
+        sidebarTabs: sidebarTabs ?? this.sidebarTabs,
+        mobileTabs: mobileTabs ?? this.mobileTabs,
+        navLabels: navLabels ?? this.navLabels,
+        playerStyle: playerStyle ?? this.playerStyle,
         playerButtons: playerButtons ?? this.playerButtons,
         homeSections: homeSections ?? this.homeSections,
+        transitions: transitions ?? this.transitions,
+        animations: animations ?? this.animations,
+        startPage: startPage ?? this.startPage,
+        showQueue: showQueue ?? this.showQueue,
         songTap: songTap ?? this.songTap,
-        customColor: clearCustomColor ? null : (customColor ?? this.customColor),
+        themeId: clearThemeId ? null : (themeId ?? this.themeId),
       );
 
-  Map<String, dynamic> toJson() => {
+  /// Só o tema (aparência + estrutura): o que a galeria guarda e exporta.
+  Map<String, dynamic> themeJson() => {
+        'themeMode': themeMode,
+        'colorSource': colorSource,
+        'seed': seed,
+        'variant': variant,
+        'contrast': contrast,
         'amoled': amoled,
+        'colors': {for (final k in colorKeys) if (colors[k] != null) k: colors[k]},
+        'bodyFont': bodyFont,
+        'titleFont': titleFont,
         'radius': radius,
-        'density': density,
         'coverShape': coverShape,
+        'buttonStyle': buttonStyle,
+        'cardStyle': cardStyle,
+        'density': density,
+        'uiScale': uiScale,
+        'cardSize': cardSize,
+        'background': background,
+        'backgroundImage': backgroundImage,
+        'backgroundDim': backgroundDim,
         'nowPlayingLayout': nowPlayingLayout,
         'nowPlayingBlur': nowPlayingBlur,
         'sidebar': sidebar,
-        'startPage': startPage,
-        'showQueue': showQueue,
-        'cardSize': cardSize,
+        'sidebarTabs': sidebarTabs,
+        'mobileTabs': mobileTabs,
+        'navLabels': navLabels,
+        'playerStyle': playerStyle,
         'playerButtons': playerButtons,
         'playerButtonsVersion': 2,
         'homeSections': homeSections,
-        'songTap': songTap,
-        'customColor': customColor,
+        'transitions': transitions,
+        'animations': animations,
       };
+
+  Map<String, dynamic> toJson() => {
+        ...themeJson(),
+        'themeVersion': 2,
+        'startPage': startPage,
+        'showQueue': showQueue,
+        'songTap': songTap,
+        'themeId': themeId,
+      };
+
+  /// Aplica um tema (mapa de [themeJson]) mantendo o comportamento. Campos que
+  /// faltam no tema voltam ao padrão; valores inválidos são ignorados.
+  UiPrefs withTheme(Map<String, dynamic> theme, {String? id}) {
+    final t = UiPrefs.fromJson({...theme, 'themeVersion': 2});
+    return t.copyWith(startPage: startPage, showQueue: showQueue, songTap: songTap, themeId: id, clearThemeId: id == null);
+  }
+
+  /// O tema desta preferência é igual a [other] (ignora comportamento)?
+  bool sameTheme(Map<String, dynamic> other) =>
+      jsonEncode(themeJson()) == jsonEncode(UiPrefs.fromJson({...other, 'themeVersion': 2}).themeJson());
 
   factory UiPrefs.fromJson(Map<String, dynamic> j) {
     const d = UiPrefs();
-    T pick<T>(String k, T def) => j[k] is T ? j[k] as T : def;
+    String one(String k, String def, List<String> allowed) {
+      final v = j[k];
+      return v is String && allowed.contains(v) ? v : def;
+    }
+
+    double num_(String k, double def, double min, double max) => (j[k] as num?)?.toDouble().clamp(min, max) ?? def;
     List<String> strings(String k, List<String> def, List<String> allowed) {
       final v = j[k];
       if (v is! List) return def;
-      return v.whereType<String>().where(allowed.contains).toList();
+      final out = <String>[];
+      for (final e in v) {
+        if (e is String && allowed.contains(e) && !out.contains(e)) out.add(e);
+      }
+      return out;
     }
 
+    final colors = <String, int>{};
+    if (j['colors'] is Map) {
+      (j['colors'] as Map).forEach((k, v) {
+        if (k is String && colorKeys.contains(k) && v is int) colors[k] = v;
+      });
+    }
+    final sidebarTabs = strings('sidebarTabs', d.sidebarTabs, allTabs.where((t) => t != 'library').toList());
+    final mobileTabs = strings('mobileTabs', d.mobileTabs, allTabs).take(maxMobileTabs).toList();
+    final bg = j['backgroundImage'];
+
     return UiPrefs(
-      amoled: pick('amoled', d.amoled),
-      radius: (j['radius'] as num?)?.toDouble().clamp(0, 28) ?? d.radius,
-      density: pick('density', d.density),
-      coverShape: pick('coverShape', d.coverShape),
-      nowPlayingLayout: pick('nowPlayingLayout', d.nowPlayingLayout),
-      nowPlayingBlur: (j['nowPlayingBlur'] as num?)?.toDouble().clamp(0, 1) ?? d.nowPlayingBlur,
-      sidebar: pick('sidebar', d.sidebar),
-      startPage: pick('startPage', d.startPage),
-      showQueue: pick('showQueue', d.showQueue),
-      cardSize: pick('cardSize', d.cardSize),
+      themeMode: one('themeMode', d.themeMode, const ['system', 'light', 'dark']),
+      colorSource: one('colorSource', d.colorSource, const ['cover', 'accent']),
+      // Versão 1 guardava a cor livre em "customColor".
+      seed: j['seed'] is int ? j['seed'] as int : (j['customColor'] is int ? j['customColor'] as int : d.seed),
+      variant: one('variant', d.variant, variants),
+      contrast: num_('contrast', d.contrast, -1, 1),
+      amoled: j['amoled'] is bool ? j['amoled'] as bool : d.amoled,
+      colors: colors,
+      bodyFont: one('bodyFont', d.bodyFont, bodyFonts),
+      titleFont: one('titleFont', d.titleFont, titleFonts),
+      radius: num_('radius', d.radius, 0, 28),
+      coverShape: one('coverShape', d.coverShape, const ['square', 'rounded', 'circle']),
+      buttonStyle: one('buttonStyle', d.buttonStyle, const ['filled', 'tonal', 'outlined']),
+      cardStyle: one('cardStyle', d.cardStyle, const ['flat', 'elevated', 'outlined']),
+      density: one('density', d.density, const ['auto', 'compact', 'standard', 'comfortable']),
+      uiScale: num_('uiScale', d.uiScale, 0.8, 1.5),
+      cardSize: one('cardSize', d.cardSize, const ['small', 'medium', 'large']),
+      background: one('background', d.background, const ['solid', 'gradient', 'cover', 'image']),
+      // Só um nome de arquivo (nunca um caminho vindo de um tema importado).
+      backgroundImage: bg is String && RegExp(r'^[\w.-]+$').hasMatch(bg) ? bg : null,
+      backgroundDim: num_('backgroundDim', d.backgroundDim, 0, 1),
+      nowPlayingLayout: one('nowPlayingLayout', d.nowPlayingLayout, const ['side', 'lyrics', 'minimal', 'vinyl']),
+      nowPlayingBlur: num_('nowPlayingBlur', d.nowPlayingBlur, 0, 1),
+      sidebar: one('sidebar', d.sidebar, const ['auto', 'expanded', 'rail']),
+      sidebarTabs: sidebarTabs.isEmpty ? d.sidebarTabs : sidebarTabs,
+      mobileTabs: mobileTabs.length < 2 ? d.mobileTabs : mobileTabs,
+      navLabels: one('navLabels', d.navLabels, const ['auto', 'all', 'selected', 'none']),
+      playerStyle: one('playerStyle', d.playerStyle, const ['docked', 'floating']),
       playerButtons: _withNewButtons(strings('playerButtons', d.playerButtons, allPlayerButtons), j),
       homeSections: strings('homeSections', d.homeSections, allHomeSections),
-      songTap: pick('songTap', d.songTap),
-      customColor: j['customColor'] is int ? j['customColor'] as int : null,
+      transitions: one('transitions', d.transitions, const ['default', 'fade', 'slide', 'none']),
+      animations: one('animations', d.animations, const ['normal', 'fast', 'off']),
+      startPage: j['startPage'] is String ? j['startPage'] as String : d.startPage,
+      showQueue: j['showQueue'] is bool ? j['showQueue'] as bool : d.showQueue,
+      songTap: one('songTap', d.songTap, const ['playFromHere', 'playOne', 'enqueue']),
+      themeId: j['themeId'] is String ? j['themeId'] as String : null,
     );
   }
 
@@ -171,14 +417,33 @@ class UiPrefs {
 
   static const _key = 'ui';
 
+  /// Versão 1 (e perfis exportados nela): modo, cor, cor da capa e escala
+  /// ficavam nas configurações gerais ([old]); junta ao mapa da aparência.
+  static Map<String, dynamic> mergeLegacy(Map<String, dynamic> ui, Map old) => {
+        ...ui,
+        if (old['themeMode'] is String) 'themeMode': old['themeMode'],
+        if (ui['customColor'] is! int && old['seedColor'] is int) 'seed': old['seedColor'],
+        if (old['dynamicColorFromCover'] is bool) 'colorSource': old['dynamicColorFromCover'] == true ? 'cover' : 'accent',
+        if (old['uiScale'] is num) 'uiScale': old['uiScale'],
+      };
+
+  /// Carrega; na primeira vez depois da versão 2, traz das configurações
+  /// antigas o modo claro/escuro, a cor, a cor da capa e a escala.
   static UiPrefs load(SharedPreferences prefs) {
     final raw = prefs.getString(_key);
-    if (raw == null) return const UiPrefs();
+    Map<String, dynamic> j = {};
     try {
-      return UiPrefs.fromJson(Map<String, dynamic>.from(jsonDecode(raw) as Map));
-    } catch (_) {
-      return const UiPrefs();
+      if (raw != null) j = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {}
+    if (j['themeVersion'] != 2) {
+      try {
+        j = mergeLegacy(j, jsonDecode(prefs.getString('settings') ?? '{}') as Map);
+      } catch (_) {}
+      final migrated = UiPrefs.fromJson(j);
+      migrated.save(prefs);
+      return migrated;
     }
+    return UiPrefs.fromJson(j);
   }
 
   Future<void> save(SharedPreferences prefs) => prefs.setString(_key, jsonEncode(toJson()));

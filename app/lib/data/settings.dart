@@ -16,10 +16,6 @@ enum AnalysisModelSetting { auto, small, full }
 @immutable
 class AppSettings {
   const AppSettings({
-    this.themeMode = ThemeMode.dark,
-    this.seedColor = 0xFF7C4DFF,
-    this.dynamicColorFromCover = true,
-    this.uiScale = 1.0,
     this.crossfadeSeconds = 0,
     this.replayGainMode = ReplayGainMode.auto,
     this.replayGainPreampDb = 0,
@@ -60,10 +56,6 @@ class AppSettings {
     this.musixmatchKey,
   });
 
-  final ThemeMode themeMode;
-  final int seedColor;
-  final bool dynamicColorFromCover;
-  final double uiScale;
   final int crossfadeSeconds;
   final ReplayGainMode replayGainMode;
   final double replayGainPreampDb;
@@ -131,10 +123,6 @@ class AppSettings {
   final String? musixmatchKey;
 
   AppSettings copyWith({
-    ThemeMode? themeMode,
-    int? seedColor,
-    bool? dynamicColorFromCover,
-    double? uiScale,
     int? crossfadeSeconds,
     ReplayGainMode? replayGainMode,
     double? replayGainPreampDb,
@@ -181,10 +169,6 @@ class AppSettings {
     bool clearMusixmatch = false,
   }) =>
       AppSettings(
-        themeMode: themeMode ?? this.themeMode,
-        seedColor: seedColor ?? this.seedColor,
-        dynamicColorFromCover: dynamicColorFromCover ?? this.dynamicColorFromCover,
-        uiScale: uiScale ?? this.uiScale,
         crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
         replayGainMode: replayGainMode ?? this.replayGainMode,
         replayGainPreampDb: replayGainPreampDb ?? this.replayGainPreampDb,
@@ -226,10 +210,6 @@ class AppSettings {
       );
 
   Map<String, dynamic> toJson() => {
-        'themeMode': themeMode.name,
-        'seedColor': seedColor,
-        'dynamicColorFromCover': dynamicColorFromCover,
-        'uiScale': uiScale,
         'crossfadeSeconds': crossfadeSeconds,
         'replayGainMode': replayGainMode.name,
         'replayGainPreampDb': replayGainPreampDb,
@@ -274,10 +254,6 @@ class AppSettings {
     const d = AppSettings();
     T pick<T>(String k, T def) => j[k] is T ? j[k] as T : def;
     return AppSettings(
-      themeMode: ThemeMode.values.asNameMap()[j['themeMode']] ?? d.themeMode,
-      seedColor: pick('seedColor', d.seedColor),
-      dynamicColorFromCover: pick('dynamicColorFromCover', d.dynamicColorFromCover),
-      uiScale: (j['uiScale'] as num?)?.toDouble() ?? d.uiScale,
       crossfadeSeconds: pick('crossfadeSeconds', d.crossfadeSeconds),
       replayGainMode: ReplayGainMode.values.asNameMap()[j['replayGainMode']] ?? d.replayGainMode,
       replayGainPreampDb: (j['replayGainPreampDb'] as num?)?.toDouble() ?? d.replayGainPreampDb,

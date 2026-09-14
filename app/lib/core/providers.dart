@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
-import 'package:flutter/material.dart' show ThemeMode;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -78,36 +77,17 @@ class UiPrefsNotifier extends Notifier<UiPrefs> {
     state.save(ref.read(prefsProvider));
   }
 
-  /// Perfil visual completo (aparência + layout) para exportar.
-  String exportProfile() {
-    final s = ref.read(settingsProvider);
-    return const JsonEncoder.withIndent('  ').convert({
-      'app': 'player_musica',
-      'version': 1,
-      'ui': state.toJson(),
-      'theme': {
-        'themeMode': s.themeMode.name,
-        'seedColor': s.seedColor,
-        'dynamicColorFromCover': s.dynamicColorFromCover,
-        'uiScale': s.uiScale,
-      },
-    });
-  }
+  /// Perfil visual completo (aparência + estrutura) como texto.
+  String exportProfile() =>
+      const JsonEncoder.withIndent('  ').convert({'app': 'player_musica', 'version': 2, 'ui': state.toJson()});
 
-  /// Importa um perfil (lança FormatException se inválido).
+  /// Importa um perfil em texto (lança FormatException se inválido); lê
+  /// também os da versão 1.
   void importProfile(String text) {
     final j = jsonDecode(text);
     if (j is! Map || j['ui'] is! Map) throw const FormatException('perfil inválido');
-    update((_) => UiPrefs.fromJson(Map<String, dynamic>.from(j['ui'] as Map)));
-    final t = j['theme'];
-    if (t is Map) {
-      ref.read(settingsProvider.notifier).update((s) => s.copyWith(
-            themeMode: ThemeMode.values.asNameMap()[t['themeMode']] ?? s.themeMode,
-            seedColor: t['seedColor'] is int ? t['seedColor'] as int : s.seedColor,
-            dynamicColorFromCover: t['dynamicColorFromCover'] is bool ? t['dynamicColorFromCover'] as bool : s.dynamicColorFromCover,
-            uiScale: (t['uiScale'] as num?)?.toDouble().clamp(0.8, 1.5) ?? s.uiScale,
-          ));
-    }
+    final ui = Map<String, dynamic>.from(j['ui'] as Map);
+    update((_) => UiPrefs.fromJson(j['theme'] is Map ? UiPrefs.mergeLegacy(ui, j['theme'] as Map) : ui));
   }
 }
 

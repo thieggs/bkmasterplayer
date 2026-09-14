@@ -118,6 +118,45 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
+  # Fontes dos temas (OFL, licenças em assets/fonts/OFL-*.txt). Arquivos
+  # estáticos por peso: o Flutter não mapeia o peso em fontes variáveis.
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/nunito/nunito-400.ttf
+        - asset: assets/fonts/nunito/nunito-500.ttf
+          weight: 500
+        - asset: assets/fonts/nunito/nunito-600.ttf
+          weight: 600
+        - asset: assets/fonts/nunito/nunito-700.ttf
+          weight: 700
+    - family: Space Grotesk
+      fonts:
+        - asset: assets/fonts/spacegrotesk/spacegrotesk-400.ttf
+        - asset: assets/fonts/spacegrotesk/spacegrotesk-500.ttf
+          weight: 500
+        - asset: assets/fonts/spacegrotesk/spacegrotesk-600.ttf
+          weight: 600
+        - asset: assets/fonts/spacegrotesk/spacegrotesk-700.ttf
+          weight: 700
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/jetbrainsmono/jetbrainsmono-400.ttf
+        - asset: assets/fonts/jetbrainsmono/jetbrainsmono-500.ttf
+          weight: 500
+        - asset: assets/fonts/jetbrainsmono/jetbrainsmono-600.ttf
+          weight: 600
+        - asset: assets/fonts/jetbrainsmono/jetbrainsmono-700.ttf
+          weight: 700
+    - family: Playfair Display
+      fonts:
+        - asset: assets/fonts/playfair/playfair-400.ttf
+        - asset: assets/fonts/playfair/playfair-700.ttf
+          weight: 700
+    - family: Bebas Neue
+      fonts:
+        - asset: assets/fonts/bebas/bebas-400.ttf
+
 # audio_service com correção do botão de mídia no Android (ver third_party/audio_service/BKPLAYER.md).
 dependency_overrides:
   audio_service:

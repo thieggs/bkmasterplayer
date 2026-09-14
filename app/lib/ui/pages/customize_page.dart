@@ -17,9 +17,7 @@ class CustomizePage extends ConsumerWidget {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final ui = ref.watch(uiPrefsProvider);
-    final s = ref.watch(settingsProvider);
     final setUi = ref.read(uiPrefsProvider.notifier).update;
-    final setS = ref.read(settingsProvider.notifier).update;
 
     Widget section(String title) => Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
@@ -73,11 +71,11 @@ class CustomizePage extends ConsumerWidget {
 
         // ---- Tema ----
         section(l10n.theme),
-        choice<ThemeMode>(l10n.theme, s.themeMode, {
-          ThemeMode.system: l10n.themeSystem,
-          ThemeMode.light: l10n.themeLight,
-          ThemeMode.dark: l10n.themeDark,
-        }, (v) => setS((x) => x.copyWith(themeMode: v)), icon: Icons.brightness_6_outlined),
+        choice<String>(l10n.theme, ui.themeMode, {
+          'system': l10n.themeSystem,
+          'light': l10n.themeLight,
+          'dark': l10n.themeDark,
+        }, (v) => setUi((x) => x.copyWith(themeMode: v)), icon: Icons.brightness_6_outlined),
         SwitchListTile(
           secondary: const Icon(Icons.dark_mode_outlined),
           title: Text(l10n.amoled),
@@ -89,8 +87,8 @@ class CustomizePage extends ConsumerWidget {
           secondary: const Icon(Icons.palette_outlined),
           title: Text(l10n.dynamicColor),
           subtitle: Text(l10n.dynamicColorHint),
-          value: s.dynamicColorFromCover,
-          onChanged: (v) => setS((x) => x.copyWith(dynamicColorFromCover: v)),
+          value: ui.colorSource == 'cover',
+          onChanged: (v) => setUi((x) => x.copyWith(colorSource: v ? 'cover' : 'accent')),
         ),
         ListTile(
           leading: const Icon(Icons.color_lens_outlined),
@@ -100,11 +98,9 @@ class CustomizePage extends ConsumerWidget {
             children: [
               const SizedBox(height: 8),
               _HueSlider(
-                value: HSVColor.fromColor(Color(ui.customColor ?? s.seedColor)).hue,
-                onChanged: (h) => setUi((p) => p.copyWith(customColor: HSVColor.fromAHSV(1, h, 0.7, 0.9).toColor().toARGB32())),
+                value: HSVColor.fromColor(Color(ui.seed)).hue,
+                onChanged: (h) => setUi((p) => p.copyWith(seed: HSVColor.fromAHSV(1, h, 0.7, 0.9).toColor().toARGB32())),
               ),
-              if (ui.customColor != null)
-                TextButton(onPressed: () => setUi((p) => p.copyWith(clearCustomColor: true)), child: Text(l10n.usePalette)),
             ],
           ),
         ),
@@ -121,8 +117,8 @@ class CustomizePage extends ConsumerWidget {
         }, (v) => setUi((p) => p.copyWith(density: v)), icon: Icons.density_medium),
         ListTile(
           leading: const Icon(Icons.zoom_in),
-          title: Row(children: [Expanded(child: Text(l10n.uiScale)), Text('${(s.uiScale * 100).round()}%')]),
-          subtitle: Slider(value: s.uiScale, min: 0.8, max: 1.5, divisions: 14, onChanged: (v) => setS((x) => x.copyWith(uiScale: v))),
+          title: Row(children: [Expanded(child: Text(l10n.uiScale)), Text('${(ui.uiScale * 100).round()}%')]),
+          subtitle: Slider(value: ui.uiScale, min: 0.8, max: 1.5, divisions: 14, onChanged: (v) => setUi((x) => x.copyWith(uiScale: v))),
         ),
 
         // ---- Capas e "tocando agora" ----

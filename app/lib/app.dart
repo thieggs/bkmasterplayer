@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -97,20 +98,19 @@ final _routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Esquema de cores: fixo pela cor de destaque ou extraído da capa atual.
+/// Esquema de cores: da cor base ou extraído da capa atual, no estilo da
+/// personalização gráfica.
 final _schemeProvider = FutureProvider.family<ColorScheme, Brightness>((ref, brightness) async {
-  final s = ref.watch(settingsProvider);
-  final custom = ref.watch(uiPrefsProvider.select((p) => p.customColor));
-  final fallback = AppTheme.seeded(custom ?? s.seedColor, brightness);
-  if (!s.dynamicColorFromCover) return fallback;
+  // Só as escolhas de cor recalculam a paleta (não os botões, as abas…).
+  ref.watch(uiPrefsProvider.select((p) => (p.colorSource, p.seed, p.variant, p.contrast, p.amoled, jsonEncode(p.colors))));
+  final ui = ref.read(uiPrefsProvider);
+  final fallback = AppTheme.seeded(ui, brightness);
+  if (ui.colorSource != 'cover') return fallback;
   final cover = ref.watch(playerProvider.select((p) => p.current?.song.coverArt));
   if (cover == null) return fallback;
   if (isFileCover(cover)) {
     try {
-      return await ColorScheme.fromImageProvider(
-        provider: ResizeImage(FileImage(File(cover)), width: 128),
-        brightness: brightness,
-      );
+      return await AppTheme.fromImage(ResizeImage(FileImage(File(cover)), width: 128), ui, brightness);
     } catch (_) {
       return fallback;
     }
@@ -122,9 +122,10 @@ final _schemeProvider = FutureProvider.family<ColorScheme, Brightness>((ref, bri
   if (uri == null || key == null) return fallback;
   final dir = ref.watch(cacheDirProvider);
   try {
-    return await ColorScheme.fromImageProvider(
-      provider: CoverImageProvider(url: uri.toString(), cacheKey: key, cacheDir: '${dir.path}/ui_covers'),
-      brightness: brightness,
+    return await AppTheme.fromImage(
+      CoverImageProvider(url: uri.toString(), cacheKey: key, cacheDir: '${dir.path}/ui_covers'),
+      ui,
+      brightness,
     );
   } catch (_) {
     return fallback;
@@ -165,18 +166,17 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
     // Connect: anuncia este aparelho e aceita controle enquanto o app roda.
     ref.listen(connectProvider, (_, _) {});
     final ui = ref.watch(uiPrefsProvider);
-    final seed = ui.customColor ?? settings.seedColor;
-    final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(seed, Brightness.light);
-    final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(seed, Brightness.dark);
+    final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(ui, Brightness.light);
+    final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(ui, Brightness.dark);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
       debugShowCheckedModeBanner: false,
       routerConfig: router,
-      themeMode: settings.themeMode,
+      themeMode: ThemeMode.values.asNameMap()[ui.themeMode] ?? ThemeMode.dark,
       theme: AppTheme.build(light, prefs: ui),
       darkTheme: AppTheme.build(dark, prefs: ui),
-      themeAnimationDuration: const Duration(milliseconds: 600),
+      themeAnimationDuration: ui.animationDuration,
       locale: settings.locale == null ? null : Locale(settings.locale!),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
@@ -188,7 +188,7 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
       builder: (context, child) {
         final mq = MediaQuery.of(context);
         return MediaQuery(
-          data: mq.copyWith(textScaler: TextScaler.linear(settings.uiScale)),
+          data: mq.copyWith(textScaler: TextScaler.linear(ui.uiScale)),
           child: child!,
         );
       },

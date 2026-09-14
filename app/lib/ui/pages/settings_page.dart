@@ -33,6 +33,8 @@ class SettingsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final s = ref.watch(settingsProvider);
     final set = ref.read(settingsProvider.notifier).update;
+    final ui = ref.watch(uiPrefsProvider);
+    final setUi = ref.read(uiPrefsProvider.notifier).update;
     final session = ref.watch(sessionProvider).value;
     final info = session?.info;
     final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
@@ -154,8 +156,8 @@ class SettingsPage extends ConsumerWidget {
               ButtonSegment(value: ThemeMode.light, label: Text(l10n.themeLight)),
               ButtonSegment(value: ThemeMode.dark, label: Text(l10n.themeDark)),
             ],
-            selected: {s.themeMode},
-            onSelectionChanged: (v) => set((x) => x.copyWith(themeMode: v.first)),
+            selected: {ThemeMode.values.asNameMap()[ui.themeMode] ?? ThemeMode.dark},
+            onSelectionChanged: (v) => setUi((x) => x.copyWith(themeMode: v.first.name)),
           );
           // No celular não cabe ao lado do título: vai para baixo.
           return ListTile(
@@ -169,8 +171,8 @@ class SettingsPage extends ConsumerWidget {
           secondary: const Icon(Icons.palette_outlined),
           title: Text(l10n.dynamicColor),
           subtitle: Text(l10n.dynamicColorHint),
-          value: s.dynamicColorFromCover,
-          onChanged: (v) => set((x) => x.copyWith(dynamicColorFromCover: v)),
+          value: ui.colorSource == 'cover',
+          onChanged: (v) => setUi((x) => x.copyWith(colorSource: v ? 'cover' : 'accent')),
         ),
         ListTile(
           leading: const Icon(Icons.color_lens_outlined),
@@ -183,11 +185,11 @@ class SettingsPage extends ConsumerWidget {
                 for (final c in _swatches)
                   InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: () => set((x) => x.copyWith(seedColor: c)),
+                    onTap: () => setUi((x) => x.copyWith(seed: c)),
                     child: CircleAvatar(
                       radius: 14,
                       backgroundColor: Color(c),
-                      child: s.seedColor == c ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+                      child: ui.seed == c ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
                     ),
                   ),
               ],
@@ -198,12 +200,12 @@ class SettingsPage extends ConsumerWidget {
           leading: const Icon(Icons.zoom_in),
           title: Text(l10n.uiScale),
           subtitle: Slider(
-            value: s.uiScale,
+            value: ui.uiScale,
             min: 0.8,
             max: 1.5,
             divisions: 14,
-            label: '${(s.uiScale * 100).round()}%',
-            onChanged: (v) => set((x) => x.copyWith(uiScale: v)),
+            label: '${(ui.uiScale * 100).round()}%',
+            onChanged: (v) => setUi((x) => x.copyWith(uiScale: v)),
           ),
         ),
 
