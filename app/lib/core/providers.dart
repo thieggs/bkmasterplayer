@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/accounts.dart';
 import '../data/lastfm.dart';
 import '../data/local/local_provider.dart';
+import '../data/online_meta.dart';
 import '../data/settings.dart';
 import '../data/ui_prefs.dart';
 import '../data/subsonic/subsonic_client.dart';
@@ -145,7 +146,9 @@ class SessionNotifier extends AsyncNotifier<Session?> {
         lastFm: ref.read(lastFmProvider),
       );
       ref.listen(lastFmProvider, (_, fm) => local.lastFm = fm);
+      _watchLocalCovers(local);
       await local.connect();
+      if (ref.read(settingsProvider).onlineCovers) unawaited(local.fillMissingCovers());
       return Session(account: account, provider: local);
     }
     final auth = await store.auth(account.id);
@@ -208,6 +211,18 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 
   static const localBaseUrl = 'local:';
 
+  /// Capas achadas na internet: recarrega as telas da biblioteca.
+  void _watchLocalCovers(LocalProvider local) {
+    local.onChanged = () {
+      ref.invalidate(albumListProvider);
+      ref.invalidate(albumProvider);
+      ref.invalidate(artistsProvider);
+      ref.invalidate(artistProvider);
+      ref.invalidate(searchProvider);
+      ref.invalidate(starredSongsProvider);
+    };
+  }
+
   /// Entra sem servidor, com as músicas das [folders] do aparelho. Devolve
   /// quantas músicas encontrou.
   Future<int> loginLocal(List<String> folders) async {
@@ -217,8 +232,10 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       folders: folders,
       lastFm: ref.read(lastFmProvider),
     );
+    _watchLocalCovers(local);
     await local.connect();
     final count = await local.rescan();
+    if (ref.read(settingsProvider).onlineCovers) unawaited(local.fillMissingCovers());
     const account = ServerAccount(id: LocalProvider.accountIdValue, name: '', baseUrl: localBaseUrl, username: '');
     await ref.read(accountStoreProvider).saveLocal(account);
     state = AsyncData(Session(account: account, provider: local));
@@ -349,6 +366,14 @@ final searchProvider = FutureProvider.autoDispose.family<SearchResult, String>((
   return ref.watch(musicProvider).search(query);
 });
 
-final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, Song>((ref, song) {
-  return ref.watch(musicProvider).lyrics(song);
+/// Letra: do servidor (ou .lrc ao lado do arquivo); se faltar, da internet.
+final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, Song>((ref, song) async {
+  Lyrics? own;
+  try {
+    own = await ref.watch(musicProvider).lyrics(song);
+  } catch (_) {}
+  if (own != null && own.lines.isNotEmpty) return own;
+  final s = ref.read(settingsProvider);
+  if (!s.onlineLyrics) return own;
+  return OnlineLyrics(cacheDir: ref.read(supportDirProvider).path, musixmatchKey: s.musixmatchKey).fetch(song);
 });

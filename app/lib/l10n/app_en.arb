@@ -467,5 +467,13 @@
  "downloadAllMobileData": "You're on mobile data: better to download on Wi-Fi.",
  "wholeLibrary": "Whole library",
  "downloadNew": "Download new ones",
- "download": "Download"
+ "download": "Download",
+ "onlineMeta": "Lyrics and covers from the internet",
+ "onlineLyrics": "Fetch missing lyrics",
+ "onlineLyricsHint": "When the server or the file has no lyrics: LRCLIB (with synced lyrics), Musixmatch and lyrics.ovh.",
+ "musixmatchKey": "Musixmatch API key",
+ "musixmatchKeyHint": "Optional: without it, lyrics come from LRCLIB and lyrics.ovh.",
+ "musixmatchKeyHelp": "From a developer account at developer.musixmatch.com. The free plan only returns part of the lyrics; then the app uses the other sources.",
+ "onlineCovers": "Fetch missing covers",
+ "onlineCoversHint": "For this device's music without covers: looks the album up on iTunes and Deezer."
 }

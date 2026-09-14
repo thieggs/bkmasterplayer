@@ -10,6 +10,7 @@ import '../../domain/models.dart';
 import '../../domain/music_provider.dart';
 import '../../src/rust/api/library.dart' as lib;
 import '../lastfm.dart';
+import '../online_meta.dart';
 
 String _id(String prefix, String key) => '$prefix${sha1.convert(utf8.encode(key)).toString().substring(0, 16)}';
 
@@ -54,6 +55,11 @@ class LocalProvider implements MusicProvider {
   List<String> folders;
   LastFm? lastFm;
 
+  /// Chamado quando capas novas chegam da internet (recarregar telas).
+  void Function()? onChanged;
+  final _onlineCover = <String, String>{};
+  List<lib.LocalTrack> _tracks = const [];
+
   static const accountIdValue = 'local';
 
   String get _indexPath => p.join(supportDir, 'local_library.json');
@@ -80,6 +86,7 @@ class LocalProvider implements MusicProvider {
 
   @override
   Future<ServerInfo> connect() async {
+    await _loadOnlineCovers();
     _build(await lib.libraryLoad(indexPath: _indexPath));
     await _loadStats();
     await _loadPlaylists();
@@ -97,7 +104,58 @@ class LocalProvider implements MusicProvider {
 
   // ---- Índice → modelos ----
 
+  Future<void> _loadOnlineCovers() async {
+    try {
+      final dir = Directory(_coversDir);
+      if (!await dir.exists()) return;
+      await for (final f in dir.list()) {
+        final name = p.basename(f.path);
+        if (name.startsWith('online_')) _onlineCover[p.basenameWithoutExtension(name).substring(7)] = f.path;
+      }
+    } catch (_) {}
+  }
+
+  /// Busca na internet as capas dos álbuns que não têm (iTunes, Deezer), em
+  /// segundo plano. Álbuns sem resultado só são tentados de novo em 7 dias.
+  Future<void> fillMissingCovers() async {
+    final missesFile = File(p.join(_coversDir, 'online_misses.json'));
+    final misses = <String, int>{};
+    try {
+      if (await missesFile.exists()) {
+        (jsonDecode(await missesFile.readAsString()) as Map).forEach((k, v) => misses['$k'] = v as int);
+      }
+    } catch (_) {}
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final todo = _albums.values
+        .where((a) => a.coverArt == null && now - (misses[a.id] ?? 0) > const Duration(days: 7).inMilliseconds)
+        .toList();
+    var found = 0;
+    for (final a in todo) {
+      final path = await fetchAlbumCover(artist: a.artist ?? '', album: a.name, dir: _coversDir, id: a.id);
+      if (path != null) {
+        _onlineCover[a.id] = path;
+        found++;
+        // Aplica aos poucos (a lista pode ser grande).
+        if (found % 10 == 0) {
+          _build(_tracks);
+          onChanged?.call();
+        }
+      } else {
+        misses[a.id] = now;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+    try {
+      await missesFile.writeAsString(jsonEncode(misses));
+    } catch (_) {}
+    if (found > 0) {
+      _build(_tracks);
+      onChanged?.call();
+    }
+  }
+
   void _build(List<lib.LocalTrack> tracks) {
+    _tracks = tracks;
     _byId.clear();
     _albums.clear();
     _albumOf.clear();
@@ -111,6 +169,7 @@ class LocalProvider implements MusicProvider {
       // Álbum = nome + artista do álbum; sem artista do álbum, a pasta separa.
       final albumId = _id('a', '${albumName.toLowerCase()}|${t.albumArtist?.toLowerCase() ?? dir}');
       final genres = (t.genre ?? '').split(RegExp(r'[;/]')).map((g) => g.trim()).where((g) => g.isNotEmpty).toList();
+      final cover = t.cover ?? _onlineCover[albumId];
       final song = Song(
         id: _id('s', t.path),
         title: t.title,
@@ -124,7 +183,7 @@ class LocalProvider implements MusicProvider {
         year: t.year,
         genre: genres.firstOrNull,
         genres: genres,
-        coverArt: t.cover,
+        coverArt: cover,
         duration: t.durationMs == null ? null : Duration(milliseconds: t.durationMs!),
         bitRate: t.bitrateKbps,
         sampleRate: t.sampleRate,
@@ -150,7 +209,7 @@ class LocalProvider implements MusicProvider {
       albumInfo[albumId] = (
         albumName,
         prev?.$2 ?? albumArtist,
-        prev?.$3 ?? t.cover,
+        prev?.$3 ?? cover,
         prev?.$4 ?? t.year,
         max(prev?.$5 ?? 0, t.mtime),
       );

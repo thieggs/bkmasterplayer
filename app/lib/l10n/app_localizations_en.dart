@@ -1191,4 +1191,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get download => 'Download';
+
+  @override
+  String get onlineMeta => 'Lyrics and covers from the internet';
+
+  @override
+  String get onlineLyrics => 'Fetch missing lyrics';
+
+  @override
+  String get onlineLyricsHint =>
+      'When the server or the file has no lyrics: LRCLIB (with synced lyrics), Musixmatch and lyrics.ovh.';
+
+  @override
+  String get musixmatchKey => 'Musixmatch API key';
+
+  @override
+  String get musixmatchKeyHint =>
+      'Optional: without it, lyrics come from LRCLIB and lyrics.ovh.';
+
+  @override
+  String get musixmatchKeyHelp =>
+      'From a developer account at developer.musixmatch.com. The free plan only returns part of the lyrics; then the app uses the other sources.';
+
+  @override
+  String get onlineCovers => 'Fetch missing covers';
+
+  @override
+  String get onlineCoversHint =>
+      'For this device\'s music without covers: looks the album up on iTunes and Deezer.';
 }

@@ -548,5 +548,13 @@
  "downloadAllMobileData": "Você está nos dados móveis: é melhor baixar no Wi-Fi.",
  "wholeLibrary": "Biblioteca inteira",
  "downloadNew": "Baixar as novas",
- "download": "Baixar"
+ "download": "Baixar",
+ "onlineMeta": "Letras e capas da internet",
+ "onlineLyrics": "Buscar letras que faltam",
+ "onlineLyricsHint": "Quando o servidor ou o arquivo não tem a letra: LRCLIB (com letras sincronizadas), Musixmatch e lyrics.ovh.",
+ "musixmatchKey": "Chave da API do Musixmatch",
+ "musixmatchKeyHint": "Opcional: sem ela, as letras vêm do LRCLIB e do lyrics.ovh.",
+ "musixmatchKeyHelp": "Da conta de desenvolvedor em developer.musixmatch.com. O plano gratuito só libera parte da letra; nesse caso o app usa as outras fontes.",
+ "onlineCovers": "Buscar capas que faltam",
+ "onlineCoversHint": "Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer."
 }

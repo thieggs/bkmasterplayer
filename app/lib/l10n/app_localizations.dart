@@ -2178,6 +2178,54 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Baixar'**
   String get download;
+
+  /// No description provided for @onlineMeta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letras e capas da internet'**
+  String get onlineMeta;
+
+  /// No description provided for @onlineLyrics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar letras que faltam'**
+  String get onlineLyrics;
+
+  /// No description provided for @onlineLyricsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando o servidor ou o arquivo não tem a letra: LRCLIB (com letras sincronizadas), Musixmatch e lyrics.ovh.'**
+  String get onlineLyricsHint;
+
+  /// No description provided for @musixmatchKey.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chave da API do Musixmatch'**
+  String get musixmatchKey;
+
+  /// No description provided for @musixmatchKeyHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Opcional: sem ela, as letras vêm do LRCLIB e do lyrics.ovh.'**
+  String get musixmatchKeyHint;
+
+  /// No description provided for @musixmatchKeyHelp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Da conta de desenvolvedor em developer.musixmatch.com. O plano gratuito só libera parte da letra; nesse caso o app usa as outras fontes.'**
+  String get musixmatchKeyHelp;
+
+  /// No description provided for @onlineCovers.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar capas que faltam'**
+  String get onlineCovers;
+
+  /// No description provided for @onlineCoversHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer.'**
+  String get onlineCoversHint;
 }
 
 class _AppLocalizationsDelegate

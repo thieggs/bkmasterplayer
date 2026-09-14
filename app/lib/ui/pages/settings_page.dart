@@ -325,6 +325,40 @@ class SettingsPage extends ConsumerWidget {
           onChanged: s.lastFmApiKey == null ? null : (v) => set((x) => x.copyWith(lastFmForRadio: v)),
         ),
 
+        // ---- Letras e capas da internet ----
+        section(l10n.onlineMeta),
+        SwitchListTile(
+          secondary: const Icon(Icons.lyrics_outlined),
+          title: Text(l10n.onlineLyrics),
+          subtitle: Text(l10n.onlineLyricsHint),
+          value: s.onlineLyrics,
+          onChanged: (v) => set((x) => x.copyWith(onlineLyrics: v)),
+        ),
+        ListTile(
+          enabled: s.onlineLyrics,
+          leading: const SizedBox(),
+          title: Text(l10n.musixmatchKey),
+          subtitle: Text(s.musixmatchKey == null ? l10n.musixmatchKeyHint : l10n.lastFmKeySet),
+          trailing: const Icon(Icons.edit_outlined),
+          onTap: () async {
+            final text = await _askText(context,
+                title: l10n.musixmatchKey, initial: s.musixmatchKey, helper: l10n.musixmatchKeyHelp, canRemove: s.musixmatchKey != null);
+            if (text == null) return;
+            set((x) => text.trim().isEmpty ? x.copyWith(clearMusixmatch: true) : x.copyWith(musixmatchKey: text.trim()));
+          },
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.image_search_outlined),
+          title: Text(l10n.onlineCovers),
+          subtitle: Text(l10n.onlineCoversHint),
+          value: s.onlineCovers,
+          onChanged: (v) {
+            set((x) => x.copyWith(onlineCovers: v));
+            final local = ref.read(sessionProvider).value?.provider;
+            if (v && local is LocalProvider) local.fillMissingCovers();
+          },
+        ),
+
         // ---- Outros aparelhos (Connect) ----
         section(l10n.connectSection),
         SwitchListTile(

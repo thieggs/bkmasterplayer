@@ -1190,4 +1190,32 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get download => 'Baixar';
+
+  @override
+  String get onlineMeta => 'Letras e capas da internet';
+
+  @override
+  String get onlineLyrics => 'Buscar letras que faltam';
+
+  @override
+  String get onlineLyricsHint =>
+      'Quando o servidor ou o arquivo não tem a letra: LRCLIB (com letras sincronizadas), Musixmatch e lyrics.ovh.';
+
+  @override
+  String get musixmatchKey => 'Chave da API do Musixmatch';
+
+  @override
+  String get musixmatchKeyHint =>
+      'Opcional: sem ela, as letras vêm do LRCLIB e do lyrics.ovh.';
+
+  @override
+  String get musixmatchKeyHelp =>
+      'Da conta de desenvolvedor em developer.musixmatch.com. O plano gratuito só libera parte da letra; nesse caso o app usa as outras fontes.';
+
+  @override
+  String get onlineCovers => 'Buscar capas que faltam';
+
+  @override
+  String get onlineCoversHint =>
+      'Nas músicas do aparelho sem capa: procura o álbum no iTunes e no Deezer.';
 }

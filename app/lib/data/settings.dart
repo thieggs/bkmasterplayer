@@ -55,6 +55,9 @@ class AppSettings {
     this.lastFmApiKey,
     this.lastFmForRadio = true,
     this.jamNearbyAlerts = true,
+    this.onlineLyrics = true,
+    this.onlineCovers = true,
+    this.musixmatchKey,
   });
 
   final ThemeMode themeMode;
@@ -118,6 +121,15 @@ class AppSettings {
   /// Avisar quando passar perto de uma Jam (scan Bluetooth em segundo plano, Android).
   final bool jamNearbyAlerts;
 
+  /// Buscar na internet as letras que faltam (LRCLIB, Musixmatch, lyrics.ovh).
+  final bool onlineLyrics;
+
+  /// Buscar na internet as capas que faltam nas músicas do aparelho.
+  final bool onlineCovers;
+
+  /// Chave da API oficial do Musixmatch (opcional).
+  final String? musixmatchKey;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     int? seedColor,
@@ -163,6 +175,10 @@ class AppSettings {
     bool clearLastFm = false,
     bool? lastFmForRadio,
     bool? jamNearbyAlerts,
+    bool? onlineLyrics,
+    bool? onlineCovers,
+    String? musixmatchKey,
+    bool clearMusixmatch = false,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -204,6 +220,9 @@ class AppSettings {
         lastFmApiKey: clearLastFm ? null : (lastFmApiKey ?? this.lastFmApiKey),
         lastFmForRadio: lastFmForRadio ?? this.lastFmForRadio,
         jamNearbyAlerts: jamNearbyAlerts ?? this.jamNearbyAlerts,
+        onlineLyrics: onlineLyrics ?? this.onlineLyrics,
+        onlineCovers: onlineCovers ?? this.onlineCovers,
+        musixmatchKey: clearMusixmatch ? null : (musixmatchKey ?? this.musixmatchKey),
       );
 
   Map<String, dynamic> toJson() => {
@@ -246,6 +265,9 @@ class AppSettings {
         'lastFmApiKey': lastFmApiKey,
         'lastFmForRadio': lastFmForRadio,
         'jamNearbyAlerts': jamNearbyAlerts,
+        'onlineLyrics': onlineLyrics,
+        'onlineCovers': onlineCovers,
+        'musixmatchKey': musixmatchKey,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -291,6 +313,9 @@ class AppSettings {
       lastFmApiKey: j['lastFmApiKey'] as String?,
       lastFmForRadio: pick('lastFmForRadio', d.lastFmForRadio),
       jamNearbyAlerts: pick('jamNearbyAlerts', d.jamNearbyAlerts),
+      onlineLyrics: pick('onlineLyrics', d.onlineLyrics),
+      onlineCovers: pick('onlineCovers', d.onlineCovers),
+      musixmatchKey: j['musixmatchKey'] as String?,
     );
   }
 
