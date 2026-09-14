@@ -55,6 +55,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
+  LocalTrack dco_decode_box_autoadd_local_track(dynamic raw);
+
+  @protected
   MediaAction dco_decode_box_autoadd_media_action(dynamic raw);
 
   @protected
@@ -130,6 +133,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
+  LocalTrack? dco_decode_opt_box_autoadd_local_track(dynamic raw);
+
+  @protected
   TrackSource? dco_decode_opt_box_autoadd_track_source(dynamic raw);
 
   @protected
@@ -195,6 +201,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  LocalTrack sse_decode_box_autoadd_local_track(SseDeserializer deserializer);
 
   @protected
   MediaAction sse_decode_box_autoadd_media_action(SseDeserializer deserializer);
@@ -278,6 +287,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
+  LocalTrack? sse_decode_opt_box_autoadd_local_track(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TrackSource? sse_decode_opt_box_autoadd_track_source(
     SseDeserializer deserializer,
   );
@@ -351,6 +365,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_i_64(
     PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_local_track(
+    LocalTrack self,
     SseSerializer serializer,
   );
 
@@ -459,6 +479,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_i_64(
     PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_local_track(
+    LocalTrack? self,
     SseSerializer serializer,
   );
 

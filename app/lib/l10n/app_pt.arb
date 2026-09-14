@@ -417,5 +417,108 @@
  "lastFmKeyOk": "Chave do Last.fm funcionando",
  "lastFmKeyBad": "O Last.fm recusou essa chave (confira se copiou a API key certa)",
  "lastFmForRadio": "Usar o Last.fm para músicas parecidas",
- "lastFmForRadioHint": "No mix instantâneo e na rádio, quando o servidor não tem o AudioMuse e nas músicas do aparelho."
+ "lastFmForRadioHint": "No mix instantâneo e na rádio, quando o servidor não tem o AudioMuse e nas músicas do aparelho.",
+ "jamRequestTitle": "{name} quer entrar na sua Jam",
+ "@jamRequestTitle": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "jamRequestBody": "Pedido {via}. Quem entra pode adicionar músicas e controlar o que toca.",
+ "@jamRequestBody": {
+  "placeholders": {
+   "via": {
+    "type": "String"
+   }
+  }
+ },
+ "viaWifi": "pelo Wi-Fi",
+ "viaBluetooth": "por Bluetooth",
+ "jamAlwaysAccept": "Aceitar sempre esta pessoa",
+ "accept": "Aceitar",
+ "reject": "Recusar",
+ "startJam": "Começar uma Jam",
+ "startJamHint": "Quem estiver perto com o BKplayer pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.",
+ "jamWaiting": "Pedindo para entrar na Jam de {name}… Espere a pessoa aceitar.",
+ "@jamWaiting": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "jamRejected": "O pedido não foi aceito.",
+ "jamEnded": "A Jam acabou.",
+ "jamsNearby": "Jams por perto",
+ "jamSearching": "Procurando… Peça para quem está tocando abrir uma Jam no BKplayer.",
+ "jamOf": "Jam de {name}",
+ "@jamOf": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "join": "Entrar",
+ "jamOpen": "Sua Jam está aberta",
+ "jamOpenHint": "Aparece como \"{name}\" para quem está perto.",
+ "@jamOpenHint": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "endJam": "Encerrar",
+ "jamPeople": "{count, plural, =0{Ninguém na Jam} =1{1 pessoa na Jam} other{{count} pessoas na Jam}}",
+ "@jamPeople": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "jamNobodyYet": "Quando alguém pedir para entrar, você vai ver o pedido aqui e num aviso.",
+ "leaveJam": "Sair",
+ "upNext": "Próximas",
+ "jamAdd": "Adicionar",
+ "jamMine": "Minhas",
+ "jamQueueEmpty": "Nada na fila ainda: adicione uma música.",
+ "addedBy": "por {name}",
+ "@addedBy": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "jamSearchHost": "Buscar nas músicas da Jam",
+ "jamAdded": "\"{title}\" entrou na fila",
+ "@jamAdded": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "jamSendFile": "Mandar um arquivo do aparelho",
+ "jamSendFileHint": "Escolha uma música deste aparelho para tocar na Jam.",
+ "jamSearchMine": "Buscar nas suas músicas para mandar",
+ "jamSending": "Mandando \"{title}\"…",
+ "@jamSending": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "jamSent": "Na fila da Jam",
+ "jamSendFailed": "Não deu para mandar",
+ "jamInOne": "Você está numa Jam",
+ "jamMenuHint": "Tocar junto com quem está perto",
+ "jamAllowlist": "Aceitos automaticamente na Jam",
+ "jamAllowlistEmpty": "Ninguém: todo pedido espera você aceitar.",
+ "jamAllowlistHint": "Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar."
 }

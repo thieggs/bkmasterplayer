@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../jam/jam_core.dart';
 import '../l10n/l10n.dart';
 import '../player/player_controller.dart';
 import '../ui/actions.dart';
@@ -232,6 +235,24 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
               ),
             const Divider(),
             ListTile(leading: const Icon(Icons.add_link), title: Text(l10n.addDeviceByAddress), onTap: _addByAddress),
+            Consumer(builder: (context, ref, _) {
+              final jam = ref.watch(jamHostProvider);
+              final guest = ref.watch(jamGuestProvider.select((g) => g.phase == JamPhase.joined));
+              return ListTile(
+                leading: Icon(Icons.groups_outlined, color: jam.active || guest ? theme.colorScheme.primary : null),
+                title: const Text('Jam'),
+                subtitle: Text(jam.active
+                    ? l10n.jamPeople(jam.participants.length)
+                    : guest
+                        ? l10n.jamInOne
+                        : l10n.jamMenuHint),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/jam');
+                },
+              );
+            }),
           ],
         ),
       ),

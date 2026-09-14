@@ -10,6 +10,7 @@ import '../../data/lastfm.dart';
 import '../../data/local/local_provider.dart';
 import '../../data/local/local_setup.dart';
 import '../../data/settings.dart';
+import '../../jam/jam_core.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
 import '../../connect/connect_service.dart';
@@ -346,6 +347,32 @@ class SettingsPage extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => showDevicesSheet(context),
         ),
+
+        // ---- Jam ----
+        section('Jam'),
+        Consumer(builder: (context, ref, _) {
+          final allowed = ref.watch(jamAllowlistProvider);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.verified_user_outlined),
+                title: Text(l10n.jamAllowlist),
+                subtitle: Text(allowed.isEmpty ? l10n.jamAllowlistEmpty : l10n.jamAllowlistHint),
+              ),
+              for (final a in allowed)
+                ListTile(
+                  leading: const SizedBox(),
+                  title: Text(a.name),
+                  trailing: IconButton(
+                    tooltip: l10n.remove,
+                    icon: const Icon(Icons.close),
+                    onPressed: () => ref.read(jamAllowlistProvider.notifier).remove(a.id),
+                  ),
+                ),
+            ],
+          );
+        }),
 
         // ---- Desktop ----
         if (isDesktop) ...[

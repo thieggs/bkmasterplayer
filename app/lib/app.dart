@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'connect/connect_service.dart';
 import 'core/providers.dart';
 import 'domain/models.dart';
+import 'jam/jam_page.dart';
 import 'l10n/l10n.dart';
 import 'player/player_controller.dart';
 import 'ui/pages/album_page.dart';
@@ -48,6 +49,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
+      GoRoute(path: '/jam', builder: (_, _) => const JamPage()),
       GoRoute(
         path: '/now-playing',
         pageBuilder: (_, state) => MaterialPage(

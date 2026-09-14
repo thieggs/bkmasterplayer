@@ -49,3 +49,8 @@ pub fn library_load(index_path: String) -> Vec<LocalTrack> {
 pub fn library_scan_progress() -> u32 {
     crate::library::SCAN_PROGRESS.load(Ordering::Relaxed)
 }
+
+/// Tags de um arquivo avulso (null se não for áudio conhecido).
+pub fn library_read_file(path: String, covers_dir: String) -> Option<LocalTrack> {
+    crate::library::read_file(&PathBuf::from(path), &PathBuf::from(covers_dir))
+}

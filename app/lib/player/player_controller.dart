@@ -816,6 +816,32 @@ class PlayerController extends Notifier<PlayerState> {
     }
   }
 
+  // ---- Jam ----
+
+  final _jamUids = <String>{};
+
+  /// Músicas pedidas na Jam: entram depois da atual e das outras já pedidas
+  /// (em ordem de chegada). Com nada tocando, começa por elas.
+  List<String> jamInsert(List<Song> songs) {
+    if (songs.isEmpty) return const [];
+    if (_fwd('playNext', {'songs': _json(songs)})) return const [];
+    final items = songs.map(_item).toList();
+    var at = state.index + 1;
+    while (at < state.queue.length && _jamUids.contains(state.queue[at].uid)) {
+      at++;
+    }
+    final q = List.of(state.queue)..insertAll(at, items);
+    _unshuffled?.addAll(items);
+    _jamUids.addAll(items.map((e) => e.uid));
+    state = state.copyWith(queue: q, index: state.index < 0 ? 0 : state.index);
+    if (state.current == null || (!state.playing && !state.buffering && !_engineHasTrack)) {
+      _startAt(at);
+    } else {
+      _scheduleNext();
+    }
+    return [for (final e in items) e.uid];
+  }
+
   // ---- Tocar em outro aparelho (BKplayer Connect) ----
 
   ConnectLink? _remote;

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/providers.dart';
 import '../desktop/desktop_integration.dart';
+import '../jam/jam_page.dart';
 import '../l10n/l10n.dart';
 import '../player/player_controller.dart';
 import 'actions.dart';
@@ -92,6 +93,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       'rail' => false,
       _ => MediaQuery.sizeOf(context).width >= 1100,
     };
+
+    // Pedidos para entrar na Jam deste aparelho.
+    listenJamRequests(ref, context);
 
     // Mensagens do player (erro ao tocar etc.)
     ref.listen(playerProvider.select((s) => s.message), (_, msg) {

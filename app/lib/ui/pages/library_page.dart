@@ -22,6 +22,7 @@ class LibraryPage extends ConsumerWidget {
       ('/genres', Icons.sell_outlined, l10n.genres),
       ('/favorites', Icons.favorite_border, l10n.favorites),
       if (!local) ('/offline', Icons.download_outlined, l10n.downloads),
+      ('/jam', Icons.groups_outlined, 'Jam'),
     ];
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),

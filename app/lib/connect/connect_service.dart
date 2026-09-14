@@ -118,6 +118,28 @@ String _deviceId(SharedPreferences prefs) {
   return id;
 }
 
+/// Jam pela rede local: o dono registra estas rotas no servidor do Connect
+/// enquanto a Jam está aberta (ver lib/jam).
+abstract class JamLanRoutes {
+  String get jamId;
+  String get jamName;
+  void handleSocket(WebSocket ws, String remoteIp);
+  Future<void> handleUpload(HttpRequest req);
+}
+
+/// Jam anunciada por outro aparelho na rede local (de qualquer conta).
+class LanJamOffer {
+  const LanJamOffer({required this.deviceId, required this.jamId, required this.name, required this.host, required this.port, required this.seen});
+  final String deviceId;
+  final String jamId;
+  final String name;
+  final String host;
+  final int port;
+  final DateTime seen;
+}
+
+String deviceIdFor(SharedPreferences prefs) => _deviceId(prefs);
+
 /// Conexão de controle com outro aparelho (lado de quem controla).
 class ConnectLink {
   ConnectLink._(this.device, this._ws) {
@@ -196,6 +218,16 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
 
   static const _kManual = 'connectManualDevices';
 
+  /// Connect (tocar/controlar entre aparelhos da conta) ligado. Sem ele (ou
+  /// sem servidor) só a Jam usa a rede.
+  bool _connectAllowed = false;
+
+  /// Rotas da Jam aberta neste aparelho (null = sem Jam).
+  JamLanRoutes? jamRoutes;
+
+  /// Jams anunciadas na rede local por outros aparelhos.
+  final jamOffers = ValueNotifier<List<LanJamOffer>>(const []);
+
   /// Este aparelho (disponível depois que o Connect liga).
   ConnectInfo? get me => _me;
 
@@ -206,7 +238,8 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
     final customName = ref.watch(settingsProvider.select((s) => s.deviceName));
     final gen = ++_gen;
     ref.onDispose(_stop);
-    if (session == null || !enabled) return const [];
+    if (session == null) return const [];
+    _connectAllowed = enabled && !session.isLocal;
     _username = session.account.username;
     _uh = _userHash(_username);
     ref.listen(playerProvider, _pushState);
@@ -326,7 +359,42 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
 
   Future<void> _announce() async {
     final udp = _udp;
-    if (udp != null) await _sendBroadcast(udp, {});
+    if (udp != null && _connectAllowed) await _sendBroadcast(udp, {});
+    await announceJam();
+  }
+
+  Map<String, dynamic>? _jamAnnouncement() {
+    final j = jamRoutes;
+    final me = _me;
+    if (j == null || me == null) return null;
+    return {'bk': 1, 't': 'j', 'id': me.id, 'jid': j.jamId, 'n': j.jamName, 'port': _http?.port ?? connectTcpPort};
+  }
+
+  /// Anuncia a Jam aberta agora (o dono chama ao abrir e de tempos em tempos).
+  Future<void> announceJam() async {
+    final udp = _udp;
+    final a = _jamAnnouncement();
+    if (udp == null || a == null) return;
+    final data = utf8.encode(jsonEncode(a));
+    for (final addr in await _broadcastAddresses()) {
+      try {
+        udp.send(data, addr, connectUdpPort);
+      } catch (_) {}
+    }
+  }
+
+  void _upsertJam(Map<String, dynamic> m, String host) {
+    final id = m['id'], jid = m['jid'], port = m['port'];
+    if (id is! String || jid is! String || port is! int) return;
+    final offer = LanJamOffer(
+      deviceId: id,
+      jamId: jid,
+      name: m['n'] is String ? m['n'] as String : '?',
+      host: host,
+      port: port,
+      seen: DateTime.now(),
+    );
+    jamOffers.value = [...jamOffers.value.where((o) => o.deviceId != id), offer];
   }
 
   /// Procura aparelhos agora (abre a lista) e confere os adicionados pelo endereço.
@@ -349,7 +417,21 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
     } catch (_) {
       return;
     }
-    if (m['id'] == me.id || m['uh'] != _uh) return;
+    if (m['id'] == me.id) return;
+    // Jam: anúncios e buscas valem para qualquer conta.
+    if (m['t'] == 'j') {
+      _upsertJam(m, dg.address.address);
+      return;
+    }
+    if (m['t'] == 'q') {
+      final jam = _jamAnnouncement();
+      if (jam != null) {
+        try {
+          _udp?.send(utf8.encode(jsonEncode(jam)), dg.address, dg.port);
+        } catch (_) {}
+      }
+    }
+    if (m['uh'] != _uh || !_connectAllowed) return;
     switch (m['t']) {
       case 'q':
         // Resposta direta a quem perguntou (na porta de onde veio a busca).
@@ -386,6 +468,8 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
 
   void _prune() {
     final now = DateTime.now();
+    final jams = jamOffers.value.where((o) => now.difference(o.seen) < const Duration(seconds: 25)).toList();
+    if (jams.length != jamOffers.value.length) jamOffers.value = jams;
     final keep = state.where((d) => d.manual || now.difference(d.seen) < _deviceTtl).toList();
     if (keep.length != state.length) state = keep;
   }
@@ -556,6 +640,20 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
       final path = req.uri.path;
       if (_me == null) return _json(req, {'error': 'starting'}, 503);
       if (path == '/info') return _json(req, _announcement());
+      // Jam: sem login do servidor; quem entra é aprovado pelo dono.
+      if (path == '/jam' && WebSocketTransformer.isUpgradeRequest(req)) {
+        final routes = jamRoutes;
+        if (routes == null) return _json(req, {'error': 'no jam'}, 404);
+        final ip = req.connectionInfo?.remoteAddress.address ?? '?';
+        routes.handleSocket(await WebSocketTransformer.upgrade(req), ip);
+        return;
+      }
+      if (path == '/jam/upload') {
+        final routes = jamRoutes;
+        if (routes == null) return _json(req, {'error': 'no jam'}, 404);
+        return routes.handleUpload(req);
+      }
+      if (!_connectAllowed) return _json(req, {'error': 'connect off'}, 403);
       final ip = req.connectionInfo?.remoteAddress.address ?? '?';
       if (_blocked(ip)) return _json(req, {'error': 'too many attempts'}, 429);
       final auth = _authFrom(req.uri.queryParameters);

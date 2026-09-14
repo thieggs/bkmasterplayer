@@ -25,6 +25,15 @@ Future<List<LocalTrack>> libraryLoad({required String indexPath}) =>
 int libraryScanProgress() =>
     RustLib.instance.api.crateApiLibraryLibraryScanProgress();
 
+/// Tags de um arquivo avulso (null se não for áudio conhecido).
+Future<LocalTrack?> libraryReadFile({
+  required String path,
+  required String coversDir,
+}) => RustLib.instance.api.crateApiLibraryLibraryReadFile(
+  path: path,
+  coversDir: coversDir,
+);
+
 class LocalTrack {
   final String path;
   final PlatformInt64 size;

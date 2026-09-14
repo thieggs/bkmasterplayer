@@ -1000,4 +1000,155 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lastFmForRadioHint =>
       'In instant mix and radio, when the server has no AudioMuse, and for this device\'s music.';
+
+  @override
+  String jamRequestTitle(String name) {
+    return '$name wants to join your Jam';
+  }
+
+  @override
+  String jamRequestBody(String via) {
+    return 'Request $via. People in the Jam can add songs and control playback.';
+  }
+
+  @override
+  String get viaWifi => 'over Wi-Fi';
+
+  @override
+  String get viaBluetooth => 'over Bluetooth';
+
+  @override
+  String get jamAlwaysAccept => 'Always accept this person';
+
+  @override
+  String get accept => 'Accept';
+
+  @override
+  String get reject => 'Decline';
+
+  @override
+  String get startJam => 'Start a Jam';
+
+  @override
+  String get startJamHint =>
+      'People nearby with BKplayer can ask to join, add songs and control playback. You approve each person.';
+
+  @override
+  String jamWaiting(String name) {
+    return 'Asking to join $name\'s Jam… Wait for them to accept.';
+  }
+
+  @override
+  String get jamRejected => 'The request wasn\'t accepted.';
+
+  @override
+  String get jamEnded => 'The Jam ended.';
+
+  @override
+  String get jamsNearby => 'Jams nearby';
+
+  @override
+  String get jamSearching =>
+      'Searching… Ask whoever is playing to open a Jam in BKplayer.';
+
+  @override
+  String jamOf(String name) {
+    return '$name\'s Jam';
+  }
+
+  @override
+  String get join => 'Join';
+
+  @override
+  String get jamOpen => 'Your Jam is open';
+
+  @override
+  String jamOpenHint(String name) {
+    return 'Shows up as \"$name\" to people nearby.';
+  }
+
+  @override
+  String get endJam => 'End';
+
+  @override
+  String jamPeople(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count people in the Jam',
+      one: '1 person in the Jam',
+      zero: 'Nobody in the Jam',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get jamNobodyYet =>
+      'When someone asks to join, you\'ll see the request here and in a prompt.';
+
+  @override
+  String get leaveJam => 'Leave';
+
+  @override
+  String get upNext => 'Up next';
+
+  @override
+  String get jamAdd => 'Add';
+
+  @override
+  String get jamMine => 'Mine';
+
+  @override
+  String get jamQueueEmpty => 'Nothing queued yet: add a song.';
+
+  @override
+  String addedBy(String name) {
+    return 'by $name';
+  }
+
+  @override
+  String get jamSearchHost => 'Search the Jam\'s music';
+
+  @override
+  String jamAdded(String title) {
+    return '\"$title\" was queued';
+  }
+
+  @override
+  String get jamSendFile => 'Send a file from this device';
+
+  @override
+  String get jamSendFileHint =>
+      'Pick a song on this device to play in the Jam.';
+
+  @override
+  String get jamSearchMine => 'Search your music to send';
+
+  @override
+  String jamSending(String title) {
+    return 'Sending \"$title\"…';
+  }
+
+  @override
+  String get jamSent => 'In the Jam\'s queue';
+
+  @override
+  String get jamSendFailed => 'Couldn\'t send it';
+
+  @override
+  String get jamInOne => 'You\'re in a Jam';
+
+  @override
+  String get jamMenuHint => 'Play together with people nearby';
+
+  @override
+  String get jamAllowlist => 'Auto-accepted in the Jam';
+
+  @override
+  String get jamAllowlistEmpty =>
+      'Nobody: every request waits for you to accept.';
+
+  @override
+  String get jamAllowlistHint =>
+      'These people join your Jam without asking. Tap X to remove.';
 }

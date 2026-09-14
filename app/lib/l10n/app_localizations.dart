@@ -1872,6 +1872,246 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'No mix instantâneo e na rádio, quando o servidor não tem o AudioMuse e nas músicas do aparelho.'**
   String get lastFmForRadioHint;
+
+  /// No description provided for @jamRequestTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'{name} quer entrar na sua Jam'**
+  String jamRequestTitle(String name);
+
+  /// No description provided for @jamRequestBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pedido {via}. Quem entra pode adicionar músicas e controlar o que toca.'**
+  String jamRequestBody(String via);
+
+  /// No description provided for @viaWifi.
+  ///
+  /// In pt, this message translates to:
+  /// **'pelo Wi-Fi'**
+  String get viaWifi;
+
+  /// No description provided for @viaBluetooth.
+  ///
+  /// In pt, this message translates to:
+  /// **'por Bluetooth'**
+  String get viaBluetooth;
+
+  /// No description provided for @jamAlwaysAccept.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aceitar sempre esta pessoa'**
+  String get jamAlwaysAccept;
+
+  /// No description provided for @accept.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aceitar'**
+  String get accept;
+
+  /// No description provided for @reject.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recusar'**
+  String get reject;
+
+  /// No description provided for @startJam.
+  ///
+  /// In pt, this message translates to:
+  /// **'Começar uma Jam'**
+  String get startJam;
+
+  /// No description provided for @startJamHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem estiver perto com o BKplayer pode pedir para entrar, adicionar músicas e controlar. Você aprova cada pessoa.'**
+  String get startJamHint;
+
+  /// No description provided for @jamWaiting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pedindo para entrar na Jam de {name}… Espere a pessoa aceitar.'**
+  String jamWaiting(String name);
+
+  /// No description provided for @jamRejected.
+  ///
+  /// In pt, this message translates to:
+  /// **'O pedido não foi aceito.'**
+  String get jamRejected;
+
+  /// No description provided for @jamEnded.
+  ///
+  /// In pt, this message translates to:
+  /// **'A Jam acabou.'**
+  String get jamEnded;
+
+  /// No description provided for @jamsNearby.
+  ///
+  /// In pt, this message translates to:
+  /// **'Jams por perto'**
+  String get jamsNearby;
+
+  /// No description provided for @jamSearching.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurando… Peça para quem está tocando abrir uma Jam no BKplayer.'**
+  String get jamSearching;
+
+  /// No description provided for @jamOf.
+  ///
+  /// In pt, this message translates to:
+  /// **'Jam de {name}'**
+  String jamOf(String name);
+
+  /// No description provided for @join.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar'**
+  String get join;
+
+  /// No description provided for @jamOpen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua Jam está aberta'**
+  String get jamOpen;
+
+  /// No description provided for @jamOpenHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aparece como \"{name}\" para quem está perto.'**
+  String jamOpenHint(String name);
+
+  /// No description provided for @endJam.
+  ///
+  /// In pt, this message translates to:
+  /// **'Encerrar'**
+  String get endJam;
+
+  /// No description provided for @jamPeople.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{Ninguém na Jam} =1{1 pessoa na Jam} other{{count} pessoas na Jam}}'**
+  String jamPeople(int count);
+
+  /// No description provided for @jamNobodyYet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando alguém pedir para entrar, você vai ver o pedido aqui e num aviso.'**
+  String get jamNobodyYet;
+
+  /// No description provided for @leaveJam.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair'**
+  String get leaveJam;
+
+  /// No description provided for @upNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximas'**
+  String get upNext;
+
+  /// No description provided for @jamAdd.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar'**
+  String get jamAdd;
+
+  /// No description provided for @jamMine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas'**
+  String get jamMine;
+
+  /// No description provided for @jamQueueEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nada na fila ainda: adicione uma música.'**
+  String get jamQueueEmpty;
+
+  /// No description provided for @addedBy.
+  ///
+  /// In pt, this message translates to:
+  /// **'por {name}'**
+  String addedBy(String name);
+
+  /// No description provided for @jamSearchHost.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar nas músicas da Jam'**
+  String get jamSearchHost;
+
+  /// No description provided for @jamAdded.
+  ///
+  /// In pt, this message translates to:
+  /// **'\"{title}\" entrou na fila'**
+  String jamAdded(String title);
+
+  /// No description provided for @jamSendFile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mandar um arquivo do aparelho'**
+  String get jamSendFile;
+
+  /// No description provided for @jamSendFileHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha uma música deste aparelho para tocar na Jam.'**
+  String get jamSendFileHint;
+
+  /// No description provided for @jamSearchMine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar nas suas músicas para mandar'**
+  String get jamSearchMine;
+
+  /// No description provided for @jamSending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mandando \"{title}\"…'**
+  String jamSending(String title);
+
+  /// No description provided for @jamSent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na fila da Jam'**
+  String get jamSent;
+
+  /// No description provided for @jamSendFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para mandar'**
+  String get jamSendFailed;
+
+  /// No description provided for @jamInOne.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você está numa Jam'**
+  String get jamInOne;
+
+  /// No description provided for @jamMenuHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar junto com quem está perto'**
+  String get jamMenuHint;
+
+  /// No description provided for @jamAllowlist.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aceitos automaticamente na Jam'**
+  String get jamAllowlist;
+
+  /// No description provided for @jamAllowlistEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ninguém: todo pedido espera você aceitar.'**
+  String get jamAllowlistEmpty;
+
+  /// No description provided for @jamAllowlistHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estas pessoas entram na sua Jam sem pedir. Toque no X para tirar.'**
+  String get jamAllowlistHint;
 }
 
 class _AppLocalizationsDelegate

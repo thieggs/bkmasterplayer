@@ -336,5 +336,108 @@
  "lastFmKeyOk": "Last.fm key works",
  "lastFmKeyBad": "Last.fm rejected that key (check that you copied the right API key)",
  "lastFmForRadio": "Use Last.fm for similar songs",
- "lastFmForRadioHint": "In instant mix and radio, when the server has no AudioMuse, and for this device's music."
+ "lastFmForRadioHint": "In instant mix and radio, when the server has no AudioMuse, and for this device's music.",
+ "jamRequestTitle": "{name} wants to join your Jam",
+ "@jamRequestTitle": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "jamRequestBody": "Request {via}. People in the Jam can add songs and control playback.",
+ "@jamRequestBody": {
+  "placeholders": {
+   "via": {
+    "type": "String"
+   }
+  }
+ },
+ "viaWifi": "over Wi-Fi",
+ "viaBluetooth": "over Bluetooth",
+ "jamAlwaysAccept": "Always accept this person",
+ "accept": "Accept",
+ "reject": "Decline",
+ "startJam": "Start a Jam",
+ "startJamHint": "People nearby with BKplayer can ask to join, add songs and control playback. You approve each person.",
+ "jamWaiting": "Asking to join {name}'s Jam… Wait for them to accept.",
+ "@jamWaiting": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "jamRejected": "The request wasn't accepted.",
+ "jamEnded": "The Jam ended.",
+ "jamsNearby": "Jams nearby",
+ "jamSearching": "Searching… Ask whoever is playing to open a Jam in BKplayer.",
+ "jamOf": "{name}'s Jam",
+ "@jamOf": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "join": "Join",
+ "jamOpen": "Your Jam is open",
+ "jamOpenHint": "Shows up as \"{name}\" to people nearby.",
+ "@jamOpenHint": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "endJam": "End",
+ "jamPeople": "{count, plural, =0{Nobody in the Jam} =1{1 person in the Jam} other{{count} people in the Jam}}",
+ "@jamPeople": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "jamNobodyYet": "When someone asks to join, you'll see the request here and in a prompt.",
+ "leaveJam": "Leave",
+ "upNext": "Up next",
+ "jamAdd": "Add",
+ "jamMine": "Mine",
+ "jamQueueEmpty": "Nothing queued yet: add a song.",
+ "addedBy": "by {name}",
+ "@addedBy": {
+  "placeholders": {
+   "name": {
+    "type": "String"
+   }
+  }
+ },
+ "jamSearchHost": "Search the Jam's music",
+ "jamAdded": "\"{title}\" was queued",
+ "@jamAdded": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "jamSendFile": "Send a file from this device",
+ "jamSendFileHint": "Pick a song on this device to play in the Jam.",
+ "jamSearchMine": "Search your music to send",
+ "jamSending": "Sending \"{title}\"…",
+ "@jamSending": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "jamSent": "In the Jam's queue",
+ "jamSendFailed": "Couldn't send it",
+ "jamInOne": "You're in a Jam",
+ "jamMenuHint": "Play together with people nearby",
+ "jamAllowlist": "Auto-accepted in the Jam",
+ "jamAllowlistEmpty": "Nobody: every request waits for you to accept.",
+ "jamAllowlistHint": "These people join your Jam without asking. Tap X to remove."
 }

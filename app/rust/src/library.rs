@@ -253,6 +253,14 @@ fn read_track(path: &Path, size: i64, mtime: i64, dir_cover: Option<String>, cov
     Ok(t)
 }
 
+/// Lê um arquivo avulso (ex.: escolhido para mandar numa Jam).
+pub fn read_file(path: &Path, covers: &Path) -> Option<LocalTrack> {
+    let meta = fs::metadata(path).ok()?;
+    let mtime = meta.modified().ok()?.duration_since(UNIX_EPOCH).ok()?.as_secs() as i64;
+    fs::create_dir_all(covers).ok()?;
+    read_track(path, meta.len() as i64, mtime, None, covers).ok()
+}
+
 /// Varre as pastas e atualiza o índice. Devolve todas as faixas.
 pub fn scan(folders: &[String], index: &Path, covers: &Path) -> Result<Vec<LocalTrack>> {
     SCAN_PROGRESS.store(0, Ordering::Relaxed);
