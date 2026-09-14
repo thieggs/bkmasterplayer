@@ -15,6 +15,7 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _form = GlobalKey<FormState>();
   final _url = TextEditingController();
+  final _local = TextEditingController();
   final _user = TextEditingController();
   final _pass = TextEditingController();
   bool _busy = false;
@@ -24,6 +25,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   void dispose() {
     _url.dispose();
+    _local.dispose();
     _user.dispose();
     _pass.dispose();
     super.dispose();
@@ -40,6 +42,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             url: _url.text,
             username: _user.text.trim(),
             password: _pass.text,
+            localUrl: _local.text,
           );
     } on SubsonicException catch (e) {
       setState(() => _error = e.isAuthError ? context.l10n.wrongCredentials : e.message);
@@ -83,6 +86,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         border: const OutlineInputBorder(),
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty) ? l10n.required : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _local,
+                      keyboardType: TextInputType.url,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        labelText: l10n.localAddress,
+                        hintText: 'http://192.168.1.10:4533',
+                        helperText: l10n.localAddressHint,
+                        helperMaxLines: 2,
+                        prefixIcon: const Icon(Icons.home_outlined),
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(

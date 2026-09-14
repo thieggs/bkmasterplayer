@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
+import '../../connect/devices_sheet.dart';
 import '../../core/providers.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
@@ -191,6 +192,7 @@ class PlayerBar extends ConsumerWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                            const RemoteLabel(),
                           ],
                         ),
                       ),
@@ -242,6 +244,7 @@ class PlayerBar extends ConsumerWidget {
                           onPressed: onToggleQueue,
                         ),
                       'volume' => const VolumeControl(),
+                      'devices' => const DevicesButton(),
                       'mini' => IconButton(
                           tooltip: l10n.miniPlayer,
                           icon: const Icon(Icons.picture_in_picture_alt_outlined),
@@ -351,6 +354,7 @@ class MiniPlayer extends ConsumerWidget {
                       children: [
                         Text(item.song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
                         Text(item.song.displayArtist, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                        const RemoteLabel(),
                       ],
                     ),
                   ),

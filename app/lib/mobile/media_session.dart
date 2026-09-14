@@ -36,7 +36,9 @@ class _BkAudioHandler extends BaseAudioHandler {
   _BkAudioHandler(this._container, this._session) {
     _session.interruptionEventStream.listen(_onInterruption);
     // Fone desconectado / Bluetooth caiu: pausa em vez de sair no alto-falante.
-    _session.becomingNoisyEventStream.listen((_) => _player.pause());
+    _session.becomingNoisyEventStream.listen((_) {
+      if (!_remote) _player.pause();
+    });
     _container.listen<PlayerState>(playerProvider, (_, s) => _update(s), fireImmediately: true);
   }
 
@@ -54,8 +56,11 @@ class _BkAudioHandler extends BaseAudioHandler {
   Duration _publishedPos = Duration.zero;
   DateTime _publishedAt = DateTime.now();
 
+  /// Controlando outro aparelho: o som sai de lá; aqui a notificação só controla.
+  bool get _remote => _container.read(playerProvider).remoteDevice != null;
+
   void _update(PlayerState s) {
-    if (s.playing && !_wasPlaying) {
+    if (s.playing && !_wasPlaying && s.remoteDevice == null) {
       _stopped = false;
       // Pede o foco de áudio (os outros players pausam); negado = ligação em curso.
       _session.setActive(true).then((ok) {
@@ -141,6 +146,7 @@ class _BkAudioHandler extends BaseAudioHandler {
   }
 
   void _onInterruption(AudioInterruptionEvent e) {
+    if (_remote) return;
     if (e.begin) {
       switch (e.type) {
         case AudioInterruptionType.duck:

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../connect/devices_sheet.dart';
 import '../../core/providers.dart';
 import '../../domain/models.dart';
 import '../../l10n/l10n.dart';
@@ -100,6 +101,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
           );
         }),
         const SizedBox(height: 24),
+        const RemoteLabel(),
         Text(song?.title ?? l10n.nothingPlaying,
             textAlign: TextAlign.center, style: theme.textTheme.headlineSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
         const SizedBox(height: 4),
@@ -149,6 +151,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
                 icon: const Icon(Icons.auto_awesome),
                 onPressed: () => LibraryActions.instantMix(context, ref, song),
               ),
+            const DevicesButton(),
             const VolumeControl(),
           ],
         ),

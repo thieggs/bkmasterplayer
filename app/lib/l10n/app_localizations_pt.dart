@@ -825,4 +825,98 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get filterSongs => 'Filtrar por música, artista ou álbum';
+
+  @override
+  String get devices => 'Aparelhos';
+
+  @override
+  String get localAddress => 'Endereço na rede de casa (opcional)';
+
+  @override
+  String get localAddressHint =>
+      'Usado quando estiver na mesma rede do servidor: mais rápido. Fora de casa, vale o endereço principal.';
+
+  @override
+  String get localAddressNone => 'Não configurado';
+
+  @override
+  String get localAddressInUse => 'em uso agora';
+
+  @override
+  String get localAddressAway => 'fora de alcance agora (usando o principal)';
+
+  @override
+  String get localAddressOk => 'O endereço de casa respondeu e já está em uso';
+
+  @override
+  String get localAddressNotNow =>
+      'Não respondeu agora; será usado quando você estiver em casa';
+
+  @override
+  String get save => 'Salvar';
+
+  @override
+  String get remove => 'Remover';
+
+  @override
+  String get playOn => 'Tocar em';
+
+  @override
+  String get thisDevice => 'Este aparelho';
+
+  @override
+  String devicePlaying(String title) {
+    return 'Tocando: $title';
+  }
+
+  @override
+  String devicePaused(String title) {
+    return 'Pausado: $title';
+  }
+
+  @override
+  String get deviceIdle => 'Parado';
+
+  @override
+  String get deviceOffline => 'Fora de alcance';
+
+  @override
+  String get deviceControlling => 'Controlando daqui';
+
+  @override
+  String playingOn(String device) {
+    return 'Tocando em $device';
+  }
+
+  @override
+  String get noDevicesFound =>
+      'Nenhum outro aparelho encontrado. Abra o BKplayer no outro aparelho, com a mesma conta e na mesma rede.';
+
+  @override
+  String get addDeviceByAddress => 'Adicionar pelo endereço';
+
+  @override
+  String get addDeviceHint => 'IP do aparelho (ex.: o do Tailscale, 100.x.y.z)';
+
+  @override
+  String get deviceNotFound =>
+      'Nenhum BKplayer desta conta respondeu nesse endereço';
+
+  @override
+  String connectFailed(String device) {
+    return 'Não foi possível conectar a $device';
+  }
+
+  @override
+  String get connectSection => 'Outros aparelhos (Connect)';
+
+  @override
+  String get connectEnable => 'Tocar e controlar entre aparelhos';
+
+  @override
+  String get connectEnableHint =>
+      'Este aparelho aparece para os outros com a mesma conta e pode ser controlado por eles, como no Spotify Connect.';
+
+  @override
+  String get deviceName => 'Nome deste aparelho';
 }

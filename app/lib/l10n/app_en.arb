@@ -246,5 +246,60 @@
  "automixOffTap": "AutoMix off — click to turn on",
  "automixOnTap": "Click to turn AutoMix off",
  "automixOnWaiting": "AutoMix on — analyzing the next song",
- "filterSongs": "Filter by song, artist or album"
+ "filterSongs": "Filter by song, artist or album",
+ "devices": "Devices",
+ "localAddress": "Home network address (optional)",
+ "localAddressHint": "Used when you're on the server's network (faster). Away from home, the main address is used.",
+ "localAddressNone": "Not set",
+ "localAddressInUse": "in use now",
+ "localAddressAway": "out of reach now (using the main address)",
+ "localAddressOk": "The home address responded and is now in use",
+ "localAddressNotNow": "No response right now; it will be used when you're at home",
+ "save": "Save",
+ "remove": "Remove",
+ "playOn": "Play on",
+ "thisDevice": "This device",
+ "devicePlaying": "Playing: {title}",
+ "@devicePlaying": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "devicePaused": "Paused: {title}",
+ "@devicePaused": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "deviceIdle": "Idle",
+ "deviceOffline": "Out of reach",
+ "deviceControlling": "Controlling from here",
+ "playingOn": "Playing on {device}",
+ "@playingOn": {
+  "placeholders": {
+   "device": {
+    "type": "String"
+   }
+  }
+ },
+ "noDevicesFound": "No other devices found. Open BKplayer on the other device, with the same account and on the same network.",
+ "addDeviceByAddress": "Add by address",
+ "addDeviceHint": "Device IP (e.g., its Tailscale address, 100.x.y.z)",
+ "deviceNotFound": "No BKplayer of this account answered at that address",
+ "connectFailed": "Couldn't connect to {device}",
+ "@connectFailed": {
+  "placeholders": {
+   "device": {
+    "type": "String"
+   }
+  }
+ },
+ "connectSection": "Other devices (Connect)",
+ "connectEnable": "Play and control across devices",
+ "connectEnableHint": "This device shows up for your other devices with the same account and can be controlled by them, like Spotify Connect.",
+ "deviceName": "This device's name"
 }

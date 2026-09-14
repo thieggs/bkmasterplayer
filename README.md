@@ -19,6 +19,8 @@ seguir.
   - Estilos: troca de grave, filtro, eco, mistura ou corte. Tudo configurável.
 - **AudioMuse-AI (via Navidrome):** Mix instantâneo, rádio sônica, caminho sônico entre duas músicas e rádio infinita.
 - **Fila:** salva no disco e sincronizada com o servidor (continuar em outro aparelho).
+- **Connect:** escolher em qual aparelho tocar e controlá-lo (PC, notebook, celular da mesma conta), como no Spotify Connect.
+- **Endereço de casa:** usa o endereço da rede local quando ele responde (mais rápido) e o principal fora de casa.
 - **Desktop:**
   - MPRIS com capa (KDE Connect, widgets), notificação que não empilha.
   - Bandeja do sistema, mini player, atalhos de teclado.

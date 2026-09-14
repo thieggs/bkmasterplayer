@@ -824,4 +824,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterSongs => 'Filter by song, artist or album';
+
+  @override
+  String get devices => 'Devices';
+
+  @override
+  String get localAddress => 'Home network address (optional)';
+
+  @override
+  String get localAddressHint =>
+      'Used when you\'re on the server\'s network (faster). Away from home, the main address is used.';
+
+  @override
+  String get localAddressNone => 'Not set';
+
+  @override
+  String get localAddressInUse => 'in use now';
+
+  @override
+  String get localAddressAway => 'out of reach now (using the main address)';
+
+  @override
+  String get localAddressOk => 'The home address responded and is now in use';
+
+  @override
+  String get localAddressNotNow =>
+      'No response right now; it will be used when you\'re at home';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get playOn => 'Play on';
+
+  @override
+  String get thisDevice => 'This device';
+
+  @override
+  String devicePlaying(String title) {
+    return 'Playing: $title';
+  }
+
+  @override
+  String devicePaused(String title) {
+    return 'Paused: $title';
+  }
+
+  @override
+  String get deviceIdle => 'Idle';
+
+  @override
+  String get deviceOffline => 'Out of reach';
+
+  @override
+  String get deviceControlling => 'Controlling from here';
+
+  @override
+  String playingOn(String device) {
+    return 'Playing on $device';
+  }
+
+  @override
+  String get noDevicesFound =>
+      'No other devices found. Open BKplayer on the other device, with the same account and on the same network.';
+
+  @override
+  String get addDeviceByAddress => 'Add by address';
+
+  @override
+  String get addDeviceHint =>
+      'Device IP (e.g., its Tailscale address, 100.x.y.z)';
+
+  @override
+  String get deviceNotFound =>
+      'No BKplayer of this account answered at that address';
+
+  @override
+  String connectFailed(String device) {
+    return 'Couldn\'t connect to $device';
+  }
+
+  @override
+  String get connectSection => 'Other devices (Connect)';
+
+  @override
+  String get connectEnable => 'Play and control across devices';
+
+  @override
+  String get connectEnableHint =>
+      'This device shows up for your other devices with the same account and can be controlled by them, like Spotify Connect.';
+
+  @override
+  String get deviceName => 'This device\'s name';
 }

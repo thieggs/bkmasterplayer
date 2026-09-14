@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'connect/connect_service.dart';
 import 'core/providers.dart';
 import 'domain/models.dart';
 import 'l10n/l10n.dart';
@@ -122,6 +123,8 @@ class PlayerApp extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     // Mantém o controlador vivo desde o início (recebe eventos do motor).
     ref.watch(playerProvider.select((_) => 0));
+    // Connect: anuncia este aparelho e aceita controle enquanto o app roda.
+    ref.listen(connectProvider, (_, _) {});
     final ui = ref.watch(uiPrefsProvider);
     final seed = ui.customColor ?? settings.seedColor;
     final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(seed, Brightness.light);

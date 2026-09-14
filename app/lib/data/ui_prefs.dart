@@ -19,7 +19,7 @@ class UiPrefs {
     this.startPage = '/',
     this.showQueue = false,
     this.cardSize = 'medium',
-    this.playerButtons = const ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'mini', 'volume'],
+    this.playerButtons = const ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'devices', 'mini', 'volume'],
     this.homeSections = const ['newest', 'recent', 'frequent', 'random'],
     this.songTap = 'playFromHere',
     this.customColor,
@@ -63,7 +63,7 @@ class UiPrefs {
   /// Cor de destaque livre (ARGB), além da paleta.
   final int? customColor;
 
-  static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'mini', 'volume'];
+  static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'devices', 'mini', 'volume'];
   static const allHomeSections = ['newest', 'recent', 'frequent', 'random', 'starred', 'highest'];
 
   double get cardWidth => switch (cardSize) {
@@ -124,6 +124,7 @@ class UiPrefs {
         'showQueue': showQueue,
         'cardSize': cardSize,
         'playerButtons': playerButtons,
+        'playerButtonsVersion': 2,
         'homeSections': homeSections,
         'songTap': songTap,
         'customColor': customColor,
@@ -149,11 +150,23 @@ class UiPrefs {
       startPage: pick('startPage', d.startPage),
       showQueue: pick('showQueue', d.showQueue),
       cardSize: pick('cardSize', d.cardSize),
-      playerButtons: strings('playerButtons', d.playerButtons, allPlayerButtons),
+      playerButtons: _withNewButtons(strings('playerButtons', d.playerButtons, allPlayerButtons), j),
       homeSections: strings('homeSections', d.homeSections, allHomeSections),
       songTap: pick('songTap', d.songTap),
       customColor: j['customColor'] is int ? j['customColor'] as int : null,
     );
+  }
+
+  /// Botões que surgiram depois de a lista ter sido salva entram no lugar
+  /// padrão (quem tirou um botão depois disso não o vê voltar).
+  static List<String> _withNewButtons(List<String> buttons, Map<String, dynamic> j) {
+    if ((j['playerButtonsVersion'] as int? ?? 1) >= 2 || j['playerButtons'] is! List || buttons.contains('devices')) {
+      return buttons;
+    }
+    final out = List.of(buttons);
+    final at = out.indexOf('mini');
+    out.insert(at >= 0 ? at : (out.contains('volume') ? out.indexOf('volume') : out.length), 'devices');
+    return out;
   }
 
   static const _key = 'ui';

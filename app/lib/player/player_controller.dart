@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../connect/connect_service.dart';
 import '../core/providers.dart';
 import '../data/settings.dart';
 import '../domain/models.dart';
@@ -58,6 +59,8 @@ class PlayerState {
     this.plannedMix,
     this.plannedSynced = false,
     this.radio = false,
+    this.remoteDevice,
+    this.remoteDeviceId,
   });
 
   final List<QueueItem> queue;
@@ -89,6 +92,11 @@ class PlayerState {
   /// Rádio infinita: quando a fila acaba, completa com músicas parecidas.
   final bool radio;
 
+  /// Controlando outro aparelho (BKplayer Connect): nome e id dele. O estado
+  /// acima é o de lá.
+  final String? remoteDevice;
+  final String? remoteDeviceId;
+
   QueueItem? get current => index >= 0 && index < queue.length ? queue[index] : null;
   bool get hasNext => index + 1 < queue.length || repeat != LoopMode.off;
 
@@ -114,6 +122,8 @@ class PlayerState {
     bool? radio,
   }) =>
       PlayerState(
+        remoteDevice: remoteDevice,
+        remoteDeviceId: remoteDeviceId,
         queue: queue ?? this.queue,
         index: index ?? this.index,
         playing: playing ?? this.playing,
@@ -163,6 +173,11 @@ class PlayerController extends Notifier<PlayerState> {
         _scheduledKey = null;
         _scheduleNext();
       }
+    });
+    // Trocou entre o endereço de casa e o principal: a próxima faixa vai pelo novo.
+    ref.listen(endpointProvider, (_, _) {
+      _scheduledKey = null;
+      _scheduleNext();
     });
     ref.listen(sessionProvider, (_, next) {
       if (next.value != null && !_restored) {
@@ -282,12 +297,14 @@ class PlayerController extends Notifier<PlayerState> {
   bool _extending = false;
 
   void toggleRadio() {
+    if (_fwd('radio', {'on': !state.radio})) return;
     state = state.copyWith(radio: !state.radio);
     _persistSoon();
     _maybeExtendRadio();
   }
 
   void setRadio(bool on) {
+    if (_fwd('radio', {'on': on})) return;
     state = state.copyWith(radio: on);
     _maybeExtendRadio();
   }
@@ -336,6 +353,7 @@ class PlayerController extends Notifier<PlayerState> {
 
   void playSongs(List<Song> songs, {int start = 0, bool shuffle = false}) {
     if (songs.isEmpty) return;
+    if (_fwd('playSongs', {'songs': _json(songs), 'start': start, 'shuffle': shuffle})) return;
     var items = songs.map(_item).toList();
     var startIndex = start.clamp(0, items.length - 1);
     _unshuffled = null;
@@ -364,6 +382,7 @@ class PlayerController extends Notifier<PlayerState> {
 
   void enqueue(List<Song> songs) {
     if (songs.isEmpty) return;
+    if (_fwd('enqueue', {'songs': _json(songs)})) return;
     final items = songs.map(_item).toList();
     _unshuffled?.addAll(items);
     state = state.copyWith(queue: [...state.queue, ...items]);
@@ -376,6 +395,7 @@ class PlayerController extends Notifier<PlayerState> {
 
   void playNext(List<Song> songs) {
     if (songs.isEmpty) return;
+    if (_fwd('playNext', {'songs': _json(songs)})) return;
     final items = songs.map(_item).toList();
     final q = List.of(state.queue)..insertAll(state.index + 1, items);
     _unshuffled?.addAll(items);
@@ -388,11 +408,13 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void jumpTo(int i) {
+    if (_fwd('jump', {'i': i})) return;
     if (i < 0 || i >= state.queue.length) return;
     _startAt(i);
   }
 
   void removeAt(int i) {
+    if (_fwd('remove', {'i': i})) return;
     if (i < 0 || i >= state.queue.length) return;
     final removed = state.queue[i];
     final q = List.of(state.queue)..removeAt(i);
@@ -413,6 +435,7 @@ class PlayerController extends Notifier<PlayerState> {
 
   void move(int from, int to) {
     if (from == to) return;
+    if (_fwd('move', {'from': from, 'to': to})) return;
     final q = List.of(state.queue);
     final item = q.removeAt(from);
     q.insert(to, item);
@@ -422,12 +445,14 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void clearUpcoming() {
+    if (_fwd('clearUpcoming')) return;
     if (state.current == null) return;
     state = state.copyWith(queue: state.queue.sublist(0, state.index + 1));
     _scheduleNext();
   }
 
   void toggleShuffle() {
+    if (_fwd('shuffle')) return;
     final cur = state.current;
     if (!state.shuffle) {
       _unshuffled = List.of(state.queue);
@@ -446,6 +471,7 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void cycleRepeat() {
+    if (_fwd('repeat')) return;
     final next = LoopMode.values[(state.repeat.index + 1) % LoopMode.values.length];
     state = state.copyWith(repeat: next);
     _scheduleNext();
@@ -454,6 +480,7 @@ class PlayerController extends Notifier<PlayerState> {
   // ---- Transporte ----
 
   void toggle() {
+    if (_fwd('toggle')) return;
     if (state.current == null) return;
     if (!state.playing && !state.buffering && !_engineHasTrack) {
       final at = _resumeAt ?? Duration.zero;
@@ -464,23 +491,31 @@ class PlayerController extends Notifier<PlayerState> {
     engine.playerToggle();
   }
 
-  void play() => state.playing ? null : toggle();
+  void play() {
+    if (_fwd('play')) return;
+    if (!state.playing) toggle();
+  }
+
   void pause() {
+    if (_fwd('pause')) return;
     engine.playerPause();
     _persistSoon();
   }
 
   void stop() {
+    if (_fwd('stop')) return;
     engine.playerStop();
     state = state.copyWith(playing: false, position: Duration.zero);
   }
 
   void next() {
+    if (_fwd('next')) return;
     final n = _nextIndex(manual: true);
     if (n != null) _startAt(n);
   }
 
   void previous() {
+    if (_fwd('previous')) return;
     if (state.position > const Duration(seconds: 3) || state.index <= 0) {
       seek(Duration.zero);
       return;
@@ -489,6 +524,10 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void seek(Duration to) {
+    if (_fwd('seek', {'ms': to.inMilliseconds})) {
+      state = state.copyWith(position: to);
+      return;
+    }
     engine.playerSeek(positionMs: to.inMilliseconds);
     state = state.copyWith(position: to);
     _lastPos = to;
@@ -498,6 +537,10 @@ class PlayerController extends Notifier<PlayerState> {
 
   void setVolume(double v) {
     final vol = v.clamp(0.0, 1.0);
+    if (_fwd('vol', {'v': vol})) {
+      state = state.copyWith(volume: vol);
+      return;
+    }
     engine.playerSetVolume(volume: _gain(vol));
     state = state.copyWith(volume: vol);
     ref.read(settingsProvider.notifier).update((s) => s.copyWith(volume: vol));
@@ -627,6 +670,8 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void _onEvent(engine.PlayerEvent e) {
+    // Controlando outro aparelho: o motor daqui está parado.
+    if (_remote != null) return;
     switch (e) {
       case engine.PlayerEvent_TrackStarted(:final id):
         final i = state.queue.indexWhere((q) => q.uid == id);
@@ -732,6 +777,186 @@ class PlayerController extends Notifier<PlayerState> {
       case engine.MediaAction_Quit():
         exit(0);
     }
+  }
+
+  // ---- Tocar em outro aparelho (BKplayer Connect) ----
+
+  ConnectLink? _remote;
+  StreamSubscription<Map<String, dynamic>>? _remoteSub;
+  List<QueueItem> _remoteQueue = const [];
+
+  bool get isRemote => _remote != null;
+
+  static List<Map<String, dynamic>> _json(List<Song> songs) => [for (final s in songs) s.toJson()];
+
+  /// No modo remoto, manda o comando para o outro aparelho (e devolve true).
+  bool _fwd(String c, [Map<String, dynamic> args = const {}]) {
+    final r = _remote;
+    if (r == null) return false;
+    r.cmd(c, args);
+    return true;
+  }
+
+  /// Passa a tocar em [device]. Com [transfer], a fila daqui vai para lá e
+  /// continua do mesmo ponto; sem, só controla o que ele já está tocando.
+  Future<void> connectTo(ConnectDevice device, {required bool transfer}) async {
+    final p = _provider;
+    final me = ref.read(connectProvider.notifier).me;
+    if (p == null || me == null) throw StateError('Connect indisponível');
+    final link = await ConnectLink.open(device, auth: p.authParams, me: me);
+    final local = state;
+    await _dropRemote();
+    if (transfer && local.current != null) {
+      link.cmd('transfer', {
+        'songs': _json(local.queue.map((q) => q.song).toList()),
+        'index': local.index,
+        'pos': local.position.inMilliseconds,
+        'play': local.playing,
+        'shuffle': local.shuffle,
+        'repeat': local.repeat.name,
+        'radio': local.radio,
+      });
+    }
+    // O som passa a sair de lá: guarda a fila daqui e para o motor.
+    if (local.current != null) await _persistNow();
+    _mixTimer?.cancel();
+    engine.playerStop();
+    _engineHasTrack = false;
+    _scheduledKey = null;
+    _remote = link;
+    _remoteQueue = const [];
+    state = PlayerState(volume: local.volume, remoteDevice: device.name, remoteDeviceId: device.id);
+    _remoteSub = link.messages.listen(_onRemote, onDone: () => _remoteLost(link));
+  }
+
+  /// Volta a tocar neste aparelho (como no Spotify): traz a fila e a posição
+  /// de lá, pausa lá e continua aqui se estava tocando.
+  Future<void> playHere() async {
+    final r = _remote;
+    if (r == null) return;
+    final remote = state;
+    r.cmd('pause');
+    await _dropRemote();
+    _adoptFromRemote(remote, play: remote.playing);
+  }
+
+  Future<void> _dropRemote() async {
+    final r = _remote;
+    _remote = null;
+    await _remoteSub?.cancel();
+    _remoteSub = null;
+    await r?.close();
+  }
+
+  void _remoteLost(ConnectLink link) {
+    if (_remote != link) return; // saída normal
+    final remote = state;
+    _remote = null;
+    _remoteSub = null;
+    _adoptFromRemote(remote, play: false);
+    state = state.copyWith(message: 'Conexão com ${link.device.name} perdida');
+  }
+
+  void _adoptFromRemote(PlayerState remote, {required bool play}) {
+    final vol = ref.read(settingsProvider).volume;
+    engine.playerSetVolume(volume: _gain(vol));
+    state = PlayerState(volume: vol, repeat: remote.repeat, shuffle: remote.shuffle, radio: remote.radio);
+    final songs = remote.queue.map((q) => q.song).toList();
+    if (songs.isEmpty) return;
+    adoptQueue(
+      songs,
+      index: remote.index,
+      position: remote.position,
+      play: play,
+      shuffle: remote.shuffle,
+      repeat: remote.repeat,
+      radio: remote.radio,
+    );
+  }
+
+  void _onRemote(Map<String, dynamic> m) {
+    switch (m['t']) {
+      case 'queue':
+        final items = m['items'] as List? ?? const [];
+        _remoteQueue = [
+          for (final e in items)
+            if (e is Map) QueueItem(e['u'] as String, Song.fromJson(Map<String, dynamic>.from(e['s'] as Map))),
+        ];
+        state = state.copyWith(queue: _remoteQueue);
+      case 'state':
+        final idx = (m['i'] as num?)?.toInt() ?? -1;
+        final cur = idx >= 0 && idx < _remoteQueue.length ? _remoteQueue[idx].uid : null;
+        final mix = m['mix'] as Map?;
+        final ins = m['ins'] as Map?;
+        state = PlayerState(
+          queue: _remoteQueue,
+          index: idx,
+          playing: m['pl'] == true,
+          buffering: m['bf'] == true,
+          position: Duration(milliseconds: (m['pos'] as num?)?.toInt() ?? 0),
+          duration: Duration(milliseconds: (m['dur'] as num?)?.toInt() ?? 0),
+          volume: (m['vol'] as num?)?.toDouble() ?? state.volume,
+          repeat: LoopMode.values.asNameMap()[m['rep']] ?? LoopMode.off,
+          shuffle: m['sh'] == true,
+          radio: m['rad'] == true,
+          mix: mix == null
+              ? null
+              : MixInfo(
+                  summary: mix['s'] as String? ?? '',
+                  style: mix['st'] as String? ?? '',
+                  until: DateTime.now().add(Duration(milliseconds: (mix['ms'] as num?)?.toInt() ?? 0)),
+                ),
+          plannedMix: m['pm'] as String?,
+          plannedSynced: m['ps'] == true,
+          insights: cur == null || ins == null
+              ? const {}
+              : {
+                  cur: TrackInsight(
+                    bpm: (ins['bpm'] as num?)?.toDouble(),
+                    key: ins['key'] as String?,
+                    camelot: ins['cam'] as String?,
+                    reliable: ins['rel'] == true,
+                  ),
+                },
+          remoteDevice: state.remoteDevice,
+          remoteDeviceId: state.remoteDeviceId,
+        );
+    }
+  }
+
+  /// Troca a fila inteira e posiciona nela (fila vinda de outro aparelho).
+  void adoptQueue(
+    List<Song> songs, {
+    required int index,
+    Duration position = Duration.zero,
+    bool play = true,
+    bool shuffle = false,
+    LoopMode repeat = LoopMode.off,
+    bool radio = false,
+  }) {
+    if (songs.isEmpty) return;
+    final items = songs.map(_item).toList();
+    final i = index.clamp(0, items.length - 1);
+    _unshuffled = null;
+    state = state.copyWith(queue: items, shuffle: shuffle, repeat: repeat, radio: radio, clearMessage: true);
+    if (play) {
+      _startAt(i, start: position);
+      return;
+    }
+    _mixTimer?.cancel();
+    engine.playerStop();
+    _engineHasTrack = false;
+    _resumeAt = position;
+    _scheduledKey = null;
+    state = state.copyWith(
+      index: i,
+      position: position,
+      duration: items[i].song.duration ?? Duration.zero,
+      playing: false,
+      clearMix: true,
+      clearPlanned: true,
+    );
+    _persistSoon();
   }
 
   // ---- Scrobble: "tocando agora" no início, e registro após metade da faixa (ou 4 min) ----

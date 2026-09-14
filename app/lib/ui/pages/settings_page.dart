@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../connect/devices_sheet.dart';
 import '../../core/providers.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
+import '../../connect/connect_service.dart';
 import '../actions.dart';
 import 'automix_settings.dart';
 
@@ -59,6 +61,20 @@ class SettingsPage extends ConsumerWidget {
               child: Text(l10n.logout),
             ),
           ),
+        if (session != null)
+          Consumer(builder: (context, ref, _) {
+            final onLocal = ref.watch(endpointProvider);
+            final local = session.account.localUrl;
+            return ListTile(
+              leading: Icon(Icons.home_outlined, color: onLocal ? theme.colorScheme.primary : null),
+              title: Text(l10n.localAddress),
+              subtitle: Text(local == null
+                  ? l10n.localAddressNone
+                  : '$local • ${onLocal ? l10n.localAddressInUse : l10n.localAddressAway}'),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () => _editLocalAddress(context, ref, local),
+            );
+          }),
         if (info != null)
           ListTile(
             leading: Icon(Icons.graphic_eq, color: info.sonicSimilarity ? theme.colorScheme.primary : null),
@@ -248,6 +264,31 @@ class SettingsPage extends ConsumerWidget {
         section(l10n.automix),
         const AutomixSettingsSection(),
 
+        // ---- Outros aparelhos (Connect) ----
+        section(l10n.connectSection),
+        SwitchListTile(
+          secondary: const Icon(Icons.devices_outlined),
+          title: Text(l10n.connectEnable),
+          subtitle: Text(l10n.connectEnableHint),
+          value: s.connectEnabled,
+          onChanged: (v) => set((x) => x.copyWith(connectEnabled: v)),
+        ),
+        ListTile(
+          enabled: s.connectEnabled,
+          leading: const SizedBox(),
+          title: Text(l10n.deviceName),
+          subtitle: Text(s.deviceName ?? ref.read(connectProvider.notifier).me?.name ?? ''),
+          trailing: const Icon(Icons.edit_outlined),
+          onTap: () => _editDeviceName(context, ref, s.deviceName),
+        ),
+        ListTile(
+          enabled: s.connectEnabled,
+          leading: const SizedBox(),
+          title: Text(l10n.playOn),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => showDevicesSheet(context),
+        ),
+
         // ---- Desktop ----
         if (isDesktop) ...[
           section(l10n.desktop),
@@ -336,3 +377,55 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 }
+
+Future<String?> _askText(BuildContext context, {required String title, String? initial, String? hint, String? helper, bool canRemove = false}) {
+  final l10n = context.l10n;
+  final ctl = TextEditingController(text: initial ?? '');
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        controller: ctl,
+        autofocus: true,
+        autocorrect: false,
+        decoration: InputDecoration(hintText: hint, helperText: helper, helperMaxLines: 3),
+        onSubmitted: (v) => Navigator.pop(context, v),
+      ),
+      actions: [
+        if (canRemove) TextButton(onPressed: () => Navigator.pop(context, ''), child: Text(l10n.remove)),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+        FilledButton(onPressed: () => Navigator.pop(context, ctl.text), child: Text(l10n.save)),
+      ],
+    ),
+  ).whenComplete(ctl.dispose);
+}
+
+Future<void> _editLocalAddress(BuildContext context, WidgetRef ref, String? current) async {
+  final l10n = context.l10n;
+  final text = await _askText(
+    context,
+    title: l10n.localAddress,
+    initial: current,
+    hint: 'http://192.168.1.10:4533',
+    helper: l10n.localAddressHint,
+    canRemove: current != null,
+  );
+  if (text == null) return;
+  final url = text.trim().isEmpty ? null : text.trim();
+  final reachable = await ref.read(sessionProvider.notifier).setLocalUrl(url);
+  if (url != null && context.mounted) showSnack(context, reachable ? l10n.localAddressOk : l10n.localAddressNotNow);
+}
+
+Future<void> _editDeviceName(BuildContext context, WidgetRef ref, String? current) async {
+  final text = await _askText(
+    context,
+    title: context.l10n.deviceName,
+    initial: current ?? ref.read(connectProvider.notifier).me?.name,
+    canRemove: current != null,
+  );
+  if (text == null) return;
+  final name = text.trim();
+  ref.read(settingsProvider.notifier).update((x) => name.isEmpty ? x.copyWith(clearDeviceName: true) : x.copyWith(deviceName: name));
+}
+

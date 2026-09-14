@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter/material.dart' show ThemeMode;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,9 +131,11 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     if (auth == null) return null;
     final provider = SubsonicProvider(
       accountId: account.id,
-      client: SubsonicClient(baseUrl: account.baseUrl, auth: auth),
+      client: SubsonicClient(baseUrl: account.baseUrl, localUrl: account.localUrl, auth: auth),
     );
     try {
+      // Em casa, já começa pelo endereço local (teste de ~1,5 s no máximo).
+      if (provider.hasLocalAddress) await provider.checkLocalAddress();
       await provider.connect();
       return Session(account: account, provider: provider);
     } on SubsonicException catch (e) {
@@ -141,13 +146,19 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 
   /// Faz login. Lança [SubsonicException] se falhar. Sem http(s):// no
   /// endereço, tenta HTTPS primeiro e cai para HTTP se não houver resposta.
-  Future<void> login({required String url, required String username, required String password, String? name}) async {
+  Future<void> login({
+    required String url,
+    required String username,
+    required String password,
+    String? name,
+    String? localUrl,
+  }) async {
     final auth = SubsonicAuth.fromPassword(username, password);
     final raw = url.trim();
     final candidates = raw.contains('://') ? [raw] : ['https://$raw', 'http://$raw'];
     SubsonicException? error;
     for (final candidate in candidates) {
-      final client = SubsonicClient(baseUrl: candidate, auth: auth);
+      final client = SubsonicClient(baseUrl: candidate, localUrl: localUrl, auth: auth);
       final id = '${client.baseUrl}|$username'.hashCode.toUnsigned(32).toRadixString(16);
       final provider = SubsonicProvider(accountId: id, client: client);
       final ServerInfo info;
@@ -162,14 +173,29 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       final account = ServerAccount(
         id: id,
         name: (name == null || name.trim().isEmpty) ? '${info.type} — ${Uri.parse(client.baseUrl).host}' : name.trim(),
-        baseUrl: client.baseUrl,
+        baseUrl: client.remoteUrl,
         username: username,
+        localUrl: client.localUrl,
       );
       await ref.read(accountStoreProvider).save(account, auth);
+      if (provider.hasLocalAddress) unawaited(provider.checkLocalAddress());
       state = AsyncData(Session(account: account, provider: provider));
       return;
     }
     throw error!;
+  }
+
+  /// Define o endereço da rede de casa (null = não usar). Devolve se ele
+  /// respondeu agora.
+  Future<bool> setLocalUrl(String? url) async {
+    final s = state.value;
+    if (s == null) return false;
+    s.provider.localAddress = url;
+    final clean = (url == null || url.trim().isEmpty) ? null : SubsonicClient.normalizeBaseUrl(url);
+    final account = s.account.withLocalUrl(clean);
+    await ref.read(accountStoreProvider).update(account);
+    state = AsyncData(Session(account: account, provider: s.provider, offlineReason: s.offlineReason));
+    return clean != null && await s.provider.checkLocalAddress();
   }
 
   Future<void> retry() async {
@@ -195,6 +221,35 @@ final musicProvider = Provider<MusicProvider>((ref) {
 });
 
 final serverInfoProvider = Provider<ServerInfo?>((ref) => ref.watch(sessionProvider).value?.info);
+
+/// Usando o endereço da rede de casa agora. Testa de novo quando a rede muda
+/// (Wi-Fi/dados), quando o app volta a ficar visível e, fora de casa, de
+/// tempos em tempos (para voltar ao local ao chegar).
+class EndpointNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final p = ref.watch(sessionProvider).value?.provider;
+    if (p == null || !p.hasLocalAddress) return false;
+    final subs = <StreamSubscription<dynamic>>[
+      p.endpointChanges.listen((local) => state = local),
+      Connectivity().onConnectivityChanged.listen((_) => p.checkLocalAddress(), onError: (_) {}),
+    ];
+    final life = AppLifecycleListener(onResume: () => p.checkLocalAddress());
+    final timer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!p.onLocalAddress) p.checkLocalAddress();
+    });
+    ref.onDispose(() {
+      for (final s in subs) {
+        s.cancel();
+      }
+      life.dispose();
+      timer.cancel();
+    });
+    return p.onLocalAddress;
+  }
+}
+
+final endpointProvider = NotifierProvider<EndpointNotifier, bool>(EndpointNotifier.new);
 
 // ---- Dados da biblioteca ----
 

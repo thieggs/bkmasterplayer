@@ -15,6 +15,30 @@ class SubsonicProvider implements MusicProvider {
   ServerInfo? get serverInfo => _info;
 
   @override
+  bool get hasLocalAddress => client.localUrl != null;
+
+  @override
+  bool get onLocalAddress => client.onLocal;
+
+  @override
+  String get activeAddress => client.baseUrl;
+
+  @override
+  set localAddress(String? url) => client.localUrl = url;
+
+  @override
+  Future<bool> checkLocalAddress() => client.checkLocal();
+
+  @override
+  Stream<bool> get endpointChanges => client.endpointChanges;
+
+  @override
+  Map<String, String> get authParams => client.auth.params;
+
+  @override
+  Future<bool> validateAuth(Map<String, String> params) => client.validate(params);
+
+  @override
   Future<ServerInfo> connect() async {
     final ping = await client.get('ping');
     final ext = ping['openSubsonic'] == true ? await client.openSubsonicExtensions() : null;

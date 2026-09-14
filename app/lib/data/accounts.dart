@@ -9,20 +9,40 @@ import 'subsonic/subsonic_client.dart';
 /// Uma conta de servidor. As credenciais (token+salt ou API key) ficam no
 /// chaveiro do sistema; se ele não existir, caem nas preferências.
 class ServerAccount {
-  const ServerAccount({required this.id, required this.name, required this.baseUrl, required this.username});
+  const ServerAccount({
+    required this.id,
+    required this.name,
+    required this.baseUrl,
+    required this.username,
+    this.localUrl,
+  });
 
   final String id;
   final String name;
   final String baseUrl;
   final String username;
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'baseUrl': baseUrl, 'username': username};
+  /// Endereço na rede de casa (opcional): usado no lugar de [baseUrl] quando
+  /// responde, por ser mais rápido.
+  final String? localUrl;
+
+  ServerAccount withLocalUrl(String? url) =>
+      ServerAccount(id: id, name: name, baseUrl: baseUrl, username: username, localUrl: url);
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'baseUrl': baseUrl,
+        'username': username,
+        if (localUrl != null) 'localUrl': localUrl,
+      };
 
   factory ServerAccount.fromJson(Map<String, dynamic> j) => ServerAccount(
         id: j['id'] as String,
         name: j['name'] as String? ?? '',
         baseUrl: j['baseUrl'] as String,
         username: j['username'] as String? ?? '',
+        localUrl: j['localUrl'] as String?,
       );
 }
 
@@ -56,6 +76,12 @@ class AccountStore {
     await _prefs.setString(_kAccounts, jsonEncode(all.map((a) => a.toJson()).toList()));
     await _writeSecret(account.id, jsonEncode(auth.toJson()));
     await setActive(account.id);
+  }
+
+  /// Atualiza os dados da conta (sem mexer nas credenciais).
+  Future<void> update(ServerAccount account) async {
+    final all = list().map((a) => a.id == account.id ? account : a).toList();
+    await _prefs.setString(_kAccounts, jsonEncode(all.map((a) => a.toJson()).toList()));
   }
 
   Future<void> remove(String id) async {

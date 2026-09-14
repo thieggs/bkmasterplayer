@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -58,20 +59,103 @@ class SubsonicAuth {
 }
 
 class SubsonicClient {
-  SubsonicClient({required String baseUrl, required this.auth, this.clientName = 'BKplayer'})
-      : baseUrl = normalizeBaseUrl(baseUrl),
+  SubsonicClient({required String baseUrl, String? localUrl, required this.auth, this.clientName = 'BKplayer'})
+      : remoteUrl = normalizeBaseUrl(baseUrl),
+        _localUrl = _normalizeOptional(localUrl),
         _dio = Dio(BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
+          connectTimeout: _remoteConnectTimeout,
           receiveTimeout: const Duration(seconds: 30),
           responseType: ResponseType.json,
         ));
 
   static const apiVersion = '1.16.1';
+  static const _remoteConnectTimeout = Duration(seconds: 10);
+  // Na rede de casa o servidor responde na hora; se não, saiu de casa.
+  static const _localConnectTimeout = Duration(seconds: 3);
 
-  final String baseUrl;
+  /// Endereço principal (funciona de qualquer lugar).
+  final String remoteUrl;
+  String? _localUrl;
+  bool _onLocal = false;
   final SubsonicAuth auth;
   final String clientName;
   final Dio _dio;
+  final _endpointChanges = StreamController<bool>.broadcast();
+
+  /// Endereço em uso: o da rede de casa quando responde, senão o principal.
+  String get baseUrl => _onLocal ? _localUrl! : remoteUrl;
+
+  /// Endereço na rede de casa (opcional).
+  String? get localUrl => _localUrl;
+  bool get onLocal => _onLocal;
+
+  /// true = passou a usar o endereço de casa; false = voltou para o principal.
+  Stream<bool> get endpointChanges => _endpointChanges.stream;
+
+  set localUrl(String? url) {
+    _localUrl = _normalizeOptional(url);
+    if (_localUrl == null) _setLocal(false);
+  }
+
+  static String? _normalizeOptional(String? url) =>
+      (url == null || url.trim().isEmpty) ? null : normalizeBaseUrl(url);
+
+  void _setLocal(bool local) {
+    if (local == _onLocal) return;
+    _onLocal = local;
+    _dio.options.connectTimeout = local ? _localConnectTimeout : _remoteConnectTimeout;
+    _endpointChanges.add(local);
+  }
+
+  /// Testa o endereço de casa (ping com as credenciais, tempo curto) e passa a
+  /// usá-lo se responder; senão fica no principal. Devolve se está em casa.
+  Future<bool> checkLocal() async {
+    final local = _localUrl;
+    if (local == null) return false;
+    final ok = await _ping(local);
+    // O endereço pode ter mudado enquanto testava.
+    if (local == _localUrl) _setLocal(ok);
+    return _onLocal;
+  }
+
+  Future<bool> _ping(String base) async {
+    try {
+      final res = await Dio(BaseOptions(
+        connectTimeout: const Duration(milliseconds: 1500),
+        receiveTimeout: const Duration(seconds: 3),
+        responseType: ResponseType.json,
+      )).get('$base/rest/ping', queryParameters: _baseParams, options: Options(validateStatus: (_) => true));
+      final data = res.data;
+      return data is Map && data['subsonic-response'] is Map && data['subsonic-response']['status'] == 'ok';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Confere credenciais de outro aparelho (BKplayer Connect) neste servidor:
+  /// só quem sabe a senha da conta gera um token que o servidor aceita.
+  Future<bool> validate(Map<String, String> authParams) async {
+    try {
+      final res = await _dio.get(
+        '$baseUrl/rest/ping',
+        queryParameters: {...authParams, 'v': apiVersion, 'c': clientName, 'f': 'json'},
+        options: Options(validateStatus: (_) => true),
+      );
+      final data = res.data;
+      return data is Map && data['subsonic-response'] is Map && data['subsonic-response']['status'] == 'ok';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool _isUnreachable(DioException e) => switch (e.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.connectionError ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.unknown =>
+          true,
+        _ => false,
+      };
 
   static String normalizeBaseUrl(String url) {
     var u = url.trim();
@@ -116,6 +200,11 @@ class SubsonicClient {
         options: Options(listFormat: ListFormat.multi, validateStatus: (_) => true),
       );
     } on DioException catch (e) {
+      // Saiu de casa: o endereço local sumiu; tenta de novo pelo principal.
+      if (_onLocal && _isUnreachable(e)) {
+        _setLocal(false);
+        return get(endpoint, params);
+      }
       throw SubsonicException(_networkMessage(e));
     }
     if (res.statusCode == 404) {

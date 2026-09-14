@@ -1584,6 +1584,168 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Filtrar por música, artista ou álbum'**
   String get filterSongs;
+
+  /// No description provided for @devices.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aparelhos'**
+  String get devices;
+
+  /// No description provided for @localAddress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço na rede de casa (opcional)'**
+  String get localAddress;
+
+  /// No description provided for @localAddressHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usado quando estiver na mesma rede do servidor: mais rápido. Fora de casa, vale o endereço principal.'**
+  String get localAddressHint;
+
+  /// No description provided for @localAddressNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não configurado'**
+  String get localAddressNone;
+
+  /// No description provided for @localAddressInUse.
+  ///
+  /// In pt, this message translates to:
+  /// **'em uso agora'**
+  String get localAddressInUse;
+
+  /// No description provided for @localAddressAway.
+  ///
+  /// In pt, this message translates to:
+  /// **'fora de alcance agora (usando o principal)'**
+  String get localAddressAway;
+
+  /// No description provided for @localAddressOk.
+  ///
+  /// In pt, this message translates to:
+  /// **'O endereço de casa respondeu e já está em uso'**
+  String get localAddressOk;
+
+  /// No description provided for @localAddressNotNow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não respondeu agora; será usado quando você estiver em casa'**
+  String get localAddressNotNow;
+
+  /// No description provided for @save.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar'**
+  String get save;
+
+  /// No description provided for @remove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get remove;
+
+  /// No description provided for @playOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar em'**
+  String get playOn;
+
+  /// No description provided for @thisDevice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este aparelho'**
+  String get thisDevice;
+
+  /// No description provided for @devicePlaying.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocando: {title}'**
+  String devicePlaying(String title);
+
+  /// No description provided for @devicePaused.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausado: {title}'**
+  String devicePaused(String title);
+
+  /// No description provided for @deviceIdle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parado'**
+  String get deviceIdle;
+
+  /// No description provided for @deviceOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fora de alcance'**
+  String get deviceOffline;
+
+  /// No description provided for @deviceControlling.
+  ///
+  /// In pt, this message translates to:
+  /// **'Controlando daqui'**
+  String get deviceControlling;
+
+  /// No description provided for @playingOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocando em {device}'**
+  String playingOn(String device);
+
+  /// No description provided for @noDevicesFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum outro aparelho encontrado. Abra o BKplayer no outro aparelho, com a mesma conta e na mesma rede.'**
+  String get noDevicesFound;
+
+  /// No description provided for @addDeviceByAddress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar pelo endereço'**
+  String get addDeviceByAddress;
+
+  /// No description provided for @addDeviceHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'IP do aparelho (ex.: o do Tailscale, 100.x.y.z)'**
+  String get addDeviceHint;
+
+  /// No description provided for @deviceNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum BKplayer desta conta respondeu nesse endereço'**
+  String get deviceNotFound;
+
+  /// No description provided for @connectFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível conectar a {device}'**
+  String connectFailed(String device);
+
+  /// No description provided for @connectSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outros aparelhos (Connect)'**
+  String get connectSection;
+
+  /// No description provided for @connectEnable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar e controlar entre aparelhos'**
+  String get connectEnable;
+
+  /// No description provided for @connectEnableHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este aparelho aparece para os outros com a mesma conta e pode ser controlado por eles, como no Spotify Connect.'**
+  String get connectEnableHint;
+
+  /// No description provided for @deviceName.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome deste aparelho'**
+  String get deviceName;
 }
 
 class _AppLocalizationsDelegate

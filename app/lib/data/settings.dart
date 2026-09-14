@@ -49,6 +49,8 @@ class AppSettings {
     this.eqPreset = 'flat',
     this.trayIcon = true,
     this.closeToTray = false,
+    this.connectEnabled = true,
+    this.deviceName,
   });
 
   final ThemeMode themeMode;
@@ -93,6 +95,13 @@ class AppSettings {
   final bool trayIcon;
   final bool closeToTray;
 
+  /// Aparece para os outros aparelhos da mesma conta (BKplayer Connect) e
+  /// aceita ser controlado por eles.
+  final bool connectEnabled;
+
+  /// Nome mostrado aos outros aparelhos (null = nome do sistema).
+  final String? deviceName;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     int? seedColor,
@@ -130,6 +139,9 @@ class AppSettings {
     String? eqPreset,
     bool? trayIcon,
     bool? closeToTray,
+    bool? connectEnabled,
+    String? deviceName,
+    bool clearDeviceName = false,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -165,6 +177,8 @@ class AppSettings {
         eqPreset: eqPreset ?? this.eqPreset,
         trayIcon: trayIcon ?? this.trayIcon,
         closeToTray: closeToTray ?? this.closeToTray,
+        connectEnabled: connectEnabled ?? this.connectEnabled,
+        deviceName: clearDeviceName ? null : (deviceName ?? this.deviceName),
       );
 
   Map<String, dynamic> toJson() => {
@@ -201,6 +215,8 @@ class AppSettings {
         'eqPreset': eqPreset,
         'trayIcon': trayIcon,
         'closeToTray': closeToTray,
+        'connectEnabled': connectEnabled,
+        'deviceName': deviceName,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -240,6 +256,8 @@ class AppSettings {
       eqPreset: j['eqPreset'] as String? ?? d.eqPreset,
       trayIcon: pick('trayIcon', d.trayIcon),
       closeToTray: pick('closeToTray', d.closeToTray),
+      connectEnabled: pick('connectEnabled', d.connectEnabled),
+      deviceName: j['deviceName'] as String?,
     );
   }
 

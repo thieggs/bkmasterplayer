@@ -7,6 +7,29 @@ abstract class MusicProvider {
 
   Future<ServerInfo> connect();
 
+  /// Endereço da rede de casa configurado.
+  bool get hasLocalAddress;
+
+  /// Usando o endereço da rede de casa agora.
+  bool get onLocalAddress;
+
+  /// Endereço em uso agora.
+  String get activeAddress;
+
+  set localAddress(String? url);
+
+  /// Testa o endereço de casa e passa a usá-lo se responder (devolve se está nele).
+  Future<bool> checkLocalAddress();
+
+  /// Troca entre o endereço de casa (true) e o principal (false).
+  Stream<bool> get endpointChanges;
+
+  /// Credenciais desta conta (para se apresentar a outro aparelho).
+  Map<String, String> get authParams;
+
+  /// Confere se credenciais de outro aparelho valem neste servidor.
+  Future<bool> validateAuth(Map<String, String> params);
+
   Future<List<Album>> albumList(
     AlbumListType type, {
     int size = 50,

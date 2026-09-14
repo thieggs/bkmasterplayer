@@ -327,5 +327,60 @@
  "automixOffTap": "AutoMix desligado — clique para ligar",
  "automixOnTap": "Clique para desligar o AutoMix",
  "automixOnWaiting": "AutoMix ligado — analisando a próxima música",
- "filterSongs": "Filtrar por música, artista ou álbum"
+ "filterSongs": "Filtrar por música, artista ou álbum",
+ "devices": "Aparelhos",
+ "localAddress": "Endereço na rede de casa (opcional)",
+ "localAddressHint": "Usado quando estiver na mesma rede do servidor: mais rápido. Fora de casa, vale o endereço principal.",
+ "localAddressNone": "Não configurado",
+ "localAddressInUse": "em uso agora",
+ "localAddressAway": "fora de alcance agora (usando o principal)",
+ "localAddressOk": "O endereço de casa respondeu e já está em uso",
+ "localAddressNotNow": "Não respondeu agora; será usado quando você estiver em casa",
+ "save": "Salvar",
+ "remove": "Remover",
+ "playOn": "Tocar em",
+ "thisDevice": "Este aparelho",
+ "devicePlaying": "Tocando: {title}",
+ "@devicePlaying": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "devicePaused": "Pausado: {title}",
+ "@devicePaused": {
+  "placeholders": {
+   "title": {
+    "type": "String"
+   }
+  }
+ },
+ "deviceIdle": "Parado",
+ "deviceOffline": "Fora de alcance",
+ "deviceControlling": "Controlando daqui",
+ "playingOn": "Tocando em {device}",
+ "@playingOn": {
+  "placeholders": {
+   "device": {
+    "type": "String"
+   }
+  }
+ },
+ "noDevicesFound": "Nenhum outro aparelho encontrado. Abra o BKplayer no outro aparelho, com a mesma conta e na mesma rede.",
+ "addDeviceByAddress": "Adicionar pelo endereço",
+ "addDeviceHint": "IP do aparelho (ex.: o do Tailscale, 100.x.y.z)",
+ "deviceNotFound": "Nenhum BKplayer desta conta respondeu nesse endereço",
+ "connectFailed": "Não foi possível conectar a {device}",
+ "@connectFailed": {
+  "placeholders": {
+   "device": {
+    "type": "String"
+   }
+  }
+ },
+ "connectSection": "Outros aparelhos (Connect)",
+ "connectEnable": "Tocar e controlar entre aparelhos",
+ "connectEnableHint": "Este aparelho aparece para os outros com a mesma conta e pode ser controlado por eles, como no Spotify Connect.",
+ "deviceName": "Nome deste aparelho"
 }

@@ -59,6 +59,14 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - **Gerar o APK:** `./dev/build_apk.sh` → `dist/bkplayer_<versão>_arm64.apk` (~22 MB, bibliotecas comprimidas). Assinado com a chave `~/.android/bkplayer-release.jks` (senha em `app/android/key.properties`, fora do git): **guardar backup**, sem ela as próximas versões não instalam por cima.
 - **Emulador de teste:** AVD `bk_test` (Android 15 x86_64) com o Navidrome de teste em `http://10.0.2.2:4534`.
 
+### Endereço de casa e Connect (14/09)
+- **Endereço de casa:** a conta tem um endereço opcional da rede local (login e Ajustes). O app usa esse endereço quando o `ping` dele responde (~1,5 s no máximo). Volta ao principal na primeira chamada que falhar e testa de novo quando a rede muda (Wi-Fi/dados), quando o app volta ao primeiro plano e a cada 45 s fora de casa. Ao trocar, a próxima faixa é reagendada pelo endereço novo; o cache não muda, porque as chaves são por conta. Teste: `test/local_address_test.dart`.
+- **BKplayer Connect** (`lib/connect/`), estilo Spotify Connect entre aparelhos da mesma conta:
+  - **Descoberta:** anúncio UDP (porta 47801) com id, nome, plataforma, porta e hash do usuário. Pela internet (ex.: Tailscale), dá para "Adicionar pelo endereço".
+  - **Controle:** WebSocket (TCP 47800). O aparelho controlado confere as credenciais no próprio servidor (`ping` com o token de quem controla), com limite de tentativas.
+  - **Uso:** o botão "Aparelhos" abre "Tocar em". Se o outro aparelho já toca, passa a controlá-lo; se está parado, a fila daqui vai para lá do mesmo ponto. "Este aparelho" traz a música de volta e pausa lá.
+  - **Testado:** PC (instância de teste) controlado por script e pelo app no emulador (conectar, play, próxima, pausar, trazer de volta).
+
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica; use "qualidade de streaming" com transcodificação para MP3 ou deixe o servidor converter.
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.
