@@ -21,7 +21,7 @@ symphonia = { version = "0.6.1", default-features = false, features = [
     "isomp4", "mkv", "ogg", "wav", "aiff", "caf",
     "id3v1", "id3v2", "ape",
 ] }
-cpal = { version = "0.18.2", features = ["pulseaudio"] }
+cpal = "0.18.2"
 rubato = { version = "5.0", default-features = false }
 audioadapter-buffers = "5.2"
 ureq = "3.4"
@@ -35,8 +35,15 @@ sha2 = "0.10"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+cpal = { version = "0.18.2", features = ["pulseaudio"] }
 # Player do Bluetooth (AVRCP) direto no BlueZ; mesma versão que o notify-rust usa.
 zbus = "5.19"
+
+[target.'cfg(target_os = "android")'.dependencies]
+# O cpal (AAudio) usa a JVM e o Context do app pelo ndk-context; o app
+# entrega os dois pelo JNI na inicialização (ver src/android.rs).
+ndk-context = "0.1.1"
+jni-sys = "0.3.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))'.dependencies]
 souvlaki = { version = "0.8.3", default-features = false, features = ["use_zbus"] }

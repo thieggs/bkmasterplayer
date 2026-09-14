@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícones usados só pelo nome (notificação do audio_service): o R8 não pode descartar. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+  tools:keep="@drawable/ic_stat_bk,@drawable/ic_launcher_foreground,@drawable/ic_launcher_background" />

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,12 +75,8 @@ class AutomixSettingsSection extends ConsumerWidget {
             ],
           ),
         ),
-        ListTile(
-          enabled: on,
-          leading: const SizedBox(),
-          title: Text(l10n.automixBars),
-          subtitle: Text(l10n.automixBarsHint, style: theme.textTheme.bodySmall),
-          trailing: SegmentedButton<int>(
+        Builder(builder: (context) {
+          final picker = SegmentedButton<int>(
             segments: const [
               ButtonSegment(value: 4, label: Text('4')),
               ButtonSegment(value: 8, label: Text('8')),
@@ -88,8 +85,23 @@ class AutomixSettingsSection extends ConsumerWidget {
             ],
             selected: {s.automixBars},
             onSelectionChanged: on ? (v) => set((x) => x.copyWith(automixBars: v.first)) : null,
-          ),
-        ),
+          );
+          // No celular não cabe ao lado do título: vai para baixo.
+          final narrow = MediaQuery.sizeOf(context).width < 600;
+          return ListTile(
+            enabled: on,
+            leading: const SizedBox(),
+            title: Text(l10n.automixBars),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.automixBarsHint, style: theme.textTheme.bodySmall),
+                if (narrow) Padding(padding: const EdgeInsets.only(top: 8), child: picker),
+              ],
+            ),
+            trailing: narrow ? null : picker,
+          );
+        }),
         slider(
           title: l10n.automixMaxSeconds,
           value: l10n.seconds(s.automixMaxSeconds.round()),
@@ -249,7 +261,11 @@ class _ModelTileState extends ConsumerState<_ModelTile> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 6),
-          SegmentedButton<AnalysisModelSetting>(
+          // Encolhe um pouco se não couber (celular, textos em português).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: SegmentedButton<AnalysisModelSetting>(
             segments: [
               ButtonSegment(value: AnalysisModelSetting.auto, label: Text(l10n.modelAuto)),
               ButtonSegment(value: AnalysisModelSetting.small, label: Text(l10n.modelSmall)),
@@ -261,11 +277,12 @@ class _ModelTileState extends ConsumerState<_ModelTile> {
             ],
             selected: {s.analysisModel},
             onSelectionChanged: on ? (v) => ref.read(settingsProvider.notifier).update((x) => x.copyWith(analysisModel: v.first)) : null,
+            ),
           ),
           const SizedBox(height: 6),
           if (profile != null)
             Text(
-              l10n.modelDeviceInfo(profile.cores, profile.avx2 ? 'AVX2' : l10n.noAvx2, recommended,
+              l10n.modelDeviceInfo(profile.cores, profile.avx2 ? 'AVX2' : (Platform.isAndroid || Platform.isIOS ? 'ARM' : l10n.noAvx2), recommended,
                   profile.activeModel == 'full' ? l10n.modelFull : l10n.modelSmall),
               style: theme.textTheme.bodySmall,
             ),

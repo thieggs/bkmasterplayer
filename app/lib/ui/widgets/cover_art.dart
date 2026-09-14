@@ -30,23 +30,25 @@ class CoverImageProvider extends ImageProvider<CoverImageProvider> {
       MultiFrameImageStreamCompleter(codec: _load(decode), scale: 1.0, debugLabel: cacheKey);
 
   Future<ui.Codec> _load(ImageDecoderCallback decode) async {
+    final file = await fetchFile(url: url, cacheKey: cacheKey, cacheDir: cacheDir);
+    return decode(await ui.ImmutableBuffer.fromUint8List(await file.readAsBytes()));
+  }
+
+  /// Arquivo da capa no cache em disco (baixa se ainda não tem).
+  static Future<File> fetchFile({required String url, required String cacheKey, required String cacheDir}) async {
     final file = File(p.join(cacheDir, '${fnv1a32(cacheKey).toRadixString(16)}.img'));
-    Uint8List bytes;
-    if (await file.exists()) {
-      bytes = await file.readAsBytes();
-    } else {
-      final req = await _http.getUrl(Uri.parse(url));
-      final res = await req.close();
-      if (res.statusCode != 200) {
-        throw StateError('capa: HTTP ${res.statusCode}');
-      }
-      bytes = await consolidateHttpClientResponseBytes(res);
-      if (bytes.isEmpty) throw StateError('capa vazia');
-      final tmp = File('${file.path}.tmp');
-      await tmp.writeAsBytes(bytes);
-      await tmp.rename(file.path);
+    if (await file.exists()) return file;
+    final req = await _http.getUrl(Uri.parse(url));
+    final res = await req.close();
+    if (res.statusCode != 200) {
+      throw StateError('capa: HTTP ${res.statusCode}');
     }
-    return decode(await ui.ImmutableBuffer.fromUint8List(bytes));
+    final bytes = await consolidateHttpClientResponseBytes(res);
+    if (bytes.isEmpty) throw StateError('capa vazia');
+    final tmp = File('${file.path}.${bytes.length}.tmp');
+    await tmp.writeAsBytes(bytes);
+    await tmp.rename(file.path);
+    return file;
   }
 
   @override

@@ -1,5 +1,8 @@
 package io.github.playermusica.player_musica
 
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 
-class MainActivity : FlutterActivity()
+// A activity compartilha o FlutterEngine com o serviço de mídia (audio_service):
+// a música continua com a tela fechada, e os botões do fone/caixa Bluetooth, da
+// notificação e da tela de bloqueio chegam ao app.
+class MainActivity : AudioServiceActivity()

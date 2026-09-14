@@ -52,6 +52,8 @@ dependencies:
     sdk: flutter
   intl: any
   tray_manager: ^0.5.3
+  audio_service: ^0.18.19
+  audio_session: ^0.2.4
 
 dev_dependencies:
   flutter_test:
@@ -111,3 +113,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# audio_service com correção do botão de mídia no Android (ver third_party/audio_service/BKPLAYER.md).
+dependency_overrides:
+  audio_service:
+    path: third_party/audio_service

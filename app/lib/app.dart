@@ -14,6 +14,7 @@ import 'ui/pages/customize_page.dart';
 import 'ui/pages/equalizer_page.dart';
 import 'ui/pages/genres_page.dart';
 import 'ui/pages/home_page.dart';
+import 'ui/pages/library_page.dart';
 import 'ui/pages/login_page.dart';
 import 'ui/pages/offline_page.dart';
 import 'ui/pages/playlists_page.dart';
@@ -55,6 +56,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => AppShell(location: state.matchedLocation, child: child),
         routes: [
           GoRoute(path: '/', builder: (_, _) => const HomePage()),
+          GoRoute(path: '/library', builder: (_, _) => const LibraryPage()),
           GoRoute(
             path: '/albums',
             builder: (_, state) => AlbumsPage(

@@ -644,6 +644,12 @@ abstract class AppLocalizations {
   /// **'Músicas'**
   String get songs;
 
+  /// No description provided for @library.
+  ///
+  /// In pt, this message translates to:
+  /// **'Biblioteca'**
+  String get library;
+
   /// No description provided for @sonicPath.
   ///
   /// In pt, this message translates to:

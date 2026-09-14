@@ -126,7 +126,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
             padding: const EdgeInsets.only(top: 6),
             child: Chip(
               avatar: const Icon(Icons.auto_awesome, size: 16),
-              label: Text('${l10n.mixing}: ${mix.summary}'),
+              label: Text('${l10n.mixing}: ${mix.summary}', maxLines: 2, overflow: TextOverflow.ellipsis),
             ),
           );
         }),

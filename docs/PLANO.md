@@ -13,7 +13,7 @@ A pasta do projeto está vazia. Este arquivo é o documento central: na Fase 0 e
 
 ---
 
-## Status (13/09/2026): versão PC (Linux) completa
+## Status (14/09/2026): PC (Linux) completo · Android funcionando
 
 Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 
@@ -26,7 +26,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 | 4. Customização | ✅ tema, capas, 4 layouts do tocando agora (incl. vinil), layout, botões, seções, comportamento, perfis JSON |
 | 5. AutoMix DJ | ✅ análise (Beat This!), grade, tom, estrutura, planejador, time-stretch, estilos, configurações, modelo por potência |
 | 6. Windows | ⏳ |
-| 7. Android | ⏳ |
+| 7. Android | 🔶 APK arm64 (Android 8+): tudo do PC menos bandeja/mini player, com notificação de mídia, botões do fone/Bluetooth, foco de áudio e AutoMix; testado no emulador Android 15 · ⏳ teste no celular, Android Auto, análise econômica |
 | 8. iOS/macOS | ⏳ |
 
 ### Medições (testes automatizados)
@@ -48,10 +48,22 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 - Álbum tocado em ordem só fica sem mixagem se o áudio for contínuo (ao vivo, mixado); álbuns com silêncio entre as faixas são mixados.
 - Backup do estado de 13/09 em `~/Documentos/BKplayer-backup-2026-09-13` e na tag git `backup-2026-09-13`.
 
+### Android (14/09)
+- **Motor em Rust no celular:** o cpal abre o áudio pela AAudio, que precisa da JVM e do `Context`. O Dart carrega a biblioteca por FFI (`dlopen`), sem JVM; por isso o `BkApplication` (Kotlin) carrega o motor antes com `System.loadLibrary` e entrega o `Context` pelo JNI (`app/rust/src/android.rs`). Mínimo Android 8.0 (API 26, onde a AAudio começa).
+- **C++ do time-stretch:** liga no `libc++_shared.so` do NDK, que o Flutter não empacota; o Gradle copia do NDK para as ABIs do build.
+- **Serviço de mídia:** `audio_service` + `audio_session` (`lib/mobile/media_session.dart`): notificação com capa (do cache local, sem a URL com o token), tela de bloqueio, botões do fone/caixa Bluetooth, pausa em ligação e quando o fone desconecta, volume abaixado para o GPS. Na pausa o serviço sai do primeiro plano e solta o wake lock.
+- **audio_service corrigido** (`app/third_party/audio_service`, ver `BKPLAYER.md`): botão de mídia com o serviço fora do primeiro plano derrubava o app (ANR "startForegroundService() did not then call startForeground()"). Testado no emulador: pausar/tocar/próxima/anterior/parar em segundo plano, sem ANR.
+- **Bateria:** o motor suspende o stream de áudio depois de 10 s parado (vale também no PC).
+- **Tela:** navegação de baixo com Início, Buscar, Biblioteca (álbuns, músicas, artistas, playlists, gêneros, favoritos, downloads) e Ajustes; "voltar" do Android volta para a aba de origem; botão do AutoMix no mini player.
+- **Cache e downloads** ficam na pasta de dados do app (o Android esvazia a pasta de cache quando falta espaço).
+- **Gerar o APK:** `./dev/build_apk.sh` → `dist/bkplayer_<versão>_arm64.apk` (~22 MB, bibliotecas comprimidas). Assinado com a chave `~/.android/bkplayer-release.jks` (senha em `app/android/key.properties`, fora do git): **guardar backup**, sem ela as próximas versões não instalam por cima.
+- **Emulador de teste:** AVD `bk_test` (Android 15 x86_64) com o Navidrome de teste em `http://10.0.2.2:4534`.
+
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica; use "qualidade de streaming" com transcodificação para MP3 ou deixe o servidor converter.
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.
-- **Análise:** decodifica a faixa inteira na memória (~130 MB por faixa de 4 min). No Android será feita só nas regiões usadas.
+- **Análise:** decodifica a faixa inteira na memória (~130 MB por faixa de 4 min), também no Android (fazer só nas regiões usadas ⏳).
+- **Android com o app fechado** (processo encerrado): o botão da caixa/fone não abre o app; abra e toque uma vez.
 - **Mixer do KDE:** mostra o stream como "cpal-pulseaudio-PID" (o nome do cliente vem do cpal).
 - **Letras:** mostradas por linha; karaokê palavra por palavra (letras v2 do Navidrome 0.63) ⏳.
 - **AutoMix em intro sem bumbo:** se B entra por uma intro sem bateria clara, a fase local não é medida ali; em 2 de 18 transições medidas os elementos da intro ficaram ~30–40 ms à frente dos bumbos de A.
@@ -59,7 +71,7 @@ Legenda: ✅ feito e testado · 🔶 parcial · ⏳ próximo
 
 ### Próximos passos
 1. **Windows:** build, SMTC com a janela do Flutter, instalador (MSIX ou Inno Setup), WASAPI.
-2. **Android:** audio_service (serviço em primeiro plano, MediaSession com capa → carro/Android Auto), layouts de celular, análise econômica.
+2. **Android:** teste no celular (JBL), Android Auto (navegar pela biblioteca no carro), análise econômica (só Wi-Fi/carregando, só as regiões usadas).
 3. **AudioMuse API direta** (precisa do token): busca por texto, Alchemy, Music Map.
 4. **Jellyfin** como segundo provedor; cache da biblioteca para navegar offline; karaokê palavra por palavra; editor de smart playlist; estatísticas/retrospectiva; Chromecast/DLNA; controle remoto pelo celular.
 

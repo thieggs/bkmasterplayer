@@ -287,6 +287,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get songs => 'Músicas';
 
   @override
+  String get library => 'Biblioteca';
+
+  @override
   String get sonicPath => 'Caminho sônico até…';
 
   @override

@@ -91,6 +91,7 @@
  "shuffleLibrary": "Shuffle library",
  "similarArtists": "Similar artists",
  "songs": "Songs",
+ "library": "Library",
  "sonicPath": "Sonic path to…",
  "sonicPathPickTarget": "Pick the destination song",
  "sonicRadio": "Sonic radio (AudioMuse)",

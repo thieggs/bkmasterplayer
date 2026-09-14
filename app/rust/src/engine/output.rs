@@ -16,12 +16,40 @@ use parking_lot::Mutex;
 use super::mixer::Mixer;
 
 pub struct Output {
-    _stream: cpal::Stream,
+    stream: cpal::Stream,
+    suspended: bool,
     pub sample_rate: u32,
     pub channels: u16,
     pub device_name: String,
     /// Id do dispositivo aberto (para detectar mudança da saída padrão).
     pub device_id: Option<String>,
+}
+
+impl Output {
+    /// Para o stream (pausado há um tempo): o sistema deixa de manter o áudio
+    /// e a CPU acordados só para tocar silêncio (bateria, no celular).
+    pub fn suspend(&mut self) {
+        if !self.suspended && self.stream.pause().is_ok() {
+            self.suspended = true;
+        }
+    }
+
+    /// Volta a rodar o stream (o mixer só processa comandos dentro do callback).
+    /// false = não voltou (ex.: o servidor de som reiniciou): reabrir a saída.
+    pub fn wake(&mut self) -> bool {
+        if self.suspended {
+            self.suspended = false;
+            if let Err(e) = self.stream.play() {
+                eprintln!("[áudio] retomando stream: {e}");
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn is_suspended(&self) -> bool {
+        self.suspended
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -141,7 +169,8 @@ pub fn open(device_id: Option<&str>, mixer: Arc<Mutex<Mixer>>, failed: Arc<Atomi
         other => return Err(anyhow!("formato de saída não suportado: {other}")),
     };
     Ok(Output {
-        _stream: stream,
+        stream,
+        suspended: false,
         sample_rate,
         channels,
         device_name: device_name(&device),

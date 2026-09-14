@@ -227,6 +227,11 @@ impl Inner {
         if ctl.cmd.push(cmd).is_err() {
             log::error!("fila de comandos do mixer cheia");
         }
+        if let Some(o) = ctl.output.as_mut() {
+            if !o.wake() {
+                self.stream_failed.store(true, Ordering::Relaxed);
+            }
+        }
     }
 
     fn current_deck(&self) -> Option<Arc<DeckShared>> {
@@ -731,6 +736,7 @@ fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
     let mut last_state = (false, false, false);
     let mut last_mpris_pos = Instant::now();
     let mut last_default_check = Instant::now();
+    let mut idle_since: Option<Instant> = None;
 
     while inner.running.load(Ordering::Relaxed) {
         while let Ok(ev) = ev_rx.pop() {
@@ -757,6 +763,16 @@ fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
         if state.0 && last_mpris_pos.elapsed() >= Duration::from_secs(5) {
             last_mpris_pos = Instant::now();
             update_desktop_playback(&inner);
+        }
+
+        // Parado há 10 s: suspende o stream (qualquer comando novo ao mixer acorda).
+        if state.0 || state.1 {
+            idle_since = None;
+        } else if idle_since.get_or_insert_with(Instant::now).elapsed() >= Duration::from_secs(10) {
+            let mut ctl = inner.ctl.lock();
+            if let Some(o) = ctl.output.as_mut().filter(|o| !o.is_suspended()) {
+                o.suspend();
+            }
         }
 
         if inner.stream_failed.load(Ordering::Relaxed) && last_reopen.elapsed() >= Duration::from_secs(2) {
@@ -945,4 +961,6 @@ fn update_desktop_playback(inner: &Arc<Inner>) {
             d.set_playback(playing, cur.is_some(), pos);
         }
     }
+    #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+    let _ = inner;
 }

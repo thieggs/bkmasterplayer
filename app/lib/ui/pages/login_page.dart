@@ -88,6 +88,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     TextFormField(
                       controller: _user,
                       autofillHints: const [AutofillHints.username],
+                      autocorrect: false,
+                      enableSuggestions: false,
                       decoration: InputDecoration(
                         labelText: l10n.username,
                         prefixIcon: const Icon(Icons.person_outline),

@@ -263,7 +263,10 @@ class PlayerBar extends ConsumerWidget {
 /// Botão do AutoMix: clique liga/desliga. Desligado, só o ícone; ligado,
 /// mostra o estado (mixando agora, próxima sincronizada ou simples).
 class _MixChip extends ConsumerWidget {
-  const _MixChip();
+  const _MixChip({this.compact = false});
+
+  /// Só o ícone (mini player do celular); segurar mostra o status.
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -286,6 +289,17 @@ class _MixChip extends ConsumerWidget {
         : planned != null
             ? '${l10n.nextMix} ($kind): $planned'
             : l10n.automixOnWaiting;
+    // Batidas casadas (ou ainda sem plano): ícone de sincronia; transição simples: o de troca.
+    final icon = active || synced || planned == null ? Icons.auto_awesome : Icons.swap_horiz;
+    if (compact) {
+      return IconButton(
+        tooltip: '$status\n${l10n.automixOnTap}',
+        icon: Icon(icon),
+        color: scheme.primary,
+        style: active ? IconButton.styleFrom(backgroundColor: scheme.primary, foregroundColor: scheme.onPrimary) : null,
+        onPressed: toggle,
+      );
+    }
     return Tooltip(
       message: '$status\n${l10n.automixOnTap}',
       child: Padding(
@@ -293,9 +307,7 @@ class _MixChip extends ConsumerWidget {
         child: ActionChip(
           visualDensity: VisualDensity.compact,
           onPressed: toggle,
-          // Batidas casadas (ou ainda sem plano): ícone de sincronia; transição simples: o de troca.
-          avatar: Icon(active || synced || planned == null ? Icons.auto_awesome : Icons.swap_horiz,
-              size: 16, color: active ? scheme.onPrimary : scheme.primary),
+          avatar: Icon(icon, size: 16, color: active ? scheme.onPrimary : scheme.primary),
           label: Text(active ? l10n.mixing : 'AutoMix'),
           labelStyle: TextStyle(color: active ? scheme.onPrimary : null, fontSize: 12),
           backgroundColor: active ? scheme.primary : null,
@@ -342,6 +354,7 @@ class MiniPlayer extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const _MixChip(compact: true),
                   IconButton(
                     icon: Icon(playing ? Icons.pause : Icons.play_arrow),
                     onPressed: ref.read(playerProvider.notifier).toggle,

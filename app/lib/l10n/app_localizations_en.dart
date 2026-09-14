@@ -288,6 +288,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get songs => 'Songs';
 
   @override
+  String get library => 'Library';
+
+  @override
   String get sonicPath => 'Sonic path to…';
 
   @override

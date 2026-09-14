@@ -10,6 +10,7 @@ import 'app.dart';
 import 'core/providers.dart';
 import 'data/settings.dart';
 import 'desktop/desktop_integration.dart';
+import 'mobile/media_session.dart';
 import 'player/automix.dart';
 import 'src/rust/api/engine.dart' as engine;
 import 'src/rust/frb_generated.dart';
@@ -48,9 +49,13 @@ Future<void> main() async {
     debugPrint('modelos de análise indisponíveis: $e');
   }
 
+  // No Android o cache de áudio (com os downloads offline) fica na pasta de
+  // dados do app: a pasta de cache o sistema esvazia quando falta espaço.
+  final audioCacheDir = Platform.isAndroid ? '${supportDir.path}/audio_cache' : cacheDir.path;
+
   await engine.playerInit(
     config: engine.PlayerConfig(
-      cacheDir: cacheDir.path,
+      cacheDir: audioCacheDir,
       cacheLimitMb: settings.cacheLimitMb,
       deviceId: settings.outputDeviceId,
       appId: appId,
@@ -73,6 +78,13 @@ Future<void> main() async {
     // Bandeja e fechar janela (fechar encerra na hora ou esconde na bandeja;
     // o desligamento padrão do Flutter no Linux às vezes aborta no OpenGL).
     await DesktopIntegration(container).init();
+  }
+  if (Platform.isAndroid) {
+    try {
+      await initMobileMedia(container);
+    } catch (e) {
+      debugPrint('serviço de mídia indisponível: $e');
+    }
   }
   runApp(UncontrolledProviderScope(container: container, child: const PlayerApp()));
 }

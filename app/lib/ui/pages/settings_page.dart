@@ -28,6 +28,7 @@ class SettingsPage extends ConsumerWidget {
     final session = ref.watch(sessionProvider).value;
     final info = session?.info;
     final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+    final narrow = MediaQuery.sizeOf(context).width < 600;
 
     Widget section(String title) => Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
@@ -86,10 +87,8 @@ class SettingsPage extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/customize'),
         ),
-        ListTile(
-          leading: const Icon(Icons.brightness_6_outlined),
-          title: Text(l10n.theme),
-          trailing: SegmentedButton<ThemeMode>(
+        Builder(builder: (context) {
+          final picker = SegmentedButton<ThemeMode>(
             segments: [
               ButtonSegment(value: ThemeMode.system, label: Text(l10n.themeSystem)),
               ButtonSegment(value: ThemeMode.light, label: Text(l10n.themeLight)),
@@ -97,8 +96,15 @@ class SettingsPage extends ConsumerWidget {
             ],
             selected: {s.themeMode},
             onSelectionChanged: (v) => set((x) => x.copyWith(themeMode: v.first)),
-          ),
-        ),
+          );
+          // No celular não cabe ao lado do título: vai para baixo.
+          return ListTile(
+            leading: const Icon(Icons.brightness_6_outlined),
+            title: Text(l10n.theme),
+            subtitle: narrow ? Padding(padding: const EdgeInsets.only(top: 8), child: picker) : null,
+            trailing: narrow ? null : picker,
+          );
+        }),
         SwitchListTile(
           secondary: const Icon(Icons.palette_outlined),
           title: Text(l10n.dynamicColor),
@@ -197,7 +203,8 @@ class SettingsPage extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/equalizer'),
         ),
-        Consumer(builder: (context, ref, _) {
+        // No celular o sistema escolhe a saída (fone, Bluetooth, alto-falante).
+        if (isDesktop) Consumer(builder: (context, ref, _) {
           final devices = ref.watch(outputDevicesProvider).value ?? const [];
           final ids = devices.map((d) => d.id).toSet();
           return ListTile(

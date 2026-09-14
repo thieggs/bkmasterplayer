@@ -32,6 +32,33 @@ final _dests = [
   _Dest('/offline', Icons.download_outlined, Icons.download_done, (l) => l.downloads),
 ];
 
+/// Abas do celular (a navegação de baixo só comporta poucas).
+final _mobileDests = [
+  _Dest('/', Icons.home_outlined, Icons.home, (l) => l.home),
+  _Dest('/search', Icons.search, Icons.search, (l) => l.search),
+  _Dest('/library', Icons.library_music_outlined, Icons.library_music, (l) => l.library),
+  _Dest('/settings', Icons.settings_outlined, Icons.settings, (l) => l.settings),
+];
+
+// Prefixos: '/album' cobre a lista (/albums) e o álbum aberto (/album/:id).
+const _libraryPaths = ['/library', '/album', '/song', '/artist', '/playlist', '/genre', '/favorites', '/offline'];
+const _settingsPaths = ['/settings', '/equalizer', '/customize'];
+
+int _mobileSelected(String loc) {
+  if (loc.startsWith('/search')) return 1;
+  if (_settingsPaths.any(loc.startsWith)) return 3;
+  if (loc != '/' && _libraryPaths.any(loc.startsWith)) return 2;
+  return 0;
+}
+
+/// Para onde o "voltar" do Android leva numa aba sem histórico (null = sai do app).
+String? _backTarget(String loc) {
+  if (loc == '/') return null;
+  if (loc != '/library' && _libraryPaths.any(loc.startsWith)) return '/library';
+  if (loc != '/settings' && _settingsPaths.any(loc.startsWith)) return '/settings';
+  return '/';
+}
+
 /// Layout principal: barra lateral + conteúdo + fila opcional + player embaixo.
 /// Em telas estreitas (celular) vira navegação inferior + mini player.
 class AppShell extends ConsumerStatefulWidget {
@@ -79,8 +106,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     final shortcuts = <ShortcutActivator, VoidCallback>{
       const SingleActivator(LogicalKeyboardKey.space): () => ref.read(playerProvider.notifier).toggle(),
       const SingleActivator(LogicalKeyboardKey.mediaPlayPause): () => ref.read(playerProvider.notifier).toggle(),
-      const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () => ref.read(playerProvider.notifier).next(),
-      const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): () => ref.read(playerProvider.notifier).previous(),
+      const SingleActivator(LogicalKeyboardKey.arrowRight, control: true): () =>
+          ref.read(playerProvider.notifier).next(),
+      const SingleActivator(LogicalKeyboardKey.arrowLeft, control: true): () =>
+          ref.read(playerProvider.notifier).previous(),
       const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true): () =>
           ref.read(playerProvider.notifier).seekBy(const Duration(seconds: 10)),
       const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true): () =>
@@ -93,22 +122,33 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
 
     if (!wide) {
-      final sel = _selected;
-      return Scaffold(
-        body: SafeArea(child: content),
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const MiniPlayer(),
-            NavigationBar(
-              selectedIndex: sel.clamp(0, 4),
-              onDestinationSelected: (i) => context.go(_dests[i].path),
-              destinations: [
-                for (final d in _dests.take(5))
-                  NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label(l10n)),
-              ],
-            ),
-          ],
+      final loc = widget.location;
+      return BackButtonListener(
+        onBackButtonPressed: () async {
+          final router = GoRouter.of(context);
+          // Página aberta por cima (álbum, artista, tocando agora): o go_router volta.
+          if (router.canPop()) return false;
+          final target = _backTarget(loc);
+          if (target == null) return false;
+          router.go(target);
+          return true;
+        },
+        child: Scaffold(
+          body: SafeArea(child: content),
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const MiniPlayer(),
+              NavigationBar(
+                selectedIndex: _mobileSelected(loc),
+                onDestinationSelected: (i) => context.go(_mobileDests[i].path),
+                destinations: [
+                  for (final d in _mobileDests)
+                    NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label(l10n)),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }

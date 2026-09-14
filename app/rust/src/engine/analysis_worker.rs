@@ -160,7 +160,7 @@ impl AnalysisWorker {
 /// disputar CPU com a decodificação/áudio. As threads do rayon criadas a partir
 /// desta herdam a prioridade.
 fn lower_priority() {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     unsafe {
         let tid = libc::syscall(libc::SYS_gettid) as libc::id_t;
         libc::setpriority(libc::PRIO_PROCESS, tid, 10);

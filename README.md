@@ -2,8 +2,8 @@
 
 Player open source para servidores **OpenSubsonic** (Navidrome, Gonic, Ampache…),
 com integração ao **AudioMuse-AI**, **AutoMix DJ** (transições sincronizadas por
-BPM, como um DJ) e personalização completa. Linux primeiro; Windows, Android e
-iOS a seguir.
+BPM, como um DJ) e personalização completa. Linux e Android; Windows e iOS a
+seguir.
 
 - Plano, status e roadmap: [`docs/PLANO.md`](docs/PLANO.md)
 - App (Flutter): [`app/`](app/) · Motor de áudio (Rust): [`app/rust/`](app/rust/)
@@ -23,6 +23,7 @@ iOS a seguir.
   - MPRIS com capa (KDE Connect, widgets), notificação que não empilha.
   - Bandeja do sistema, mini player, atalhos de teclado.
   - Segue a saída padrão do sistema (Bluetooth incluso).
+- **Android:** notificação de mídia com capa, tela de bloqueio, botões do fone e da caixa Bluetooth, pausa em ligações, navegação de celular.
 - **Personalização:** tema, cores (inclusive da capa), AMOLED, cantos, densidade, capas, 4 layouts do "tocando agora" (vinil incluso), barra lateral, botões do player, seções do Início, perfis exportáveis.
 - **Idiomas:** português e inglês.
 
@@ -39,6 +40,18 @@ flutter build linux --release         # versão otimizada
 ```
 
 Ambiente de teste (opcional): `./dev/setup_navidrome.sh` gera as músicas e sobe um Navidrome em http://localhost:4534 (dev/dev).
+
+## Android
+
+Pré-requisitos: Android SDK com NDK 28.2 (`ANDROID_HOME`, padrão `~/android-sdk`) e
+`rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`.
+
+```bash
+./dev/build_apk.sh                    # dist/bkplayer_<versão>_arm64.apk (Android 8+)
+cd app && flutter run -d <aparelho>   # desenvolvimento (celular ou emulador)
+```
+
+A assinatura de release vem de `app/android/key.properties` (fora do git); sem ele o APK sai com a chave de debug.
 
 ## Testes
 

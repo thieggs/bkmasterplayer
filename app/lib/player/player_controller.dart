@@ -503,6 +503,10 @@ class PlayerController extends Notifier<PlayerState> {
     ref.read(settingsProvider.notifier).update((s) => s.copyWith(volume: vol));
   }
 
+  /// Abaixa o volume por um tempo (outro app pediu, ex.: navegação do GPS),
+  /// sem mexer no volume salvo.
+  void duck(bool on) => engine.playerSetVolume(volume: _gain(state.volume) * (on ? 0.3 : 1.0));
+
   /// Curva perceptual: o slider linear vira ganho ~cúbico.
   static double _gain(double v) => v * v * v;
 
