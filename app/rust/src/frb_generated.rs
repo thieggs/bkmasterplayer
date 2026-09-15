@@ -1789,6 +1789,7 @@ impl SseDecode for crate::api::engine::TrackSource {
         let mut var_coverUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_coverKey = <Option<String>>::sse_decode(deserializer);
         let mut var_analysisKey = <Option<String>>::sse_decode(deserializer);
+        let mut var_analysisUrl = <Option<String>>::sse_decode(deserializer);
         return crate::api::engine::TrackSource {
             id: var_id,
             url: var_url,
@@ -1803,6 +1804,7 @@ impl SseDecode for crate::api::engine::TrackSource {
             cover_url: var_coverUrl,
             cover_key: var_coverKey,
             analysis_key: var_analysisKey,
+            analysis_url: var_analysisUrl,
         };
     }
 }
@@ -2282,6 +2284,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::engine::TrackSource {
             self.cover_url.into_into_dart().into_dart(),
             self.cover_key.into_into_dart().into_dart(),
             self.analysis_key.into_into_dart().into_dart(),
+            self.analysis_url.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -2793,6 +2796,7 @@ impl SseEncode for crate::api::engine::TrackSource {
         <Option<String>>::sse_encode(self.cover_url, serializer);
         <Option<String>>::sse_encode(self.cover_key, serializer);
         <Option<String>>::sse_encode(self.analysis_key, serializer);
+        <Option<String>>::sse_encode(self.analysis_url, serializer);
     }
 }
 

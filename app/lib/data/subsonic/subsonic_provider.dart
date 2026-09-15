@@ -303,4 +303,12 @@ class SubsonicProvider implements MusicProvider {
   @override
   String? coverCacheKey(String? coverArtId, {int? size}) =>
       coverArtId == null ? null : '$accountId:cover:$coverArtId:${size ?? 0}';
+
+  /// O servidor de análise confere este mesmo login no Navidrome.
+  @override
+  Uri? analyzerUri(String server, String path) {
+    final base = server.trim().replaceAll(RegExp(r'/+$'), '');
+    if (!base.startsWith('http://') && !base.startsWith('https://')) return null;
+    return Uri.parse('$base$path').replace(queryParameters: client.auth.params);
+  }
 }

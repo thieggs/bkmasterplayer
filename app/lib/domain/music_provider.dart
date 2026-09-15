@@ -79,4 +79,8 @@ abstract class MusicProvider {
   String streamCacheKey(Song song, {String? format, int? maxBitRate});
   Uri? coverUri(String? coverArtId, {int? size});
   String? coverCacheKey(String? coverArtId, {int? size});
+
+  /// Endereço [path] no servidor de análise do AutoMix (BK Analyzer) em
+  /// [server], com o login desta conta; null se a fonte não tem esse servidor.
+  Uri? analyzerUri(String server, String path);
 }

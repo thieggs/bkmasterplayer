@@ -196,23 +196,141 @@ fn tempo_jump_plan(a: &TrackAnalysis, b: &TrackAnalysis, ga: &BeatGrid, gb: &Bea
     }
 }
 
+/// Compasso dos downbeats da rede em volta do `i`-ésimo, se vêm regulares
+/// (3 intervalos seguidos com a mesma duração, ±6%): serve para cortar ou
+/// ecoar no compasso, não para sincronizar o tempo.
+fn regular_bar(downs: &[f64], i: usize) -> Option<f64> {
+    if downs.len() < 4 || i >= downs.len() {
+        return None;
+    }
+    let start = i.saturating_sub(1).min(downs.len() - 4);
+    let iv: Vec<f64> = downs[start..start + 4].windows(2).map(|w| w[1] - w[0]).collect();
+    let mut sorted = iv.clone();
+    sorted.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    let m = sorted[1];
+    ((1.0..=5.0).contains(&m) && iv.iter().all(|d| (d / m - 1.0).abs() < 0.06)).then_some(m)
+}
+
+fn steady_grid(t: &TrackAnalysis, at: f64) -> Option<&BeatGrid> {
+    t.bpm?;
+    t.grid_at(at).filter(|g| g.is_steady())
+}
+
+/// Onde B entra numa transição no compasso: o 1º compasso com som (pela
+/// grade estável, ou pelo 1º downbeat regular da rede logo no começo). None
+/// se a batida só começa depois de uma intro sem ritmo: aí a transição
+/// simples, que toca a intro, soa melhor.
+pub fn bar_entry(b: &TrackAnalysis) -> Option<f64> {
+    if let Some(g) = steady_grid(b, b.first_sound + 5.0) {
+        let bar = g.bar_at_or_after(b.first_sound - 0.05);
+        let off = g.offset_near(bar, bar + g.bar_seconds()).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
+        return Some((bar + off).max(0.0));
+    }
+    // O 1º downbeat regular logo no começo (o 2º, se o 1º compasso tem uma
+    // virada que a rede marcou torta).
+    let first = b.downbeats.iter().position(|d| *d >= b.first_sound - 0.05)?;
+    (first..(first + 3).min(b.downbeats.len())).find_map(|i| {
+        let bar = regular_bar(&b.downbeats, i)?;
+        (b.downbeats[i] - b.first_sound <= bar.max(2.5) + bar).then_some(b.downbeats[i])
+    })
+}
+
+/// Onde A sai numa transição no compasso: começo da outro (nos últimos 16
+/// compassos) ou 4 compassos antes do fim musical, num compasso da grade
+/// estável ou num downbeat regular da rede, no futuro e com espaço para o
+/// eco. (instante, compasso, batida), em s.
+pub fn bar_exit(a: &TrackAnalysis, s: &AutomixSettings, a_now: f64) -> Option<(f64, f64, f64)> {
+    let a_end = if s.trim_silence { a.last_sound } else { a.duration };
+    if let Some(g) = steady_grid(a, a_end - 20.0) {
+        let bar = g.bar_seconds();
+        let stop = g.nearest_bar(a_end).min(a.duration);
+        let at = match a.outro_start {
+            Some(o) if stop - o <= 16.0 * bar => g.nearest_bar(o),
+            _ => stop - 4.0 * bar,
+        };
+        let at = at.max(g.bar_at_or_after(a_now + 4.0));
+        let off = g.offset_near(at, at + bar).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
+        return (at + 2.0 * bar <= a.duration).then_some((at + off, bar, g.period));
+    }
+    let downs = &a.downbeats;
+    // Compasso típico no fim (mediana dos últimos 40 s): o finalzinho costuma
+    // desacelerar ou acabar numa nota longa, então o ponto não fica ali.
+    let mut iv: Vec<f64> =
+        downs.windows(2).filter(|w| w[0] >= a_end - 40.0 && w[1] <= a_end).map(|w| w[1] - w[0]).filter(|d| (1.0..=5.0).contains(d)).collect();
+    if iv.len() < 3 {
+        return None;
+    }
+    iv.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    let bar0 = iv[iv.len() / 2];
+    let want = match a.outro_start {
+        Some(o) if a_end - o <= 16.0 * bar0 => o,
+        _ => a_end - 4.0 * bar0,
+    };
+    // O downbeat regular (no compasso típico) mais perto do alvo.
+    let (at, bar) = downs
+        .iter()
+        .enumerate()
+        .filter(|(_, d)| **d >= a_now + 4.0 && **d + 2.0 * bar0 <= a.duration && (**d - want).abs() <= 4.0 * bar0)
+        .filter_map(|(i, d)| regular_bar(downs, i).filter(|b| (b / bar0 - 1.0).abs() < 0.06).map(|b| (*d, b)))
+        .min_by(|x, y| (x.0 - want).abs().partial_cmp(&(y.0 - want).abs()).unwrap())?;
+    // Batida: mediana dos intervalos da rede ali perto (o eco repete nela).
+    let mut iv: Vec<f64> = a.beats.windows(2).filter(|w| w[0] >= at - 4.0 * bar && w[1] <= at + 2.0 * bar).map(|w| w[1] - w[0]).collect();
+    iv.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    let beat = iv.get(iv.len() / 2).copied().filter(|p| (0.2..=1.5).contains(p)).unwrap_or(bar / a.beats_per_bar.max(1) as f64);
+    Some((at, bar, beat))
+}
+
+/// Sem como sincronizar o tempo (batida tocada, BPMs longe): se as duas
+/// faixas têm compassos claros nas pontas, A ecoa (ou corta) num compasso
+/// dela e B entra no 1º compasso dela no mesmo instante, cada uma no seu
+/// tempo. Os pontos saem da estrutura de cada faixa (ver a regra de projeto
+/// no topo). Quem escolheu "mistura"/"filtro" fica com a transição simples.
+fn bar_plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f64, why: &str) -> Option<MixPlan> {
+    let style = match s.style {
+        MixStyle::Auto | MixStyle::BassSwap | MixStyle::Echo => MixStyle::Echo,
+        MixStyle::Cut => MixStyle::Cut,
+        MixStyle::Blend | MixStyle::Filter => return None,
+    };
+    let (at, bar, beat) = bar_exit(a, s, a_now)?;
+    let b_in = bar_entry(b)?;
+    Some(MixPlan {
+        style,
+        from_start: at,
+        to_start: b_in,
+        duration: if style == MixStyle::Cut { beat } else { 2.0 * bar },
+        speed: 1.0,
+        ramp: 0.0,
+        // Eco já no primeiro tempo: A para e ecoa, B entra ao longo de 1 batida.
+        swap_at: 0.0,
+        beat,
+        beatmatched: false,
+        bars: 1,
+        summary: format!("{} no compasso, cada uma no seu tempo ({why})", if style == MixStyle::Cut { "corte" } else { "eco" }),
+    })
+}
+
+/// Não dá para sincronizar: transição no compasso, se der; senão, simples.
+fn fallback(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f64, why: &str) -> MixPlan {
+    bar_plan(a, b, s, a_now, why).unwrap_or_else(|| unclear_plan(a, b, s, a_now, why))
+}
+
 /// Planeja a transição de A (tocando, na posição `a_now` s) para B.
 pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f64) -> MixPlan {
     if !a.has_beat() || !b.has_beat() {
-        return unclear_plan(a, b, s, a_now, "sem batida confiável");
+        return fallback(a, b, s, a_now, "sem batida confiável");
     }
     let a_end = if s.trim_silence { a.last_sound } else { a.duration };
     let Some(ga) = a.grid_at(a_end - 20.0) else {
-        return unclear_plan(a, b, s, a_now, "sem grade no fim da atual");
+        return fallback(a, b, s, a_now, "sem grade no fim da atual");
     };
     let Some(gb) = b.grid_at(b.first_sound + 5.0) else {
-        return unclear_plan(a, b, s, a_now, "sem grade no começo da próxima");
+        return fallback(a, b, s, a_now, "sem grade no começo da próxima");
     };
     if !ga.is_steady() {
-        return unclear_plan(a, b, s, a_now, "batida irregular no fim da atual");
+        return fallback(a, b, s, a_now, "batida irregular no fim da atual");
     }
     if !gb.is_steady() {
-        return unclear_plan(a, b, s, a_now, "batida irregular no começo da próxima");
+        return fallback(a, b, s, a_now, "batida irregular no começo da próxima");
     }
 
     // Velocidade de B para as batidas baterem (aceita 2:1 e 1:2).
@@ -262,7 +380,7 @@ pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
     }
     let mut bars = snap_bars(bars);
     if bars < s.min_bars {
-        return unclear_plan(a, b, s, a_now, "pouco espaço para mixar");
+        return fallback(a, b, s, a_now, "pouco espaço para mixar");
     }
 
     // Início: começo da outro (se couber a transição inteira nela), senão
@@ -279,7 +397,7 @@ pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
         let room = ((a_stop - from) / bar_a).floor().max(0.0) as u32;
         bars = snap_bars(bars.min(room));
         if bars < s.min_bars.min(2) {
-            return unclear_plan(a, b, s, a_now, "tarde demais para sincronizar");
+            return fallback(a, b, s, a_now, "tarde demais para sincronizar");
         }
     }
     let duration = bars as f64 * bar_a;
@@ -289,7 +407,7 @@ pub fn plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
     let off_a = ga.offset_near(from, from + duration).unwrap_or(0.0);
     let off_b = gb.offset_near(b_bar, b_bar + bars as f64 * bar_b).unwrap_or(0.0);
     if off_a.abs() > 0.025 || off_b.abs() > 0.025 {
-        return unclear_plan(a, b, s, a_now, "fase incerta no ponto da mixagem");
+        return fallback(a, b, s, a_now, "fase incerta no ponto da mixagem");
     }
     // B pode cair uns ms antes do começo do arquivo (batida em t≈0): aí B
     // começa em 0 e a transição atrasa esse mesmo tanto, para as batidas
@@ -544,6 +662,69 @@ mod tests {
         assert!(!seamless(&a, &b), "silêncio no fim de A: álbum comum");
         (a.last_sound, b.first_sound) = (239.9, 0.8);
         assert!(!seamless(&a, &b), "silêncio no começo de B: álbum comum");
+    }
+
+    /// Batida tocada: grade que não trava, mas downbeats da rede a cada `bar` s.
+    fn played(bpm: f64, duration: f64, first_downbeat: f64) -> TrackAnalysis {
+        let mut t = fake(bpm, duration, 16.0, 16.0, "8A");
+        t.grids[0].lock = 0.3;
+        t.grids[0].residual = 0.014;
+        t.intro_end = None;
+        t.outro_start = None;
+        let bar = 4.0 * 60.0 / bpm;
+        t.downbeats = (0..).map(|k| first_downbeat + k as f64 * bar).take_while(|d| *d < duration).collect();
+        t.beats = (0..).map(|k| first_downbeat + k as f64 * bar / 4.0).take_while(|d| *d < duration).collect();
+        t
+    }
+
+    #[test]
+    fn played_music_echoes_on_the_bar() {
+        let a = played(130.0, 240.0, 0.4);
+        let b = played(150.0, 200.0, 0.2);
+        assert!(!a.has_beat() && !b.has_beat());
+        let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        assert_eq!(p.style, MixStyle::Echo, "{p:?}");
+        assert!(!p.beatmatched);
+        assert!((p.speed - 1.0).abs() < 1e-12, "cada uma no seu tempo");
+        assert!(a.downbeats.iter().any(|d| (d - p.from_start).abs() < 1e-9), "A sai num downbeat: {p:?}");
+        assert!((p.to_start - 0.2).abs() < 1e-9, "B entra no 1º downbeat");
+        let bar_a = 4.0 * 60.0 / 130.0;
+        assert!((p.duration - 2.0 * bar_a).abs() < 1e-6);
+        assert!((p.beat - bar_a / 4.0).abs() < 1e-6);
+        // 4 compassos antes do fim (sem outro detectada).
+        assert!((p.from_start - (240.0 - 4.0 * bar_a)).abs() <= bar_a, "{p:?}");
+    }
+
+    #[test]
+    fn irregular_or_late_beat_stays_simple() {
+        let a = played(130.0, 240.0, 0.4);
+        let mut b = played(150.0, 200.0, 0.2);
+        // Intro sem batida: o 1º downbeat só aos 20 s.
+        b.downbeats.retain(|d| *d > 20.0);
+        let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        assert_eq!(p.style, MixStyle::Blend, "{p:?}");
+        // Downbeats sem regularidade no fim de A.
+        let mut a2 = played(130.0, 240.0, 0.4);
+        for (k, d) in a2.downbeats.iter_mut().enumerate() {
+            *d += if k % 2 == 0 { 0.0 } else { 0.4 };
+        }
+        let p = plan(&a2, &played(150.0, 200.0, 0.2), &AutomixSettings::default(), 30.0);
+        assert_eq!(p.style, MixStyle::Blend, "{p:?}");
+        // Quem escolheu "mistura" continua com a transição simples.
+        let s = AutomixSettings { style: MixStyle::Blend, ..Default::default() };
+        assert_eq!(plan(&a, &played(150.0, 200.0, 0.2), &s, 30.0).style, MixStyle::Blend);
+    }
+
+    #[test]
+    fn steady_end_and_played_start_mix_on_the_bar() {
+        // A de estúdio (grade estável), B tocada: A sai num compasso da grade.
+        let a = fake(128.0, 240.0, 16.0, 16.0, "8A");
+        let b = played(100.0, 200.0, 0.3);
+        let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        assert_eq!(p.style, MixStyle::Echo, "{p:?}");
+        let bar_a = 4.0 * 60.0 / 128.0;
+        assert!(((p.from_start / bar_a) - (p.from_start / bar_a).round()).abs() < 1e-6, "{p:?}");
+        assert!((p.to_start - 0.3).abs() < 1e-9);
     }
 
     #[test]

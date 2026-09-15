@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BK Analyzer</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root {
+  --ground: #f8f6fb; --surface: #ffffff; --raised: #f1edf6; --line: #e2dcea; --track: #d9d2e3;
+  --text: #1c1921; --muted: #6b6476; --primary: #5b3fd0; --on-primary: #ffffff;
+  --ok: #1d8049; --bars: #2c68b0; --partial: #946b00; --nobeat: #b9461f; --failed: #c42b2b;
+  --shadow: 0 1px 2px rgb(40 20 80 / .06), 0 4px 16px rgb(40 20 80 / .05);
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #121016; --surface: #1b1820; --raised: #24212b; --line: #34303d; --track: #3a3544;
+    --text: #ebe5f1; --muted: #a49dae; --primary: #c6b3ff; --on-primary: #2a1a63;
+    --ok: #6fcf97; --bars: #86b7ff; --partial: #e8c26a; --nobeat: #f0916b; --failed: #ff7b7b;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #121016; --surface: #1b1820; --raised: #24212b; --line: #34303d; --track: #3a3544;
+  --text: #ebe5f1; --muted: #a49dae; --primary: #c6b3ff; --on-primary: #2a1a63;
+  --ok: #6fcf97; --bars: #86b7ff; --partial: #e8c26a; --nobeat: #f0916b; --failed: #ff7b7b;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ground); color: var(--text); font: 14px/1.45 var(--ui); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; }
+h1, h2 { margin: 0; text-wrap: balance; }
+h2 { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; }
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--primary); color: var(--on-primary); border-color: transparent; font-weight: 600; }
+button.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+button.ghost:hover { color: var(--text); background: var(--raised); }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+input { background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; width: 100%; }
+input:focus { border-color: var(--primary); outline: none; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); font-size: 12px; }
+
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.brand svg { width: 30px; height: 30px; flex: none; }
+.brand h1 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.brand small { display: block; color: var(--muted); font-size: 12px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.who { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.summary { padding: 20px; display: grid; gap: 14px; }
+.headline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; }
+.big { font-size: 32px; font-weight: 700; letter-spacing: -.02em; }
+.big span { font-size: 16px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.pace { margin-left: auto; color: var(--muted); }
+.pace b { color: var(--text); font-weight: 600; }
+.bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--track); }
+.bar i { display: block; height: 100%; transition: width .6s ease; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.chip b { font-weight: 600; }
+.chip[aria-pressed="true"] { border-color: var(--primary); background: var(--raised); }
+.sync { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.sync .error { color: var(--failed); }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 820px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.panel { padding: 16px 18px; display: grid; gap: 12px; align-content: start; }
+.workers { display: grid; gap: 10px; }
+.worker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 14px; border-radius: 12px; background: var(--raised); }
+.worker .name { font-weight: 600; }
+.worker .meta { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.pill { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 10px; align-self: start; white-space: nowrap; }
+.pill.run { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.pill.idle { background: var(--line); color: var(--muted); }
+.pill.pause { background: color-mix(in srgb, var(--partial) 20%, transparent); color: var(--partial); }
+.pill.off { background: color-mix(in srgb, var(--failed) 15%, transparent); color: var(--failed); }
+.list { display: grid; gap: 2px; }
+.item { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.item:last-child { border-bottom: 0; }
+.item .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .why { grid-column: 2 / -1; font-size: 12px; color: var(--muted); margin-top: -4px; }
+.empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+.mark { font-weight: 700; text-align: center; }
+
+.songs { margin-top: 16px; padding: 16px 18px; }
+.songs-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-right: auto; }
+.tabs button[aria-selected="true"] { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.search { width: min(280px, 100%); }
+.bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.row { display: grid; grid-template-columns: minmax(0, 2.4fr) 62px 54px 72px minmax(0, 2fr) 84px 36px; gap: 10px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.row:hover { background: var(--raised); }
+.row.head { cursor: default; font-size: 12px; color: var(--muted); font-weight: 600; background: none; }
+.row .song b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .song span { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ends { display: flex; gap: 4px; }
+.end { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 6px; }
+.end.y { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.end.n { background: color-mix(in srgb, var(--nobeat) 16%, transparent); color: var(--nobeat); }
+.end.b { background: color-mix(in srgb, var(--bars) 18%, transparent); color: var(--bars); }
+.end.q { background: var(--line); color: var(--muted); }
+.why-cell { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.why-cell.failed { color: var(--failed); }
+.key { font-family: var(--mono); font-size: 12px; }
+.detail { grid-column: 1 / -1; background: var(--raised); border-radius: 10px; padding: 10px 12px; cursor: default; display: grid; gap: 6px; }
+.detail pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.5 var(--mono); }
+.more { display: flex; justify-content: center; margin-top: 12px; }
+@media (max-width: 720px) {
+  .row { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 4px; }
+  .row.head { display: none; }
+  .row .c-key, .row .c-when { display: none; }
+  .row .c-why { grid-column: 1 / -1; white-space: normal; }
+  .row .c-act { grid-row: 1; grid-column: 3; }
+}
+
+details.setup { margin-top: 16px; padding: 14px 18px; }
+details.setup summary { cursor: pointer; font-weight: 600; }
+.code { background: var(--raised); border-radius: 10px; padding: 10px 12px; overflow-x: auto; font: 12px/1.6 var(--mono); white-space: pre; }
+footer { margin-top: 18px; color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+.login { max-width: 400px; margin: 10vh auto 0; padding: 26px; display: grid; gap: 14px; }
+.login h1 { font-size: 20px; }
+.login label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.login .msg { color: var(--failed); font-size: 13px; min-height: 1em; }
+.login p { margin: 0; color: var(--muted); font-size: 13px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--ground); padding: 10px 16px; border-radius: 12px; font-size: 13px; max-width: calc(100% - 32px); }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--primary)"/><path d="M7 20v-4m4 8V12m4 10V8m4 12v-6m4 8V10m4 8v-2" stroke="var(--on-primary)" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div><h1>BK Analyzer</h1><small>análise do AutoMix para o BKmasterplayer</small></div>
+    </div>
+    <div class="actions">
+      <span class="who" id="who"></span>
+      <button id="btn-sync" class="ghost" hidden>Sincronizar agora</button>
+      <button id="btn-logout" class="ghost" hidden>Sair</button>
+    </div>
+  </header>
+
+  <main id="login" hidden>
+    <form class="card login" id="login-form" autocomplete="on">
+      <h1 id="login-title">Entrar</h1>
+      <p id="login-help"></p>
+      <label id="url-field" hidden>Endereço do Navidrome
+        <input id="login-url" name="url" value="http://127.0.0.1:4533" autocomplete="url">
+      </label>
+      <label>Usuário do Navidrome
+        <input id="login-user" name="username" autocomplete="username" required>
+      </label>
+      <label>Senha
+        <input id="login-pass" name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <div class="msg" id="login-msg" role="alert"></div>
+      <button class="primary" type="submit" id="login-btn">Entrar</button>
+    </form>
+  </main>
+
+  <main id="app" hidden>
+    <section class="card summary" aria-label="Andamento">
+      <div class="headline">
+        <div class="big num" id="done-line">—</div>
+        <div class="pace" id="pace"></div>
+      </div>
+      <div class="bar" id="bar" role="img" aria-label="Biblioteca por resultado"></div>
+      <div class="legend" id="legend"></div>
+      <div class="sync" id="sync"></div>
+    </section>
+
+    <div class="cols">
+      <section class="card panel" aria-labelledby="h-workers">
+        <h2 id="h-workers">Trabalhadores</h2>
+        <div class="workers" id="workers"></div>
+        <h2>Analisando agora</h2>
+        <div class="list" id="working"></div>
+      </section>
+      <section class="card panel" aria-labelledby="h-recent">
+        <h2 id="h-recent">Últimas analisadas</h2>
+        <div class="list" id="recent"></div>
+      </section>
+    </div>
+
+    <section class="card songs" aria-labelledby="h-songs">
+      <div class="songs-top">
+        <h2 id="h-songs" hidden>Músicas</h2>
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <input class="search" id="search" type="search" placeholder="Buscar música, artista, álbum" aria-label="Buscar">
+      </div>
+      <div class="bulk" id="bulk"></div>
+      <div id="rows"></div>
+      <div class="more"><button id="btn-more" hidden>Mostrar mais</button></div>
+    </section>
+
+    <details class="card setup" id="setup">
+      <summary>Ligar um trabalhador em outra máquina</summary>
+      <p class="muted">Qualquer máquina Linux com CPU sobrando (o notebook, por exemplo) analisa as músicas. Ela baixa o arquivo por aqui e devolve só o resultado; não precisa do login do Navidrome.</p>
+      <div class="code" id="worker-cmd">BK_ANALYZER_TOKEN=…  bk-analyzer worker --server …</div>
+      <p><button id="btn-token">Mostrar o token</button> <span class="muted" id="token-note">o token dá acesso aos arquivos de música: guarde como uma senha.</span></p>
+    </details>
+
+    <footer><span id="foot"></span></footer>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (n) => (n ?? 0).toLocaleString('pt-BR');
+const CATS = {
+  ok: { label: 'Sincronizam', color: 'var(--ok)', mark: '✓' },
+  bars: { label: 'No compasso', color: 'var(--bars)', mark: '♩' },
+  partial: { label: 'Só uma ponta', color: 'var(--partial)', mark: '½' },
+  nobeat: { label: 'Sem batida confiável', color: 'var(--nobeat)', mark: '✗' },
+  failed: { label: 'Falharam', color: 'var(--failed)', mark: '!' },
+  pending: { label: 'Na fila', color: 'var(--track)', mark: '·' },
+};
+const TABS = [
+  ['problems', 'Não deram'], ['bars', 'No compasso'], ['partial', 'Só uma ponta'], ['failed', 'Falharam'],
+  ['ok', 'Sincronizam'], ['pending', 'Na fila'], ['all', 'Todas'],
+];
+let state = null, tab = 'problems', query = '', shown = 100, open = new Set(), timer = null, listTimer = null;
+
+async function api(path, body) {
+  const opts = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  const r = await fetch(path, opts);
+  let j = {};
+  try { j = await r.json(); } catch (_) { /* sem corpo */ }
+  if (r.status === 401 && path !== '/api/login') { showLogin(); throw new Error('login'); }
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 3500);
+}
+
+function ago(ts) {
+  if (!ts) return '';
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 60) return 'agora';
+  if (s < 3600) return `há ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
+  return `há ${Math.floor(s / 86400)} d`;
+}
+
+function eta(min) {
+  if (min == null) return null;
+  if (min < 1) return 'menos de 1 min';
+  if (min < 60) return `~${Math.round(min)} min`;
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  if (h >= 48) return `~${Math.round(h / 24)} dias`;
+  return m && h < 10 ? `~${h} h ${m} min` : `~${h} h`;
+}
+
+// ---------- login ----------
+
+async function showLogin() {
+  stopPolling();
+  $('#app').hidden = true; $('#login').hidden = false;
+  $('#btn-sync').hidden = true; $('#btn-logout').hidden = true; $('#who').textContent = '';
+  let hello = {};
+  try { hello = await (await fetch('/api/hello')).json(); } catch (_) { /* offline */ }
+  const first = !hello.configured;
+  $('#login-title').textContent = first ? 'Configurar o analisador' : 'Entrar';
+  $('#login-help').textContent = first
+    ? 'O analisador lê a lista de músicas e os arquivos pela API do Navidrome, só leitura, e guarda um token de acesso, nunca a senha.'
+    : 'Entre com a conta do Navidrome dona da biblioteca (ou de um administrador).';
+  $('#url-field').hidden = !first;
+  $('#login-btn').textContent = first ? 'Conectar' : 'Entrar';
+  $('#login-user').focus();
+}
+
+$('#login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#login-btn');
+  btn.disabled = true; $('#login-msg').textContent = '';
+  try {
+    const body = { username: $('#login-user').value, password: $('#login-pass').value };
+    if (!$('#url-field').hidden) body.url = $('#login-url').value;
+    await api('/api/login', body);
+    $('#login-pass').value = '';
+    start();
+  } catch (err) {
+    $('#login-msg').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('#btn-logout').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  showLogin();
+});
+
+$('#btn-sync').addEventListener('click', async () => {
+  try { await api('/api/sync', {}); toast('Sincronizando a biblioteca…'); } catch (e) { toast(e.message); }
+});
+
+// ---------- estado ----------
+
+function renderState(s) {
+  state = s;
+  $('#who').textContent = `${s.user} · ${s.navidrome || ''}`;
+  const c = s.counts, total = s.total || 0;
+  const done = total - c.pending;
+  const pct = total ? Math.floor((done / total) * 100) : 0;
+  $('#done-line').innerHTML = total
+    ? `${fmt(done)} <span>de ${fmt(total)} analisadas (${pct}%)</span>`
+    : `<span>${s.sync.running ? 'Lendo a biblioteca…' : 'Biblioteca ainda não lida'}</span>`;
+  const e = eta(s.eta_minutes);
+  const pace = [];
+  if (s.rate_per_hour > 0) pace.push(`<b class="num">${fmt(Math.round(s.rate_per_hour))}</b> músicas/h`);
+  if (c.pending && e) pace.push(`termina em <b>${e}</b>`);
+  else if (c.pending && !s.workers.some((w) => w.online)) pace.push('nenhum trabalhador ligado');
+  if (s.urgent) pace.push(`${fmt(s.urgent)} pedidas pelos players`);
+  $('#pace').innerHTML = pace.join(' · ');
+  const order = ['ok', 'bars', 'partial', 'nobeat', 'failed'];
+  $('#bar').innerHTML = order.map((k) => `<i style="width:${total ? (c[k] / total) * 100 : 0}%;background:${CATS[k].color}" title="${CATS[k].label}: ${fmt(c[k])}"></i>`).join('');
+  $('#bar').setAttribute('aria-label', order.map((k) => `${CATS[k].label}: ${c[k]}`).join(', ') + `, na fila: ${c.pending}`);
+  const legendTab = { ok: 'ok', bars: 'bars', partial: 'partial', nobeat: 'problems', failed: 'failed', pending: 'pending' };
+  $('#legend').innerHTML = [...order, 'pending'].map((k) =>
+    `<button class="chip" data-tab="${legendTab[k]}" aria-pressed="${tab === legendTab[k]}"><span class="dot" style="background:${CATS[k].color}"></span>${CATS[k].label} <b class="num">${fmt(c[k])}</b></button>`).join('');
+  const sy = s.sync;
+  const syncParts = [];
+  if (sy.running) syncParts.push('lendo a biblioteca no Navidrome…');
+  else if (sy.at) syncParts.push(`biblioteca lida ${ago(sy.at)}` + (sy.added || sy.removed || sy.changed ? ` (${[sy.added && `+${fmt(sy.added)} novas`, sy.changed && `${fmt(sy.changed)} mudaram`, sy.removed && `${fmt(sy.removed)} saíram`].filter(Boolean).join(', ')})` : ''));
+  if (sy.error) syncParts.push(`<span class="error">${esc(sy.error)}</span>`);
+  $('#sync').innerHTML = syncParts.join(' · ');
+
+  const ws = [...s.workers].sort((a, b) => b.online - a.online || a.name.localeCompare(b.name));
+  $('#workers').innerHTML = ws.length ? ws.map((w) => {
+    let pill;
+    if (!w.online) pill = `<span class="pill off">desligado</span>`;
+    else if (w.paused) pill = `<span class="pill pause">pausado: ${esc(w.paused)}</span>`;
+    else if (w.busy) pill = `<span class="pill run">analisando ${w.busy}/${w.jobs}</span>`;
+    else pill = `<span class="pill idle">esperando</span>`;
+    const avg = w.avg_secs ? `${w.avg_secs.toFixed(1).replace('.', ',')} s por música` : '';
+    const model = w.model === 'full' ? 'modelo completo' : w.model === 'small' ? 'modelo pequeno' : esc(w.model);
+    const seen = w.online ? '' : ` · visto ${ago(w.last_seen)}`;
+    return `<div class="worker"><div class="name">${esc(w.name)}</div>${pill}
+      <div class="meta">${esc(w.cpu)} · ${model} · ${fmt(w.done)} ${w.done === 1 ? 'feita' : 'feitas'}${w.failed ? `, ${fmt(w.failed)} com erro` : ''}${avg ? ' · ' + avg : ''}${seen}</div></div>`;
+  }).join('') : `<div class="empty">Nenhum trabalhador ainda. Veja “Ligar um trabalhador” no fim da página.</div>`;
+
+  $('#working').innerHTML = s.working.length ? s.working.sort((a, b) => b.secs - a.secs).map((j) =>
+    `<div class="item"><span class="mark muted">↻</span><span class="t">${esc(j.artist)} — ${esc(j.title)}</span><span class="muted num">${esc(j.worker)} · ${j.secs} s</span></div>`).join('')
+    : `<div class="empty">${c.pending ? 'Nada no momento.' : 'Tudo analisado.'}</div>`;
+
+  $('#recent').innerHTML = s.recent.length ? s.recent.slice(0, 14).map((r) => {
+    const k = CATS[r.category] || CATS.pending;
+    return `<div class="item"><span class="mark" style="color:${k.color}">${k.mark}</span><span class="t">${esc(r.artist)} — ${esc(r.title)}</span><span class="muted num">${r.secs.toFixed(0)} s · ${ago(r.at)}</span>${r.problem ? `<span class="why">${esc(r.problem)}</span>` : ''}</div>`;
+  }).join('') : `<div class="empty">Ainda nada.</div>`;
+
+  $('#tabs').innerHTML = TABS.map(([id, label]) => {
+    const n = id === 'problems' ? c.failed + c.nobeat : id === 'all' ? total : (c[id] ?? 0);
+    return `<button role="tab" data-tab="${id}" aria-selected="${tab === id}">${label} <span class="num">${fmt(n)}</span></button>`;
+  }).join('');
+  $('#foot').textContent = `BK Analyzer · versão da análise ${s.version} · atualiza sozinho`;
+  $('#worker-cmd').textContent = `BK_ANALYZER_TOKEN=…  bk-analyzer worker --server ${location.origin} --jobs 2`;
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tab]');
+  if (t) { setTab(t.dataset.tab); return; }
+  const rowBtn = e.target.closest('[data-retry]');
+  if (rowBtn) { e.stopPropagation(); retry([rowBtn.dataset.retry]); return; }
+  const bulk = e.target.closest('[data-bulk]');
+  if (bulk) { retryCategory(bulk.dataset.bulk); return; }
+  const row = e.target.closest('.row[data-id]');
+  if (row) { const id = row.dataset.id; open.has(id) ? open.delete(id) : open.add(id); loadList(); }
+});
+
+function setTab(id) {
+  tab = id; shown = 100; open.clear();
+  if (state) renderState(state);
+  loadList();
+}
+
+async function retry(ids) {
+  try { const r = await api('/api/retry', { ids }); toast(r.queued ? 'Voltou para a fila.' : 'Já está na fila.'); refresh(); loadList(); } catch (e) { toast(e.message); }
+}
+async function retryCategory(cat) {
+  try { const r = await api('/api/retry', { category: cat }); toast(`${fmt(r.queued)} músicas voltaram para a fila.`); refresh(); loadList(); } catch (e) { toast(e.message); }
+}
+
+// ---------- lista ----------
+
+const endTag = (sync, bar, label, known) => {
+  const [cls, what] = !known ? ['q', 'ainda não analisada'] : sync ? ['y', 'sincroniza'] : bar ? ['b', 'no compasso, sem sincronizar'] : ['n', 'transição simples'];
+  return `<span class="end ${cls}" title="${label}: ${what}">${label === 'Entrada' ? 'E' : 'S'}</span>`;
+};
+
+async function loadList() {
+  clearTimeout(listTimer);
+  let data;
+  try {
+    data = await api(`/api/songs?cat=${encodeURIComponent(tab)}&q=${encodeURIComponent(query)}&limit=${shown}`);
+  } catch (_) { return; }
+  const bulk = [];
+  if ((tab === 'problems' || tab === 'failed') && state && state.counts.failed) {
+    bulk.push(`<button data-bulk="failed">Tentar de novo as ${fmt(state.counts.failed)} que falharam</button>`);
+  }
+  if (tab === 'problems') bulk.push('<span>Sem batida clara nas pontas: o AutoMix faz uma transição simples (mistura de volume) nessas músicas.</span>');
+  if (tab === 'bars') bulk.push('<span>Batida tocada ou tempo que varia: o AutoMix não casa o tempo, mas troca no compasso: a atual ecoa num tempo forte e a próxima entra no primeiro tempo dela.</span>');
+  if (tab === 'partial') bulk.push('<span>Só uma ponta serve: entrada (E) ou saída (S). Verde sincroniza, azul troca no compasso.</span>');
+  $('#bulk').innerHTML = bulk.join('');
+  const head = `<div class="row head"><span>Música</span><span>BPM</span><span>Tom</span><span>E / S</span><span>Motivo</span><span>Quando</span><span></span></div>`;
+  const rows = data.rows.map((r) => {
+    const known = r.category !== 'pending' && r.category !== 'failed';
+    const bpm = r.bpm ? r.bpm.toFixed(r.bpm % 1 ? 1 : 0).replace('.', ',') : '—';
+    const why = r.category === 'ok' ? '<span class="muted">sincroniza nas duas pontas</span>'
+      : r.category === 'bars' ? `${esc(r.problem || '')} <span class="muted">· troca no compasso</span>`
+      : r.category === 'pending' ? `<span class="muted">${r.attempts ? `na fila (tentativa ${r.attempts + 1}) · ${esc(r.problem)}` : 'na fila'}</span>`
+      : esc(r.problem || '');
+    let html = `<div class="row" data-id="${esc(r.id)}" tabindex="0">
+      <div class="song"><b>${esc(r.title)}</b><span>${esc(r.artist)}${r.album ? ' · ' + esc(r.album) : ''}</span></div>
+      <span class="num">${bpm}</span>
+      <span class="key c-key">${esc(r.camelot || '—')}</span>
+      <span class="ends">${endTag(r.head, r.bar_in, 'Entrada', known)}${endTag(r.tail, r.bar_out, 'Saída', known)}</span>
+      <span class="why-cell c-why ${r.category === 'failed' ? 'failed' : ''}" title="${esc(r.problem || '')}">${why}</span>
+      <span class="muted c-when">${ago(r.done_at)}</span>
+      <span class="c-act">${r.category !== 'pending' ? `<button class="ghost" data-retry="${esc(r.id)}" title="Analisar de novo" aria-label="Analisar de novo">↻</button>` : ''}</span>`;
+    if (open.has(r.id)) {
+      const facts = [r.suffix && r.suffix.toUpperCase(), r.duration && `${Math.floor(r.duration / 60)}:${String(r.duration % 60).padStart(2, '0')}`,
+        r.worker && `por ${esc(r.worker)}`, r.model && (r.model === 'full' ? 'modelo completo' : 'modelo pequeno'), r.secs && `${r.secs.toFixed(1)} s`].filter(Boolean).join(' · ');
+      html += `<div class="detail"><span class="muted">${facts}</span>${r.detail ? `<pre>${esc(r.detail)}</pre>` : ''}</div>`;
+    }
+    return html + '</div>';
+  }).join('');
+  $('#rows').innerHTML = data.rows.length ? head + rows : `<div class="empty">${query ? 'Nada com essa busca.' : tab === 'problems' ? 'Nenhuma música com problema até agora.' : 'Nenhuma música aqui.'}</div>`;
+  $('#btn-more').hidden = data.total <= data.rows.length;
+  $('#btn-more').textContent = `Mostrar mais (${fmt(data.total - data.rows.length)} restantes)`;
+  listTimer = setTimeout(loadList, 15000);
+}
+
+$('#btn-more').addEventListener('click', () => { shown += 200; loadList(); });
+let searchTimer;
+$('#search').addEventListener('input', (e) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { query = e.target.value.trim(); shown = 100; loadList(); }, 250); });
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.row[data-id]')) { e.preventDefault(); e.target.click(); }
+});
+
+$('#btn-token').addEventListener('click', async () => {
+  try {
+    const { token } = await api('/api/worker-setup');
+    $('#worker-cmd').textContent = `BK_ANALYZER_TOKEN=${token}  bk-analyzer worker --server ${location.origin} --jobs 2`;
+    $('#btn-token').hidden = true;
+  } catch (e) { toast(e.message); }
+});
+
+// ---------- ciclo ----------
+
+async function refresh() {
+  try { renderState(await api('/api/state')); } catch (_) { /* login ou fora do ar */ }
+}
+function stopPolling() { clearInterval(timer); clearTimeout(listTimer); timer = null; }
+async function start() {
+  try {
+    renderState(await api('/api/state'));
+  } catch (_) { return; }
+  $('#login').hidden = true; $('#app').hidden = false;
+  $('#btn-sync').hidden = false; $('#btn-logout').hidden = false;
+  loadList();
+  stopPolling();
+  timer = setInterval(() => { if (!document.hidden) refresh(); }, 3000);
+}
+start();
+</script>
+</body>
+</html>

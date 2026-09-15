@@ -48,6 +48,9 @@ pub struct TrackSource {
     pub cover_key: Option<String>,
     /// Identidade da música para o cache de análise (ex.: "conta:song:id").
     pub analysis_key: Option<String>,
+    /// Análise pronta no servidor (BK Analyzer), já com o login: tentada antes
+    /// de analisar no aparelho. Só quando o arquivo tocado é o mesmo analisado.
+    pub analysis_url: Option<String>,
 }
 
 impl From<TrackSource> for engine::TrackRequest {
@@ -66,6 +69,7 @@ impl From<TrackSource> for engine::TrackRequest {
             cover_url: t.cover_url,
             cover_key: t.cover_key,
             analysis_key: t.analysis_key,
+            analysis_url: t.analysis_url,
         }
     }
 }

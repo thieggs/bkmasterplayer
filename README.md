@@ -16,7 +16,9 @@ seguir.
 - **AutoMix DJ:**
   - Análise por rede neural (Beat This!): batidas, compassos, BPM, tom Camelot, intro/outro.
   - Transição em compassos com time-stretch sem mudar o tom.
+  - Música tocada (bateria humana, tempo que varia): troca no compasso, cada uma no seu tempo.
   - Estilos: troca de grave, filtro, eco, mistura ou corte. Tudo configurável.
+- **Análise no servidor (BK Analyzer):** um computador analisa a biblioteca inteira (os trabalhadores podem ser outras máquinas, como um notebook) e o app só baixa o resultado. Painel web com o andamento e as músicas que não deram, e por quê.
 - **AudioMuse-AI (via Navidrome):** Mix instantâneo, rádio sônica, caminho sônico entre duas músicas e rádio infinita.
 - **Modo DJ:** a partir de uma música, o AudioMuse e o AutoMix escolhem cada próxima pelo melhor encaixe (parecença, BPM e tom).
 - **Sem servidor:** toca as músicas do aparelho (pastas escolhidas); o Last.fm dá as parecidas quando não há AudioMuse.
@@ -56,11 +58,36 @@ Pré-requisitos: Android SDK com NDK 28.2 (`ANDROID_HOME`, padrão `~/android-sd
 `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`.
 
 ```bash
-./dev/build_apk.sh                    # dist/bkplayer_<versão>_arm64.apk (Android 8+)
+./dev/build_apk.sh                    # dist/bkmasterplayer_<versão>_arm64.apk (Android 8+)
 cd app && flutter run -d <aparelho>   # desenvolvimento (celular ou emulador)
 ```
 
 A assinatura de release vem de `app/android/key.properties` (fora do git); sem ele o APK sai com a chave de debug.
+
+## Análise no servidor (BK Analyzer)
+
+O AutoMix precisa de uma análise de cada música (batidas, compassos, tom). O
+aparelho faz sozinho, mas no celular é lento e usa o modelo pequeno. Com o
+**BK Analyzer**, a análise sai pronta de um computador:
+
+- o **coordenador** (na máquina do Navidrome) lê a biblioteca pela API Subsonic,
+  só leitura, como o AudioMuse; guarda as análises e entrega para os players;
+- os **trabalhadores** (qualquer Linux com CPU sobrando) baixam o arquivo pelo
+  coordenador, analisam com o modelo completo e devolvem só o resultado. Rodam
+  com prioridade baixa e pausam na bateria.
+
+```bash
+cd app/rust && cargo build --release --features analyzer-server --bin bk-analyzer
+./dev/install_analyzer.sh server                                          # painel em http://<pc>:4540
+SSH_OPTS="-i ~/.ssh/chave" ./dev/install_analyzer.sh worker usuario@notebook http://<pc>.local:4540 3
+```
+
+No painel, entre com a conta do Navidrome (fica guardado só o token, nunca a
+senha): ele mostra o andamento, os trabalhadores e a lista das músicas que não
+sincronizam, com o motivo. No app: Ajustes → AutoMix → Servidor de análise.
+A análise do servidor só é usada quando o app toca o mesmo arquivo analisado
+(o original, sem limite de qualidade); fora de casa, sem o servidor, o aparelho
+analisa como antes.
 
 ## Testes
 

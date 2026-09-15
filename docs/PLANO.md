@@ -110,6 +110,39 @@ Pedido do usuário: cada tipo de configuração na própria tela e tudo da apar�
 - **Backup** (`lib/data/theme_library.dart`): tema em `.bktheme.json` e backup completo em `.bkbackup.json` (imagens de fundo dentro, em base64), pelo seletor de arquivos do sistema; backups automáticos (os 10 últimos) antes de trocas grandes; tudo validado ao importar.
 - **Garantia do visual original:** teste compara o tema padrão com o antigo campo a campo (`test/app_theme_test.dart`) e as telas no emulador ficaram iguais pixel a pixel.
 
+### Análise no servidor: BK Analyzer (15/09)
+Pedido do usuário: *"igual a análise sônica fica salva no server e o celular já vai ter a informação das músicas"*, com um painel do status e das músicas que não deram, usando a CPU do notebook (i7) como o AudioMuse.
+- **Binário `bk-analyzer`** (`app/rust/src/bin/bk_analyzer/`, feature `analyzer-server`; o build do app não muda). Usa o mesmo código de análise do app.
+  - `serve` (coordenador, no PC do Navidrome):
+    - lê a biblioteca pela API Subsonic (`search3`, só leitura, a cada hora); a senha vira token md5 e não é guardada;
+    - fila por favoritas e mais tocadas; o que um player pede vai para a frente;
+    - guarda as análises em `~/.local/share/bk-analyzer/analyses/`;
+    - se um trabalhador some no meio, a música volta para a fila (até 3 tentativas).
+  - `worker` (trabalhador): baixa o arquivo pelo coordenador, que repassa do Navidrome e converte para MP3 o que o app também recebe convertido. Analisa com o modelo completo, várias ao mesmo tempo, com nice 15, e pausa na bateria.
+  - Instalação como serviço do systemd de usuário: `dev/install_analyzer.sh`.
+- **Painel** (`dashboard.html`, `http://<pc>:4540`):
+  - login com a conta do Navidrome (a primeira configuração só pela rede de casa);
+  - barra da biblioteca por resultado, ritmo e previsão de término, trabalhadores, o que está sendo analisado e as últimas analisadas;
+  - lista por categoria com o motivo e as grades, busca e "tentar de novo".
+- **App:**
+  - `TrackSource.analysisUrl` com o login da conta, só quando o arquivo tocado é o mesmo analisado (original, ou o MP3 que o servidor converte);
+  - o motor pergunta ao servidor antes de analisar, guarda num cache à parte (`<chave>|server`) e prefere essa análise à local;
+  - se o servidor está analisando a música, espera até ~30 s; se estiver fora do ar, para de perguntar por 2 min;
+  - se a análise do servidor chega depois de a transição estar planejada, planeja de novo (se faltar mais de 8 s);
+  - no painel do AutoMix aparece "análise do servidor";
+  - em Ajustes → AutoMix → Servidor de análise ficam o endereço, o teste (quantas analisadas, trabalhadores ligados) e o link do painel.
+- **Regras novas de sincronia** (valem na hora de planejar, também para análises antigas; o coordenador recalcula as categorias ao abrir):
+  - grade estável com poucas janelas quando todas travam e há outra prova: grade confirmada pelas duas pontas, ou erro < 6 ms (intro sem bateria, faixa curta ou lenta);
+  - áudio muito travado (80% de 6+ janelas) dispensa a concordância batida a batida da rede (funk, percussão sincopada);
+  - **transição no compasso** (`bar_plan` em `automix.rs`) quando não dá para sincronizar: A ecoa (ou corta) num compasso dela e B entra no 1º compasso dela, cada uma no seu tempo. Os compassos saem da grade estável ou dos downbeats regulares da rede; cada ponto sai da própria faixa (regra da patente).
+- **Resultado em 100 músicas sorteadas da biblioteca do usuário** (modelo completo, no i7): antes, 56 sincronizavam e 37 ficavam na transição simples. Agora:
+  - **63 sincronizam** e **20 trocam no compasso**;
+  - 11 servem numa ponta só;
+  - 6 ficam na transição simples (Dream Theater ao vivo, com fórmula de compasso mudando, intro sem batida, sax solo).
+  - As mixagens sincronizadas continuam precisas: mediana de 6 ms (`eval_mix --cache`).
+- **Ferramentas:** `examples/tune.rs` roda a rede uma vez por faixa e refaz o resto a cada mudança (~20 s para 100 faixas); `eval_mix --cache` mixa com essas batidas.
+- **Ritmo:** 3 análises ao mesmo tempo no i7-1355U ≈ 260 músicas/h (a biblioteca de 5.363 em ~20 h).
+
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.
@@ -119,6 +152,9 @@ Pedido do usuário: cada tipo de configuração na própria tela e tudo da apar�
 - **Letras:** mostradas por linha; karaokê palavra por palavra (letras v2 do Navidrome 0.63) ⏳.
 - **AutoMix em intro sem bumbo:** se B entra por uma intro sem bateria clara, a fase local não é medida ali; em 2 de 18 transições medidas os elementos da intro ficaram ~30–40 ms à frente dos bumbos de A.
 - **Modelo completo x pequeno:** na música real, os dois têm confiabilidade parecida (cada um erra em faixas diferentes); o completo não é automaticamente melhor.
+- **Análise do servidor com qualidade limitada:** se o app pede o stream convertido (limite de bitrate), o arquivo tocado difere do analisado (atraso do codificador) e o app analisa no aparelho.
+- **Servidor de análise fora de casa:** o painel e a API ficam na rede local; para o celular usar na rua, é preciso expor a porta 4540 (ex.: um Funnel da Tailscale numa porta extra). Sem isso, as análises já baixadas continuam no cache do aparelho.
+- **"TO MYSELF" (Louie Zong):** a grade passa nas regras, mas a mixagem medida saiu 56 ms fora; investigar.
 
 ### Próximos passos
 1. **Testes com aparelhos reais:** Festa entre dois celulares (Nearby e beacon; o Bluetooth do PC ajuda), Android Auto no DHU ou no carro.

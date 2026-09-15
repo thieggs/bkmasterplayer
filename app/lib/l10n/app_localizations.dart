@@ -986,6 +986,90 @@ abstract class AppLocalizations {
   /// **'Analisa as próximas músicas com antecedência, em segundo plano e com prioridade baixa.'**
   String get automixPreAnalyzeHint;
 
+  /// No description provided for @analysisServer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Servidor de análise'**
+  String get analysisServer;
+
+  /// No description provided for @analysisServerOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligado: o aparelho analisa as músicas'**
+  String get analysisServerOff;
+
+  /// No description provided for @analysisServerHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com o BK Analyzer rodando num computador, as análises do AutoMix vêm prontas de lá (modelo completo, mais músicas sincronizam) e o aparelho só decide a transição. Sem o servidor por perto, o aparelho analisa como antes.'**
+  String get analysisServerHint;
+
+  /// No description provided for @analysisServerSet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configurar'**
+  String get analysisServerSet;
+
+  /// No description provided for @analysisServerAddress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço do servidor de análise'**
+  String get analysisServerAddress;
+
+  /// No description provided for @analysisServerExample.
+  ///
+  /// In pt, this message translates to:
+  /// **'ex.: http://192.168.1.10:4540'**
+  String get analysisServerExample;
+
+  /// No description provided for @analysisServerPanel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir painel'**
+  String get analysisServerPanel;
+
+  /// No description provided for @analysisServerTest.
+  ///
+  /// In pt, this message translates to:
+  /// **'Testar'**
+  String get analysisServerTest;
+
+  /// No description provided for @analysisServerRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligar'**
+  String get analysisServerRemove;
+
+  /// No description provided for @analysisServerChange.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar endereço'**
+  String get analysisServerChange;
+
+  /// No description provided for @analysisServerOk.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conectado · {done} de {total} músicas analisadas · trabalhadores ligados: {workers}'**
+  String analysisServerOk(String done, String total, int workers);
+
+  /// No description provided for @analysisServerLoginFail.
+  ///
+  /// In pt, this message translates to:
+  /// **'O servidor de análise não aceitou o login desta conta (ele usa outro Navidrome?)'**
+  String get analysisServerLoginFail;
+
+  /// No description provided for @analysisServerUnreachable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem resposta do servidor de análise'**
+  String get analysisServerUnreachable;
+
+  /// No description provided for @analysisServerNotBk.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esse endereço não é de um BK Analyzer'**
+  String get analysisServerNotBk;
+
   /// No description provided for @automixDefaults.
   ///
   /// In pt, this message translates to:

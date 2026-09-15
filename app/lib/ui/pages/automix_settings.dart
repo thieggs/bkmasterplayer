@@ -1,14 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
 import '../actions.dart';
+import 'settings/common.dart' show askText;
 
 final deviceProfileProvider = FutureProvider.autoDispose<engine.DeviceProfile>((ref) => engine.playerDeviceProfile());
 
@@ -168,6 +172,7 @@ class AutomixSettingsSection extends ConsumerWidget {
           value: s.preAnalyze,
           onChanged: on ? (v) => set((x) => x.copyWith(preAnalyze: v)) : null,
         ),
+        const _ServerTile(),
         const _ModelTile(),
         Padding(
           padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
@@ -298,6 +303,138 @@ class _ModelTileState extends ConsumerState<_ModelTile> {
                 onPressed: on ? _download : null,
               ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Servidor de análise (BK Analyzer): endereço, teste da conexão e o painel.
+class _ServerTile extends ConsumerStatefulWidget {
+  const _ServerTile();
+
+  @override
+  ConsumerState<_ServerTile> createState() => _ServerTileState();
+}
+
+class _ServerTileState extends ConsumerState<_ServerTile> {
+  String? _status;
+  bool _error = false;
+  bool _testing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final server = ref.read(settingsProvider).analysisServer;
+    if (server != null) WidgetsBinding.instance.addPostFrameCallback((_) => _test(server));
+  }
+
+  static String _base(String url) {
+    var u = url.trim().replaceAll(RegExp(r'/+$'), '');
+    if (u.isNotEmpty && !u.startsWith('http://') && !u.startsWith('https://')) u = 'http://$u';
+    return u;
+  }
+
+  Future<void> _test(String server) async {
+    final l10n = context.l10n;
+    final number = NumberFormat.decimalPattern(Localizations.localeOf(context).toString());
+    setState(() {
+      _testing = true;
+      _status = null;
+    });
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 4),
+      receiveTimeout: const Duration(seconds: 8),
+      validateStatus: (_) => true,
+    ));
+    String msg;
+    var error = true;
+    try {
+      final hello = await dio.get<dynamic>('${_base(server)}/api/hello');
+      final uri = ref.read(musicProvider).analyzerUri(server, '/api/summary');
+      if (hello.data is! Map || hello.data['app'] != 'bk-analyzer' || uri == null) {
+        msg = l10n.analysisServerNotBk;
+      } else {
+        final r = await dio.getUri<dynamic>(uri);
+        if (r.statusCode != 200 || r.data is! Map) {
+          msg = l10n.analysisServerLoginFail;
+        } else {
+          final total = r.data['total'] as int? ?? 0;
+          final pending = (r.data['counts'] as Map?)?['pending'] as int? ?? 0;
+          msg = l10n.analysisServerOk(number.format(total - pending), number.format(total), r.data['workers_online'] as int? ?? 0);
+          error = false;
+        }
+      }
+    } catch (_) {
+      msg = l10n.analysisServerUnreachable;
+    } finally {
+      dio.close();
+    }
+    if (!mounted) return;
+    setState(() {
+      _testing = false;
+      _status = msg;
+      _error = error;
+    });
+  }
+
+  Future<void> _edit() async {
+    final l10n = context.l10n;
+    final current = ref.read(settingsProvider).analysisServer;
+    final v = await askText(context,
+        title: l10n.analysisServerAddress, initial: current ?? 'http://', hint: l10n.analysisServerExample, canRemove: current != null);
+    if (v == null) return;
+    final url = _base(v);
+    final set = ref.read(settingsProvider.notifier).update;
+    if (url.isEmpty || url == 'http:' || url == 'http://') {
+      set((x) => x.copyWith(clearAnalysisServer: true));
+      setState(() => _status = null);
+      return;
+    }
+    set((x) => x.copyWith(analysisServer: url));
+    _test(url);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final s = ref.watch(settingsProvider);
+    final server = s.analysisServer;
+    final on = s.automixEnabled;
+    return ListTile(
+      enabled: on,
+      leading: const Icon(Icons.dns_outlined),
+      title: Text(l10n.analysisServer),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(server ?? l10n.analysisServerOff, style: theme.textTheme.bodyMedium),
+          if (_testing)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: LinearProgressIndicator())
+          else if (_status != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(_status!, style: theme.textTheme.bodySmall?.copyWith(color: _error ? theme.colorScheme.error : theme.colorScheme.primary)),
+            ),
+          const SizedBox(height: 4),
+          Text(l10n.analysisServerHint, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              OutlinedButton(onPressed: on ? _edit : null, child: Text(server == null ? l10n.analysisServerSet : l10n.analysisServerChange)),
+              if (server != null) ...[
+                TextButton(onPressed: on && !_testing ? () => _test(server) : null, child: Text(l10n.analysisServerTest)),
+                TextButton.icon(
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: Text(l10n.analysisServerPanel),
+                  onPressed: () => launchUrl(Uri.parse(_base(server)), mode: LaunchMode.externalApplication),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );

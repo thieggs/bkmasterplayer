@@ -509,6 +509,52 @@ class AppLocalizationsEn extends AppLocalizations {
       'Analyzes upcoming songs ahead of time, in the background, at low priority.';
 
   @override
+  String get analysisServer => 'Analysis server';
+
+  @override
+  String get analysisServerOff => 'Off: this device analyzes the songs';
+
+  @override
+  String get analysisServerHint =>
+      'With BK Analyzer running on a computer, AutoMix analyses come ready from it (full model, more songs sync) and this device only plans the transition. Away from the server, this device analyzes as before.';
+
+  @override
+  String get analysisServerSet => 'Set up';
+
+  @override
+  String get analysisServerAddress => 'Analysis server address';
+
+  @override
+  String get analysisServerExample => 'e.g. http://192.168.1.10:4540';
+
+  @override
+  String get analysisServerPanel => 'Open dashboard';
+
+  @override
+  String get analysisServerTest => 'Test';
+
+  @override
+  String get analysisServerRemove => 'Turn off';
+
+  @override
+  String get analysisServerChange => 'Change address';
+
+  @override
+  String analysisServerOk(String done, String total, int workers) {
+    return 'Connected · $done of $total songs analyzed · workers online: $workers';
+  }
+
+  @override
+  String get analysisServerLoginFail =>
+      'The analysis server rejected this account\'s login (does it use another Navidrome?)';
+
+  @override
+  String get analysisServerUnreachable => 'No answer from the analysis server';
+
+  @override
+  String get analysisServerNotBk => 'That address is not a BK Analyzer';
+
+  @override
   String get automixDefaults => 'Restore AutoMix defaults';
 
   @override

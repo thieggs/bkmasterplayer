@@ -183,7 +183,8 @@ class PlayerController extends Notifier<PlayerState> {
           prev?.replayGainMode != next.replayGainMode ||
           prev?.replayGainPreampDb != next.replayGainPreampDb ||
           prev?.automixEnabled != next.automixEnabled ||
-          prev?.automixRespectAlbums != next.automixRespectAlbums) {
+          prev?.automixRespectAlbums != next.automixRespectAlbums ||
+          prev?.analysisServer != next.analysisServer) {
         if (prev?.automixEnabled != next.automixEnabled) state = state.copyWith(clearPlanned: true);
         _scheduledKey = null;
         _scheduleNext();
@@ -716,6 +717,12 @@ class PlayerController extends Notifier<PlayerState> {
     final format = convert ? (s.transcodeFormat ?? 'mp3') : (raw ? null : s.transcodeFormat);
     final bitrate = raw && !convert ? null : (s.maxBitRate > 0 ? s.maxBitRate : null);
     final (g, peak) = gain ?? (0.0, null);
+    // Análise pronta no servidor de análise: só se o arquivo tocado é o mesmo
+    // que ele analisou (o original, ou o MP3 que o servidor converte dos
+    // formatos que o motor não lê), senão as batidas podem estar deslocadas.
+    final server = s.analysisServer;
+    final sameFile = bitrate == null && (format == null || (convert && format == 'mp3'));
+    final analysisUrl = server != null && sameFile ? p.analyzerUri(server, '/api/analysis/${Uri.encodeComponent(song.id)}')?.toString() : null;
     return engine.TrackSource(
       id: uid ?? song.id,
       url: p.streamUri(song, format: format, maxBitRate: bitrate).toString(),
@@ -730,6 +737,7 @@ class PlayerController extends Notifier<PlayerState> {
       coverUrl: p.coverUri(song.coverArt, size: 600)?.toString(),
       coverKey: p.coverCacheKey(song.coverArt, size: 600),
       analysisKey: '${p.accountId}:song:${song.id}',
+      analysisUrl: analysisUrl,
     );
   }
 

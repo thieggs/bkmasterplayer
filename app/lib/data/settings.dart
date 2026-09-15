@@ -38,6 +38,7 @@ class AppSettings {
     this.automixRespectAlbums = true,
     this.analysisModel = AnalysisModelSetting.auto,
     this.preAnalyze = true,
+    this.analysisServer,
     this.syncQueue = true,
     this.eqEnabled = false,
     this.eqPreamp = 0,
@@ -80,6 +81,10 @@ class AppSettings {
   final bool automixRespectAlbums;
   final AnalysisModelSetting analysisModel;
   final bool preAnalyze;
+
+  /// Servidor de análise (BK Analyzer, ex.: http://192.168.1.10:4540): as
+  /// análises do AutoMix vêm prontas de lá; sem ele (null), o aparelho analisa.
+  final String? analysisServer;
 
   /// Salva a fila no servidor (continuar em outro aparelho).
   final bool syncQueue;
@@ -148,6 +153,8 @@ class AppSettings {
     bool? automixRespectAlbums,
     AnalysisModelSetting? analysisModel,
     bool? preAnalyze,
+    String? analysisServer,
+    bool clearAnalysisServer = false,
     bool? syncQueue,
     bool? eqEnabled,
     double? eqPreamp,
@@ -191,6 +198,7 @@ class AppSettings {
         automixRespectAlbums: automixRespectAlbums ?? this.automixRespectAlbums,
         analysisModel: analysisModel ?? this.analysisModel,
         preAnalyze: preAnalyze ?? this.preAnalyze,
+        analysisServer: clearAnalysisServer ? null : (analysisServer ?? this.analysisServer),
         syncQueue: syncQueue ?? this.syncQueue,
         eqEnabled: eqEnabled ?? this.eqEnabled,
         eqPreamp: eqPreamp ?? this.eqPreamp,
@@ -232,6 +240,7 @@ class AppSettings {
         'automixRespectAlbums': automixRespectAlbums,
         'analysisModel': analysisModel.name,
         'preAnalyze': preAnalyze,
+        'analysisServer': analysisServer,
         'syncQueue': syncQueue,
         'eqEnabled': eqEnabled,
         'eqPreamp': eqPreamp,
@@ -276,6 +285,7 @@ class AppSettings {
       automixRespectAlbums: pick('automixRespectAlbums', d.automixRespectAlbums),
       analysisModel: AnalysisModelSetting.values.asNameMap()[j['analysisModel']] ?? d.analysisModel,
       preAnalyze: pick('preAnalyze', d.preAnalyze),
+      analysisServer: j['analysisServer'] as String?,
       syncQueue: pick('syncQueue', d.syncQueue),
       eqEnabled: pick('eqEnabled', d.eqEnabled),
       eqPreamp: (j['eqPreamp'] as num?)?.toDouble() ?? d.eqPreamp,

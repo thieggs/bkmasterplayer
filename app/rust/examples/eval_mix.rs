@@ -1,12 +1,13 @@
 //! Mixa faixas reais em sequência com o planejador e o mixer do app e mede o
 //! alinhamento das batidas de B com as de A durante a transição (correlação
 //! cruzada dos ataques, que independe do tipo de bumbo).
-//! Uso: cargo run --release --example eval_mix -- [--models <pasta>] [--full] <faixas...>
+//! Uso: cargo run --release --example eval_mix -- [--models <pasta>] [--full] [--sort-bpm]
+//!      [--cache <pasta do exemplo tune>] <faixas...>
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use player_engine::engine::analysis::{decode_all, Analyzer, BeatModel, TrackAnalysis};
+use player_engine::engine::analysis::{build_analysis, decode_all, Analyzer, BeatModel, BeatRegion, TrackAnalysis};
 use player_engine::engine::automix::{plan, AutomixSettings, TempoMap};
 use player_engine::engine::deck::{spawn_deck, DeckSource, ProducerParams};
 use player_engine::engine::decoder::Decoder;
@@ -118,6 +119,20 @@ fn attack_ms(p: &[f32]) -> i64 {
     (20 + im..=ip).find(|&i| p[i] >= thr).unwrap_or(ip) as i64 - 100
 }
 
+fn from_cache(dir: &Path, p: &Path) -> TrackAnalysis {
+    let raw: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join(format!("{}.json", p.file_name().unwrap().to_string_lossy()))).expect("sem cache da faixa")).unwrap();
+    let list = |r: &serde_json::Value, k: &str| r[k].as_array().map(|v| v.iter().filter_map(|x| x.as_f64()).collect()).unwrap_or_default();
+    let regions: Vec<BeatRegion> = raw["regions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| BeatRegion { start: r["start"].as_f64().unwrap(), end: r["end"].as_f64().unwrap(), beats: list(r, "beats"), downbeats: list(r, "downbeats") })
+        .collect();
+    let audio = decode_all(Box::new(File::open(p).unwrap()), ext(p).as_deref()).unwrap();
+    build_analysis(&audio, &regions)
+}
+
 fn main() -> anyhow::Result<()> {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     let mut models = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../assets/models");
@@ -131,6 +146,13 @@ fn main() -> anyhow::Result<()> {
         args.remove(i);
     }
     let sort_bpm = args.iter().position(|a| a == "--sort-bpm").map(|i| args.remove(i)).is_some();
+    // Batidas da rede já guardadas pelo exemplo `tune` (<pasta>/<modelo>/<arquivo>.json):
+    // refaz só o resto da análise, com o código atual.
+    let mut tune_cache: Option<PathBuf> = None;
+    if let Some(i) = args.iter().position(|a| a == "--cache") {
+        tune_cache = Some(PathBuf::from(args.remove(i + 1)));
+        args.remove(i);
+    }
     let cache = std::env::temp_dir().join(format!("eval-mix-{}", std::process::id()));
     let analyzer = Analyzer::new(&models, &cache);
     if full {
@@ -141,7 +163,10 @@ fn main() -> anyhow::Result<()> {
         .iter()
         .map(PathBuf::from)
         .map(|p| {
-            let a = analyzer.analyze_uncached(Box::new(File::open(&p).unwrap()), ext(&p).as_deref()).unwrap();
+            let a = match &tune_cache {
+                Some(dir) => from_cache(&dir.join(if full { "full" } else { "small" }), &p),
+                None => analyzer.analyze_uncached(Box::new(File::open(&p).unwrap()), ext(&p).as_deref()).unwrap(),
+            };
             (p, a)
         })
         .collect();

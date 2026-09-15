@@ -65,6 +65,8 @@ pub struct TrackRequest {
     pub cover_key: Option<String>,
     /// Identidade da música para o cache de análise (independe da qualidade do stream).
     pub analysis_key: Option<String>,
+    /// Análise pronta no servidor (tentada antes da local).
+    pub analysis_url: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -448,8 +450,12 @@ impl Inner {
                 .collect();
             let next_id = self.ctl.lock().next.as_ref().and_then(|(r, _)| (r.analysis_key.as_deref() == Some(key)).then(|| r.id.clone()));
             let mut seen = std::collections::HashSet::new();
+            let server = self.from_server(key);
             for id in ids.into_iter().chain(next_id).chain(asked).filter(|id| seen.insert(id.clone())) {
-                self.emit(analysis_event(id, a));
+                self.emit(analysis_event(id, a, server));
+            }
+            if server {
+                self.replan_if_upgraded(key);
             }
         } else {
             // Falhou: quem pediu avulso não fica esperando à toa.
@@ -460,6 +466,31 @@ impl Inner {
         self.try_plan();
     }
 
+    fn from_server(&self, key: &str) -> bool {
+        self.analysis.lock().as_ref().is_some_and(|w| w.is_from_server(key))
+    }
+
+    /// Chegou a análise do servidor de A ou de B com a transição já planejada
+    /// (com a análise local de antes): planeja de novo se ainda dá tempo.
+    fn replan_if_upgraded(self: &Arc<Self>, key: &str) {
+        let Some((from_id, to_id, from_start)) = self.planned.lock().as_ref().map(|(f, t, p)| (f.clone(), t.clone(), p.from_start)) else {
+            return;
+        };
+        let Some(cur_token) = *self.current.lock() else { return };
+        let (a_key, a_deck) = match self.tracks.lock().get(&cur_token) {
+            Some(t) if t.req.id == from_id => (t.req.analysis_key.clone(), t.deck.clone()),
+            _ => return,
+        };
+        let b_key = self.ctl.lock().next.as_ref().filter(|(r, _)| r.id == to_id).and_then(|(r, _)| r.analysis_key.clone());
+        if a_key.as_deref() != Some(key) && b_key.as_deref() != Some(key) {
+            return;
+        }
+        let rate = self.ctl.lock().rate as f64;
+        if from_start - a_deck.native_position() as f64 / rate > 8.0 {
+            self.replan_after_seek();
+        }
+    }
+
     fn emit(&self, ev: EngineEvent) {
         let cb = self.callback.lock().clone();
         if let Some(cb) = cb {
@@ -468,8 +499,10 @@ impl Inner {
     }
 }
 
-fn analysis_event(id: String, a: &TrackAnalysis) -> EngineEvent {
-    EngineEvent::Analysis { id, bpm: a.bpm, key: a.key.clone(), camelot: a.camelot.clone(), reliable: a.has_beat(), detail: a.grid_summary() }
+fn analysis_event(id: String, a: &TrackAnalysis, server: bool) -> EngineEvent {
+    let grids = a.grid_summary();
+    let detail = if server { format!("análise do servidor (BK Analyzer)\n{grids}") } else { grids };
+    EngineEvent::Analysis { id, bpm: a.bpm, key: a.key.clone(), camelot: a.camelot.clone(), reliable: a.has_beat(), detail }
 }
 
 fn replay_gain(gain_db: f32, peak: Option<f32>) -> f32 {
@@ -618,7 +651,9 @@ impl Engine {
         };
         let Some(key) = req.analysis_key.clone() else { return };
         if let Some(a) = worker.get(&key) {
-            self.inner.emit(analysis_event(req.id.clone(), &a));
+            self.inner.emit(analysis_event(req.id.clone(), &a, worker.is_from_server(&key)));
+            // Local pronta, mas o servidor pode ter a dele: pergunta também.
+            self.inner.request_analysis(req, 5);
             return;
         }
         if worker.has_failed(&key) {
@@ -941,6 +976,7 @@ fn analysis_job(req: &TrackRequest, priority: u8) -> Option<AnalysisJob> {
         url: req.url.clone(),
         cache_key: req.cache_key.clone(),
         ext: req.format_hint.clone(),
+        remote: req.analysis_url.clone(),
         priority,
     })
 }

@@ -113,11 +113,23 @@ impl BeatGrid {
     /// (janelas travadas) e a rede concorda — batidas no trilho (erro RMS
     /// < 12 ms), quase todas nele e em número suficiente, ou a grade foi
     /// confirmada pela outra ponta da faixa.
+    ///
+    /// Com poucas janelas (intro sem bateria, faixa curta ou lenta: 8
+    /// compassos a 76 BPM são 25 s), vale se todas travam e outra prova
+    /// sobra: a grade confirmada pela outra ponta (tempo e fase batendo de
+    /// uma ponta à outra) ou a rede no trilho com erro mínimo (< 6 ms).
+    /// Com o áudio muito travado (80% de 6+ janelas), a rede não precisa
+    /// concordar batida a batida (percussão sincopada, como no funk).
     pub fn is_steady(&self) -> bool {
-        let audio = self.windows.len() >= 3 && self.lock >= 0.6;
-        let network = self.residual < 0.012 && self.coverage > 0.6 && self.inliers >= 32;
-        let validated = self.validated && self.residual < 0.012 && self.inliers >= 8;
-        audio && (network || validated)
+        let n = self.windows.len();
+        let tight = self.residual < 0.012;
+        let all_locked = n >= 1 && self.lock >= 0.999;
+        let audio = n >= 3 && self.lock >= 0.6;
+        let network = tight && self.coverage > 0.6 && self.inliers >= 32;
+        let validated = self.validated && tight && self.inliers >= 8;
+        let strong_audio = n >= 6 && self.lock >= 0.8 && tight && self.inliers >= 32;
+        let few_but_certain = all_locked && (validated || (n >= 2 && self.residual < 0.006 && self.inliers >= 32));
+        (audio && (network || validated || strong_audio)) || few_but_certain
     }
 
     /// Correção local da fase (s) no trecho [a, b]: mediana das janelas ali
@@ -170,6 +182,50 @@ impl TrackAnalysis {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    /// Se dá para sincronizar a entrada (começo, como faixa B) e a saída (fim,
+    /// como faixa A): as mesmas grades que o planejador confere.
+    pub fn sync_ends(&self) -> (bool, bool) {
+        if self.bpm.is_none() {
+            return (false, false);
+        }
+        let steady = |t: f64| self.grid_at(t).is_some_and(|g| g.is_steady());
+        (steady(self.first_sound + 5.0), steady(self.last_sound - 20.0))
+    }
+
+    /// Por que a batida não serve para sincronizar (None se serve nas duas
+    /// pontas), em poucas palavras, pela grade que falhou.
+    pub fn beat_problem(&self) -> Option<String> {
+        let (head, tail) = self.sync_ends();
+        if head && tail {
+            return None;
+        }
+        if self.grids.is_empty() {
+            return Some(if self.beats.len() < 8 {
+                "a rede não achou batida (música sem bateria?)".into()
+            } else {
+                "batidas irregulares: nenhuma grade de tempo fixo".into()
+            });
+        }
+        let at = if !tail { self.last_sound - 20.0 } else { self.first_sound + 5.0 };
+        let end = if !tail && !head { "nas duas pontas" } else if !tail { "no fim" } else { "no começo" };
+        let Some(g) = self.grid_at(at) else {
+            return Some(format!("sem grade {end}"));
+        };
+        // Erro alto primeiro: com o tempo oscilando, as janelas também somem.
+        let why = if g.residual >= 0.012 {
+            format!("batida tocada: oscila {:.0} ms em volta do tempo fixo", g.residual * 1000.0)
+        } else if g.windows.len() < 3 {
+            format!("pouca bateria clara ({} trechos com ataque)", g.windows.len())
+        } else if g.lock < 0.6 {
+            format!("o tempo varia (só {:.0}% dos trechos no trilho; tocada ao vivo?)", g.lock * 100.0)
+        } else if g.coverage <= 0.6 && !g.validated {
+            format!("rede e áudio discordam ({:.0}% das batidas batem)", g.coverage * 100.0)
+        } else {
+            format!("poucas batidas firmes ({})", g.inliers)
+        };
+        Some(format!("{why} {end}"))
     }
 
     /// Grade que cobre o instante `t`. Não estende grades de longe: minutos
@@ -285,25 +341,45 @@ impl Analyzer {
         *self.model.lock()
     }
 
-    fn cache_path(&self, key: &str) -> PathBuf {
-        let model = self.model().name();
-        self.cache_dir.join(format!("{:016x}.json", fnv1a64(&format!("{key}|{model}"))))
+    fn cache_path_for(&self, key: &str, source: &str) -> PathBuf {
+        self.cache_dir.join(format!("{:016x}.json", fnv1a64(&format!("{key}|{source}"))))
     }
 
-    pub fn cached(&self, key: &str) -> Option<TrackAnalysis> {
-        let raw = std::fs::read(self.cache_path(key)).ok()?;
+    fn cache_path(&self, key: &str) -> PathBuf {
+        self.cache_path_for(key, self.model().name())
+    }
+
+    fn read_cache(path: &Path) -> Option<TrackAnalysis> {
+        let raw = std::fs::read(path).ok()?;
         let a: TrackAnalysis = serde_json::from_slice(&raw).ok()?;
         (a.version == ANALYSIS_VERSION).then_some(a)
     }
 
-    pub fn store(&self, key: &str, a: &TrackAnalysis) {
+    fn write_cache(path: PathBuf, a: &TrackAnalysis) {
         if let Ok(json) = serde_json::to_vec(a) {
-            let path = self.cache_path(key);
             let tmp = path.with_extension("tmp");
             if std::fs::write(&tmp, json).is_ok() {
                 let _ = std::fs::rename(tmp, path);
             }
         }
+    }
+
+    pub fn cached(&self, key: &str) -> Option<TrackAnalysis> {
+        Self::read_cache(&self.cache_path(key))
+    }
+
+    pub fn store(&self, key: &str, a: &TrackAnalysis) {
+        Self::write_cache(self.cache_path(key), a);
+    }
+
+    /// Análise que veio do servidor (BK Analyzer), guardada à parte da feita
+    /// aqui: vale para qualquer modelo local.
+    pub fn cached_remote(&self, key: &str) -> Option<TrackAnalysis> {
+        Self::read_cache(&self.cache_path_for(key, "server"))
+    }
+
+    pub fn store_remote(&self, key: &str, a: &TrackAnalysis) {
+        Self::write_cache(self.cache_path_for(key, "server"), a);
     }
 
     /// Analisa (ou devolve do cache). Bloqueia: rode fora da thread de áudio/UI.

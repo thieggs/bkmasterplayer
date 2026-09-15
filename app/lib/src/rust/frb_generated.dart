@@ -1547,8 +1547,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TrackSource dco_decode_track_source(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 13)
-      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    if (arr.length != 14)
+      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
     return TrackSource(
       id: dco_decode_String(arr[0]),
       url: dco_decode_String(arr[1]),
@@ -1563,6 +1563,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       coverUrl: dco_decode_opt_String(arr[10]),
       coverKey: dco_decode_opt_String(arr[11]),
       analysisKey: dco_decode_opt_String(arr[12]),
+      analysisUrl: dco_decode_opt_String(arr[13]),
     );
   }
 
@@ -2182,6 +2183,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_coverUrl = sse_decode_opt_String(deserializer);
     var var_coverKey = sse_decode_opt_String(deserializer);
     var var_analysisKey = sse_decode_opt_String(deserializer);
+    var var_analysisUrl = sse_decode_opt_String(deserializer);
     return TrackSource(
       id: var_id,
       url: var_url,
@@ -2196,6 +2198,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       coverUrl: var_coverUrl,
       coverKey: var_coverKey,
       analysisKey: var_analysisKey,
+      analysisUrl: var_analysisUrl,
     );
   }
 
@@ -2776,6 +2779,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.coverUrl, serializer);
     sse_encode_opt_String(self.coverKey, serializer);
     sse_encode_opt_String(self.analysisKey, serializer);
+    sse_encode_opt_String(self.analysisUrl, serializer);
   }
 
   @protected

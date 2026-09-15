@@ -377,6 +377,10 @@ class TrackSource {
   /// Identidade da música para o cache de análise (ex.: "conta:song:id").
   final String? analysisKey;
 
+  /// Análise pronta no servidor (BK Analyzer), já com o login: tentada antes
+  /// de analisar no aparelho. Só quando o arquivo tocado é o mesmo analisado.
+  final String? analysisUrl;
+
   const TrackSource({
     required this.id,
     required this.url,
@@ -391,6 +395,7 @@ class TrackSource {
     this.coverUrl,
     this.coverKey,
     this.analysisKey,
+    this.analysisUrl,
   });
 
   @override
@@ -407,7 +412,8 @@ class TrackSource {
       album.hashCode ^
       coverUrl.hashCode ^
       coverKey.hashCode ^
-      analysisKey.hashCode;
+      analysisKey.hashCode ^
+      analysisUrl.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -426,7 +432,8 @@ class TrackSource {
           album == other.album &&
           coverUrl == other.coverUrl &&
           coverKey == other.coverKey &&
-          analysisKey == other.analysisKey;
+          analysisKey == other.analysisKey &&
+          analysisUrl == other.analysisUrl;
 }
 
 @freezed

@@ -16,6 +16,7 @@ fn track(id: &str, path: PathBuf, key: &str) -> TrackRequest {
         format_hint: Some("flac".into()),
         title: id.into(),
         analysis_key: Some(key.into()),
+        analysis_url: None,
         ..Default::default()
     }
 }

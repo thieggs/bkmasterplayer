@@ -710,6 +710,9 @@ class LocalProvider implements MusicProvider {
 
   @override
   String? coverCacheKey(String? coverArtId, {int? size}) => coverArtId;
+
+  @override
+  Uri? analyzerUri(String server, String path) => null;
 }
 
 /// Letra .lrc: "[mm:ss.xx] texto" (sincronizada) ou texto puro.
