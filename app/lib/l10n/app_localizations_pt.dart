@@ -539,6 +539,78 @@ class AppLocalizationsPt extends AppLocalizations {
   String get analysisServerChange => 'Trocar endereço';
 
   @override
+  String get dlManagerTitle => 'Baixando';
+
+  @override
+  String get dlPaused => 'Downloads pausados';
+
+  @override
+  String dlAllDone(int count) {
+    return '$count músicas baixadas';
+  }
+
+  @override
+  String dlProgress(int done, int total) {
+    return '$done de $total músicas';
+  }
+
+  @override
+  String dlBytes(String done, String total) {
+    return '$done de $total';
+  }
+
+  @override
+  String dlEta(String time) {
+    return 'faltam ~$time';
+  }
+
+  @override
+  String dlFailedCount(int count) {
+    return '$count falharam';
+  }
+
+  @override
+  String get dlPause => 'Pausar';
+
+  @override
+  String get dlResume => 'Continuar';
+
+  @override
+  String get dlParallel => 'Ao mesmo tempo';
+
+  @override
+  String get dlFewer => 'Menos';
+
+  @override
+  String get dlMore => 'Mais';
+
+  @override
+  String dlRetryFailed(int count) {
+    return 'Tentar de novo ($count)';
+  }
+
+  @override
+  String get dlClear => 'Limpar concluídas';
+
+  @override
+  String dlMoreQueued(int count) {
+    return 'e mais $count na fila';
+  }
+
+  @override
+  String get dlFailed => 'falhou';
+
+  @override
+  String get dlQueued => 'na fila';
+
+  @override
+  String get dlParallelSetting => 'Downloads ao mesmo tempo';
+
+  @override
+  String get dlParallelHint =>
+      'Quantas músicas baixam juntas para ouvir offline. Mais é mais rápido numa conexão boa; menos deixa a rede livre para tocar.';
+
+  @override
   String analysisServerOk(String done, String total, int workers) {
     return 'Conectado · $done de $total músicas analisadas · trabalhadores ligados: $workers';
   }

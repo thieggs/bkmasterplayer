@@ -22,6 +22,7 @@ class AppSettings {
     this.notifications = true,
     this.outputDeviceId,
     this.cacheLimitMb = 4096,
+    this.downloadParallel = 3,
     this.transcodeFormat,
     this.maxBitRate = 0,
     this.volume = 1.0,
@@ -63,6 +64,9 @@ class AppSettings {
   final bool notifications;
   final String? outputDeviceId;
   final int cacheLimitMb;
+
+  /// Músicas baixadas ao mesmo tempo para ouvir offline (1 a 8).
+  final int downloadParallel;
   final String? transcodeFormat;
   final int maxBitRate;
   final double volume;
@@ -135,6 +139,7 @@ class AppSettings {
     String? outputDeviceId,
     bool clearOutputDevice = false,
     int? cacheLimitMb,
+    int? downloadParallel,
     String? transcodeFormat,
     bool clearTranscode = false,
     int? maxBitRate,
@@ -182,6 +187,7 @@ class AppSettings {
         notifications: notifications ?? this.notifications,
         outputDeviceId: clearOutputDevice ? null : (outputDeviceId ?? this.outputDeviceId),
         cacheLimitMb: cacheLimitMb ?? this.cacheLimitMb,
+        downloadParallel: (downloadParallel ?? this.downloadParallel).clamp(1, 8),
         transcodeFormat: clearTranscode ? null : (transcodeFormat ?? this.transcodeFormat),
         maxBitRate: maxBitRate ?? this.maxBitRate,
         volume: volume ?? this.volume,
@@ -224,6 +230,7 @@ class AppSettings {
         'notifications': notifications,
         'outputDeviceId': outputDeviceId,
         'cacheLimitMb': cacheLimitMb,
+        'downloadParallel': downloadParallel,
         'transcodeFormat': transcodeFormat,
         'maxBitRate': maxBitRate,
         'volume': volume,
@@ -269,6 +276,7 @@ class AppSettings {
       notifications: pick('notifications', d.notifications),
       outputDeviceId: j['outputDeviceId'] as String?,
       cacheLimitMb: pick('cacheLimitMb', d.cacheLimitMb),
+      downloadParallel: pick('downloadParallel', d.downloadParallel).clamp(1, 8),
       transcodeFormat: j['transcodeFormat'] as String?,
       maxBitRate: pick('maxBitRate', d.maxBitRate),
       volume: (j['volume'] as num?)?.toDouble() ?? d.volume,

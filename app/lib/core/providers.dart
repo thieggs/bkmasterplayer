@@ -53,6 +53,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
     if (old.cacheLimitMb != s.cacheLimitMb) {
       engine.playerSetCacheLimit(limitMb: s.cacheLimitMb);
     }
+    if (old.downloadParallel != s.downloadParallel) {
+      engine.playerOfflineSetParallel(parallel: s.downloadParallel);
+    }
     final automixChanged = old.automixStyle != s.automixStyle ||
         old.automixMaxTempo != s.automixMaxTempo ||
         old.automixBars != s.automixBars ||

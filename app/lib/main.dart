@@ -93,6 +93,7 @@ Future<void> main() async {
   );
   await applyAutomix(settings);
   applyEq(settings);
+  await engine.playerOfflineSetParallel(parallel: settings.downloadParallel);
   engine.playerSetNotifications(enabled: settings.notifications && isDesktop);
 
   final container = ProviderContainer(overrides: [

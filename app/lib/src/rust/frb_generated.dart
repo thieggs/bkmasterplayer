@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -506308945;
+  int get rustContentHash => -927030452;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -113,7 +113,7 @@ abstract class RustLibApi extends BaseApi {
   Future<String> crateApiEnginePlayerDownloadFullModel();
 
   Future<void> crateApiEnginePlayerDownloadOffline({
-    required List<TrackSource> tracks,
+    required List<OfflineTrack> tracks,
   });
 
   Stream<PlayerEvent> crateApiEnginePlayerEvents();
@@ -123,6 +123,16 @@ abstract class RustLibApi extends BaseApi {
   Future<bool> crateApiEnginePlayerIsCached({required String cacheKey});
 
   int crateApiEnginePlayerModelDownloadProgress();
+
+  Future<void> crateApiEnginePlayerOfflineClearFinished();
+
+  Future<void> crateApiEnginePlayerOfflineRetryFailed();
+
+  Future<void> crateApiEnginePlayerOfflineSetParallel({required int parallel});
+
+  Future<void> crateApiEnginePlayerOfflineSetPaused({required bool paused});
+
+  OfflineStatus crateApiEnginePlayerOfflineStatus();
 
   Future<List<OutputDevice>> crateApiEnginePlayerOutputDevices();
 
@@ -505,13 +515,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<void> crateApiEnginePlayerDownloadOffline({
-    required List<TrackSource> tracks,
+    required List<OfflineTrack> tracks,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_list_track_source(tracks, serializer);
+          sse_encode_list_offline_track(tracks, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -653,7 +663,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<List<OutputDevice>> crateApiEnginePlayerOutputDevices() {
+  Future<void> crateApiEnginePlayerOfflineClearFinished() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -662,6 +672,150 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             generalizedFrbRustBinding,
             serializer,
             funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiEnginePlayerOfflineClearFinishedConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEnginePlayerOfflineClearFinishedConstMeta =>
+      const TaskConstMeta(
+        debugName: "player_offline_clear_finished",
+        argNames: [],
+      );
+
+  @override
+  Future<void> crateApiEnginePlayerOfflineRetryFailed() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 18,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiEnginePlayerOfflineRetryFailedConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEnginePlayerOfflineRetryFailedConstMeta =>
+      const TaskConstMeta(
+        debugName: "player_offline_retry_failed",
+        argNames: [],
+      );
+
+  @override
+  Future<void> crateApiEnginePlayerOfflineSetParallel({required int parallel}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(parallel, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiEnginePlayerOfflineSetParallelConstMeta,
+        argValues: [parallel],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEnginePlayerOfflineSetParallelConstMeta =>
+      const TaskConstMeta(
+        debugName: "player_offline_set_parallel",
+        argNames: ["parallel"],
+      );
+
+  @override
+  Future<void> crateApiEnginePlayerOfflineSetPaused({required bool paused}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(paused, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiEnginePlayerOfflineSetPausedConstMeta,
+        argValues: [paused],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEnginePlayerOfflineSetPausedConstMeta =>
+      const TaskConstMeta(
+        debugName: "player_offline_set_paused",
+        argNames: ["paused"],
+      );
+
+  @override
+  OfflineStatus crateApiEnginePlayerOfflineStatus() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_offline_status,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiEnginePlayerOfflineStatusConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEnginePlayerOfflineStatusConstMeta =>
+      const TaskConstMeta(debugName: "player_offline_status", argNames: []);
+
+  @override
+  Future<List<OutputDevice>> crateApiEnginePlayerOutputDevices() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 22,
             port: port_,
           );
         },
@@ -685,7 +839,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -712,7 +866,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_track_source(track, serializer);
           sse_encode_i_64(startMs, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -740,7 +894,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 25,
             port: port_,
           );
         },
@@ -770,7 +924,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 26,
             port: port_,
           );
         },
@@ -797,7 +951,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -820,7 +974,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_i_64(positionMs, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -843,7 +997,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_i_64(deltaMs, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -869,7 +1023,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 30,
             port: port_,
           );
         },
@@ -897,7 +1051,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_automix_config(config, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -926,7 +1080,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 32,
             port: port_,
           );
         },
@@ -960,7 +1114,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_bool(enabled, serializer);
           sse_encode_f_32(preampDb, serializer);
           sse_encode_list_prim_f_32_loose(gainsDb, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -989,7 +1143,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_opt_box_autoadd_track_source(track, serializer);
           sse_encode_box_autoadd_transition_mode(mode, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1015,7 +1169,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_bool(enabled, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1044,7 +1198,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1072,7 +1226,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_f_32(volume, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1094,7 +1248,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1116,7 +1270,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1307,6 +1461,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<OfflineItem> dco_decode_list_offline_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_offline_item).toList();
+  }
+
+  @protected
+  List<OfflineTrack> dco_decode_list_offline_track(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_offline_track).toList();
+  }
+
+  @protected
   List<OutputDevice> dco_decode_list_output_device(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_output_device).toList();
@@ -1328,12 +1494,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
-  }
-
-  @protected
-  List<TrackSource> dco_decode_list_track_source(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_track_source).toList();
   }
 
   @protected
@@ -1397,6 +1557,65 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       default:
         throw Exception("unreachable");
     }
+  }
+
+  @protected
+  OfflineItem dco_decode_offline_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return OfflineItem(
+      cacheKey: dco_decode_String(arr[0]),
+      title: dco_decode_String(arr[1]),
+      artist: dco_decode_String(arr[2]),
+      state: dco_decode_offline_item_state(arr[3]),
+      bytes: dco_decode_i_64(arr[4]),
+      total: dco_decode_i_64(arr[5]),
+      error: dco_decode_opt_String(arr[6]),
+    );
+  }
+
+  @protected
+  OfflineItemState dco_decode_offline_item_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return OfflineItemState.values[raw as int];
+  }
+
+  @protected
+  OfflineStatus dco_decode_offline_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return OfflineStatus(
+      paused: dco_decode_bool(arr[0]),
+      parallel: dco_decode_u_32(arr[1]),
+      total: dco_decode_u_32(arr[2]),
+      done: dco_decode_u_32(arr[3]),
+      failed: dco_decode_u_32(arr[4]),
+      queued: dco_decode_u_32(arr[5]),
+      active: dco_decode_u_32(arr[6]),
+      bytesDone: dco_decode_i_64(arr[7]),
+      bytesTotal: dco_decode_i_64(arr[8]),
+      speed: dco_decode_i_64(arr[9]),
+      items: dco_decode_list_offline_item(arr[10]),
+    );
+  }
+
+  @protected
+  OfflineTrack dco_decode_offline_track(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return OfflineTrack(
+      cacheKey: dco_decode_String(arr[0]),
+      url: dco_decode_String(arr[1]),
+      title: dco_decode_String(arr[2]),
+      artist: dco_decode_String(arr[3]),
+      sizeBytes: dco_decode_i_64(arr[4]),
+    );
   }
 
   @protected
@@ -1818,6 +2037,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<OfflineItem> sse_decode_list_offline_item(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <OfflineItem>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_offline_item(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<OfflineTrack> sse_decode_list_offline_track(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <OfflineTrack>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_offline_track(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<OutputDevice> sse_decode_list_output_device(
     SseDeserializer deserializer,
   ) {
@@ -1850,18 +2095,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
-  }
-
-  @protected
-  List<TrackSource> sse_decode_list_track_source(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <TrackSource>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_track_source(deserializer));
-    }
-    return ans_;
   }
 
   @protected
@@ -1949,6 +2182,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       default:
         throw UnimplementedError('');
     }
+  }
+
+  @protected
+  OfflineItem sse_decode_offline_item(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_cacheKey = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_artist = sse_decode_String(deserializer);
+    var var_state = sse_decode_offline_item_state(deserializer);
+    var var_bytes = sse_decode_i_64(deserializer);
+    var var_total = sse_decode_i_64(deserializer);
+    var var_error = sse_decode_opt_String(deserializer);
+    return OfflineItem(
+      cacheKey: var_cacheKey,
+      title: var_title,
+      artist: var_artist,
+      state: var_state,
+      bytes: var_bytes,
+      total: var_total,
+      error: var_error,
+    );
+  }
+
+  @protected
+  OfflineItemState sse_decode_offline_item_state(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return OfflineItemState.values[inner];
+  }
+
+  @protected
+  OfflineStatus sse_decode_offline_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_paused = sse_decode_bool(deserializer);
+    var var_parallel = sse_decode_u_32(deserializer);
+    var var_total = sse_decode_u_32(deserializer);
+    var var_done = sse_decode_u_32(deserializer);
+    var var_failed = sse_decode_u_32(deserializer);
+    var var_queued = sse_decode_u_32(deserializer);
+    var var_active = sse_decode_u_32(deserializer);
+    var var_bytesDone = sse_decode_i_64(deserializer);
+    var var_bytesTotal = sse_decode_i_64(deserializer);
+    var var_speed = sse_decode_i_64(deserializer);
+    var var_items = sse_decode_list_offline_item(deserializer);
+    return OfflineStatus(
+      paused: var_paused,
+      parallel: var_parallel,
+      total: var_total,
+      done: var_done,
+      failed: var_failed,
+      queued: var_queued,
+      active: var_active,
+      bytesDone: var_bytesDone,
+      bytesTotal: var_bytesTotal,
+      speed: var_speed,
+      items: var_items,
+    );
+  }
+
+  @protected
+  OfflineTrack sse_decode_offline_track(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_cacheKey = sse_decode_String(deserializer);
+    var var_url = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_artist = sse_decode_String(deserializer);
+    var var_sizeBytes = sse_decode_i_64(deserializer);
+    return OfflineTrack(
+      cacheKey: var_cacheKey,
+      url: var_url,
+      title: var_title,
+      artist: var_artist,
+      sizeBytes: var_sizeBytes,
+    );
   }
 
   @protected
@@ -2451,6 +2758,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_offline_item(
+    List<OfflineItem> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_offline_item(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_offline_track(
+    List<OfflineTrack> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_offline_track(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_output_device(
     List<OutputDevice> self,
     SseSerializer serializer,
@@ -2492,18 +2823,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
-  }
-
-  @protected
-  void sse_encode_list_track_source(
-    List<TrackSource> self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_track_source(item, serializer);
-    }
   }
 
   @protected
@@ -2563,6 +2882,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case MediaAction_Quit():
         sse_encode_i_32(10, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_offline_item(OfflineItem self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.cacheKey, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.artist, serializer);
+    sse_encode_offline_item_state(self.state, serializer);
+    sse_encode_i_64(self.bytes, serializer);
+    sse_encode_i_64(self.total, serializer);
+    sse_encode_opt_String(self.error, serializer);
+  }
+
+  @protected
+  void sse_encode_offline_item_state(
+    OfflineItemState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_offline_status(OfflineStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.paused, serializer);
+    sse_encode_u_32(self.parallel, serializer);
+    sse_encode_u_32(self.total, serializer);
+    sse_encode_u_32(self.done, serializer);
+    sse_encode_u_32(self.failed, serializer);
+    sse_encode_u_32(self.queued, serializer);
+    sse_encode_u_32(self.active, serializer);
+    sse_encode_i_64(self.bytesDone, serializer);
+    sse_encode_i_64(self.bytesTotal, serializer);
+    sse_encode_i_64(self.speed, serializer);
+    sse_encode_list_offline_item(self.items, serializer);
+  }
+
+  @protected
+  void sse_encode_offline_track(OfflineTrack self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.cacheKey, serializer);
+    sse_encode_String(self.url, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.artist, serializer);
+    sse_encode_i_64(self.sizeBytes, serializer);
   }
 
   @protected

@@ -18,6 +18,7 @@ import '../../../l10n/l10n.dart';
 import '../../../src/rust/api/engine.dart' as engine;
 import '../../actions.dart';
 import '../../widgets/bk_logo.dart';
+import '../../widgets/download_manager.dart';
 import '../automix_settings.dart';
 import 'common.dart';
 
@@ -344,6 +345,13 @@ class StorageSettingsPage extends ConsumerWidget {
             subtitle: Text(l10n.openDownloadsHint),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/offline'),
+          ),
+        if (!local)
+          ListTile(
+            leading: const Icon(Icons.downloading_outlined),
+            title: Text(l10n.dlParallelSetting),
+            subtitle: Text(l10n.dlParallelHint),
+            trailing: const DownloadParallelStepper(),
           ),
         ListTile(
           leading: const Icon(Icons.storage_outlined),

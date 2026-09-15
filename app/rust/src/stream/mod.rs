@@ -8,8 +8,10 @@
 //! mesmo com o download pela metade. Quando termina, o arquivo vira
 //! `<hash>.audio` e as próximas reproduções saem do disco.
 
+mod offline;
 mod rangeset;
 
+pub use offline::{OfflineItem, OfflineState, OfflineStatus, OfflineTrack};
 pub use rangeset::RangeSet;
 
 use std::collections::HashMap;
@@ -73,6 +75,12 @@ impl Download {
 
     pub fn is_complete(&self) -> bool {
         self.state.lock().complete
+    }
+
+    /// (bytes já no disco, tamanho total se conhecido).
+    pub fn bytes(&self) -> (u64, Option<u64>) {
+        let st = self.state.lock();
+        (st.ranges.covered(), st.total_len)
     }
 
     pub fn error(&self) -> Option<String> {
@@ -351,8 +359,8 @@ pub struct DownloadManager {
     limit_bytes: AtomicU64,
     /// Faixas baixadas para ouvir offline: nunca saem do cache.
     pinned: Mutex<std::collections::HashSet<String>>,
-    /// Fila de downloads offline (um de cada vez).
-    offline_queue: Mutex<std::collections::VecDeque<(String, String)>>,
+    /// Fila de downloads offline (ver `offline.rs`).
+    offline: Mutex<offline::Offline>,
     offline_cond: Condvar,
 }
 
@@ -383,7 +391,7 @@ impl DownloadManager {
             active: Mutex::new(HashMap::new()),
             limit_bytes: AtomicU64::new(limit_bytes),
             pinned: Mutex::new(pinned),
-            offline_queue: Mutex::new(std::collections::VecDeque::new()),
+            offline: Mutex::new(offline::Offline::default()),
             offline_cond: Condvar::new(),
         })
     }
@@ -393,72 +401,6 @@ impl DownloadManager {
         if let Ok(json) = serde_json::to_vec(&list) {
             let _ = fs::write(self.cache_dir.join("pinned.json"), json);
         }
-    }
-
-    /// Marca faixas para ouvir offline e enfileira os downloads.
-    pub fn pin(self: &Arc<Self>, tracks: Vec<(String, String)>) {
-        {
-            let mut pinned = self.pinned.lock();
-            for (k, _) in &tracks {
-                pinned.insert(k.clone());
-            }
-        }
-        self.save_pinned();
-        let mut q = self.offline_queue.lock();
-        for t in tracks {
-            if !self.is_cached(&t.0) && !q.iter().any(|(k, _)| *k == t.0) {
-                q.push_back(t);
-            }
-        }
-        self.offline_cond.notify_all();
-    }
-
-    /// Remove das offline e apaga os arquivos.
-    pub fn unpin(&self, keys: &[String]) {
-        {
-            let mut pinned = self.pinned.lock();
-            for k in keys {
-                pinned.remove(k);
-            }
-        }
-        self.save_pinned();
-        self.offline_queue.lock().retain(|(k, _)| !keys.contains(k));
-        for k in keys {
-            let _ = fs::remove_file(self.paths(k).1);
-        }
-    }
-
-    pub fn is_pinned(&self, key: &str) -> bool {
-        self.pinned.lock().contains(key)
-    }
-
-    /// Thread que baixa a fila offline, uma faixa por vez.
-    pub fn start_offline_worker(self: &Arc<Self>) {
-        let me = Arc::downgrade(self);
-        let _ = std::thread::Builder::new().name("offline".into()).spawn(move || loop {
-            let Some(mgr) = me.upgrade() else { return };
-            let job = {
-                let mut q = mgr.offline_queue.lock();
-                if q.is_empty() {
-                    mgr.offline_cond.wait_for(&mut q, Duration::from_secs(2));
-                }
-                q.pop_front()
-            };
-            let Some((key, url)) = job else { continue };
-            if mgr.is_cached(&key) || !mgr.is_pinned(&key) {
-                continue;
-            }
-            if let Some(dl) = mgr.ensure_download(&key, &url) {
-                drop(mgr);
-                // Espera terminar (ou falhar) antes do próximo.
-                loop {
-                    if dl.is_complete() || dl.error().is_some() {
-                        break;
-                    }
-                    std::thread::sleep(Duration::from_millis(300));
-                }
-            }
-        });
     }
 
     pub fn set_limit(&self, bytes: u64) {
@@ -661,6 +603,11 @@ mod tests {
 
     /// Servidor HTTP mínimo com suporte a Range, para testar sem rede.
     fn serve(data: Arc<Vec<u8>>, ranges: bool) -> String {
+        serve_with(data, ranges, 200)
+    }
+
+    /// Idem, com `delay_us` de pausa a cada 8 KB (para ver downloads em andamento).
+    fn serve_with(data: Arc<Vec<u8>>, ranges: bool, delay_us: u64) -> String {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
         std::thread::spawn(move || {
@@ -707,12 +654,114 @@ mod tests {
                         if s.write_all(c).is_err() {
                             return;
                         }
-                        std::thread::sleep(Duration::from_micros(200));
+                        std::thread::sleep(Duration::from_micros(delay_us));
                     }
                 });
             }
         });
         format!("http://{addr}/stream")
+    }
+
+    /// Servidor que responde 404 a tudo.
+    fn serve_404() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                loop {
+                    let mut line = String::new();
+                    if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
+                        break;
+                    }
+                }
+                let mut s = stream;
+                let _ = s.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            }
+        });
+        format!("http://{addr}/stream")
+    }
+
+    fn offline_track(key: &str, url: &str, size: usize) -> OfflineTrack {
+        OfflineTrack { key: key.into(), url: url.into(), title: key.into(), artist: "teste".into(), size: size as u64 }
+    }
+
+    /// Espera até `cond` valer (ou falha depois de `secs`), olhando o status.
+    fn wait_status(mgr: &DownloadManager, secs: u64, mut cond: impl FnMut(&OfflineStatus) -> bool) -> OfflineStatus {
+        let t = std::time::Instant::now();
+        loop {
+            let st = mgr.offline_status();
+            if cond(&st) {
+                return st;
+            }
+            assert!(t.elapsed() < Duration::from_secs(secs), "tempo esgotado: {st:?}");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    #[test]
+    fn offline_queue_respects_parallel_and_counts_bytes() {
+        let d = data(2_000_000);
+        let url = serve_with(d.clone(), true, 1500);
+        let mgr = Arc::new(DownloadManager::new(tmpdir("off-par"), u64::MAX).unwrap());
+        mgr.set_offline_parallel(2);
+        mgr.start_offline_worker();
+        mgr.pin((0..6).map(|i| offline_track(&format!("o{i}"), &format!("{url}?{i}"), d.len())).collect());
+        let mut max_active = 0;
+        let st = wait_status(&mgr, 60, |st| {
+            max_active = max_active.max(st.active);
+            st.done == 6
+        });
+        assert!(max_active <= 2, "no máximo 2 ao mesmo tempo, vi {max_active}");
+        assert_eq!(max_active, 2, "chegou a baixar 2 ao mesmo tempo");
+        assert_eq!((st.total, st.failed, st.queued, st.active), (6, 0, 0, 0));
+        assert_eq!(st.bytes_total, 6 * d.len() as u64);
+        assert_eq!(st.bytes_done, st.bytes_total);
+        for i in 0..6 {
+            let k = format!("o{i}");
+            assert!(mgr.is_cached(&k));
+            assert_eq!(fs::read(mgr.paths(&k).1).unwrap(), *d);
+        }
+    }
+
+    #[test]
+    fn offline_pause_stops_and_resume_finishes_intact() {
+        let d = data(3_000_000);
+        // Lento (~8 s por música): pausar tem de parar no meio, não esperar terminar.
+        let url = serve_with(d.clone(), true, 20_000);
+        let mgr = Arc::new(DownloadManager::new(tmpdir("off-pause"), u64::MAX).unwrap());
+        mgr.set_offline_parallel(3);
+        mgr.start_offline_worker();
+        mgr.pin((0..4).map(|i| offline_track(&format!("p{i}"), &format!("{url}?{i}"), d.len())).collect());
+        wait_status(&mgr, 20, |st| st.active == 3 && st.bytes_done > 100_000);
+        mgr.set_offline_paused(true);
+        let paused = wait_status(&mgr, 2, |st| st.active == 0);
+        assert!(paused.paused);
+        assert_eq!((paused.done, paused.queued), (0, 4), "pararam no meio e voltaram para a fila: {paused:?}");
+        std::thread::sleep(Duration::from_millis(600));
+        let still = mgr.offline_status();
+        assert_eq!((still.active, still.bytes_done), (0, 0), "pausado não baixa nada");
+        mgr.set_offline_paused(false);
+        wait_status(&mgr, 90, |st| st.done == 4);
+        for i in 0..4 {
+            assert_eq!(fs::read(mgr.paths(&format!("p{i}")).1).unwrap(), *d, "arquivo inteiro e certo depois de parar no meio");
+        }
+    }
+
+    #[test]
+    fn offline_retries_then_fails_and_can_retry() {
+        let url = serve_404();
+        let mgr = Arc::new(DownloadManager::new(tmpdir("off-fail"), u64::MAX).unwrap());
+        mgr.start_offline_worker();
+        mgr.pin(vec![offline_track("f1", &url, 1000)]);
+        let st = wait_status(&mgr, 20, |st| st.failed == 1);
+        assert!(st.items[0].error.as_deref().is_some_and(|e| e.contains("404")), "{st:?}");
+        mgr.retry_offline_failed();
+        let again = mgr.offline_status();
+        assert_eq!((again.failed, again.queued + again.active), (0, 1), "voltou para a fila: {again:?}");
+        wait_status(&mgr, 20, |st| st.failed == 1);
+        mgr.clear_offline_finished();
+        assert_eq!(mgr.offline_status().total, 0);
     }
 
     fn tmpdir(name: &str) -> PathBuf {

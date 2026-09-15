@@ -12,6 +12,7 @@ import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
 import '../actions.dart';
 import '../widgets/cover_art.dart';
+import '../widgets/download_manager.dart';
 import '../widgets/song_tile.dart';
 
 /// Botão "baixar para ouvir offline" com progresso (álbum ou playlist).
@@ -149,6 +150,7 @@ class OfflinePage extends ConsumerWidget {
           child: Text(l10n.downloadsHint, style: Theme.of(context).textTheme.bodySmall),
         ),
         const SizedBox(height: 8),
+        const DownloadManagerCard(),
         const _WholeLibraryTile(),
         const Divider(),
         if (list.isEmpty)

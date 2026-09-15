@@ -1046,6 +1046,120 @@ abstract class AppLocalizations {
   /// **'Trocar endereço'**
   String get analysisServerChange;
 
+  /// No description provided for @dlManagerTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando'**
+  String get dlManagerTitle;
+
+  /// No description provided for @dlPaused.
+  ///
+  /// In pt, this message translates to:
+  /// **'Downloads pausados'**
+  String get dlPaused;
+
+  /// No description provided for @dlAllDone.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} músicas baixadas'**
+  String dlAllDone(int count);
+
+  /// No description provided for @dlProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'{done} de {total} músicas'**
+  String dlProgress(int done, int total);
+
+  /// No description provided for @dlBytes.
+  ///
+  /// In pt, this message translates to:
+  /// **'{done} de {total}'**
+  String dlBytes(String done, String total);
+
+  /// No description provided for @dlEta.
+  ///
+  /// In pt, this message translates to:
+  /// **'faltam ~{time}'**
+  String dlEta(String time);
+
+  /// No description provided for @dlFailedCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} falharam'**
+  String dlFailedCount(int count);
+
+  /// No description provided for @dlPause.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausar'**
+  String get dlPause;
+
+  /// No description provided for @dlResume.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuar'**
+  String get dlResume;
+
+  /// No description provided for @dlParallel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao mesmo tempo'**
+  String get dlParallel;
+
+  /// No description provided for @dlFewer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Menos'**
+  String get dlFewer;
+
+  /// No description provided for @dlMore.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais'**
+  String get dlMore;
+
+  /// No description provided for @dlRetryFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo ({count})'**
+  String dlRetryFailed(int count);
+
+  /// No description provided for @dlClear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar concluídas'**
+  String get dlClear;
+
+  /// No description provided for @dlMoreQueued.
+  ///
+  /// In pt, this message translates to:
+  /// **'e mais {count} na fila'**
+  String dlMoreQueued(int count);
+
+  /// No description provided for @dlFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'falhou'**
+  String get dlFailed;
+
+  /// No description provided for @dlQueued.
+  ///
+  /// In pt, this message translates to:
+  /// **'na fila'**
+  String get dlQueued;
+
+  /// No description provided for @dlParallelSetting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Downloads ao mesmo tempo'**
+  String get dlParallelSetting;
+
+  /// No description provided for @dlParallelHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quantas músicas baixam juntas para ouvir offline. Mais é mais rápido numa conexão boa; menos deixa a rede livre para tocar.'**
+  String get dlParallelHint;
+
   /// No description provided for @analysisServerOk.
   ///
   /// In pt, this message translates to:

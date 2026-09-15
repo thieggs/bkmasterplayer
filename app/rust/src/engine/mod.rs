@@ -758,8 +758,28 @@ impl Engine {
     }
 
     /// Baixa para ouvir offline (fica fora da limpeza do cache).
-    pub fn download_offline(&self, tracks: Vec<(String, String)>) {
+    pub fn download_offline(&self, tracks: Vec<crate::stream::OfflineTrack>) {
         self.inner.downloads.pin(tracks);
+    }
+
+    pub fn offline_status(&self) -> crate::stream::OfflineStatus {
+        self.inner.downloads.offline_status()
+    }
+
+    pub fn set_offline_parallel(&self, n: usize) {
+        self.inner.downloads.set_offline_parallel(n);
+    }
+
+    pub fn set_offline_paused(&self, paused: bool) {
+        self.inner.downloads.set_offline_paused(paused);
+    }
+
+    pub fn retry_offline_failed(&self) {
+        self.inner.downloads.retry_offline_failed();
+    }
+
+    pub fn clear_offline_finished(&self) {
+        self.inner.downloads.clear_offline_finished();
     }
 
     pub fn remove_offline(&self, keys: &[String]) {

@@ -57,9 +57,29 @@ Future<List<OutputDevice>> playerOutputDevices() =>
 Future<void> playerSetOutputDevice({String? deviceId}) => RustLib.instance.api
     .crateApiEnginePlayerSetOutputDevice(deviceId: deviceId);
 
-/// Baixa faixas para ouvir offline (uma de cada vez, em segundo plano).
-Future<void> playerDownloadOffline({required List<TrackSource> tracks}) =>
+/// Enfileira para ouvir offline (as que já estão no disco são ignoradas).
+Future<void> playerDownloadOffline({required List<OfflineTrack> tracks}) =>
     RustLib.instance.api.crateApiEnginePlayerDownloadOffline(tracks: tracks);
+
+OfflineStatus playerOfflineStatus() =>
+    RustLib.instance.api.crateApiEnginePlayerOfflineStatus();
+
+/// Quantas músicas baixam ao mesmo tempo (1 a 8).
+Future<void> playerOfflineSetParallel({required int parallel}) => RustLib
+    .instance
+    .api
+    .crateApiEnginePlayerOfflineSetParallel(parallel: parallel);
+
+/// Pausa a fila (as que estão no meio param e recomeçam ao continuar).
+Future<void> playerOfflineSetPaused({required bool paused}) =>
+    RustLib.instance.api.crateApiEnginePlayerOfflineSetPaused(paused: paused);
+
+Future<void> playerOfflineRetryFailed() =>
+    RustLib.instance.api.crateApiEnginePlayerOfflineRetryFailed();
+
+/// Tira da lista as concluídas e as que falharam.
+Future<void> playerOfflineClearFinished() =>
+    RustLib.instance.api.crateApiEnginePlayerOfflineClearFinished();
 
 Future<void> playerRemoveOffline({required List<String> cacheKeys}) => RustLib
     .instance
@@ -229,6 +249,154 @@ sealed class MediaAction with _$MediaAction {
       MediaAction_SetVolume;
   const factory MediaAction.raise() = MediaAction_Raise;
   const factory MediaAction.quit() = MediaAction_Quit;
+}
+
+class OfflineItem {
+  final String cacheKey;
+  final String title;
+  final String artist;
+  final OfflineItemState state;
+  final PlatformInt64 bytes;
+  final PlatformInt64 total;
+  final String? error;
+
+  const OfflineItem({
+    required this.cacheKey,
+    required this.title,
+    required this.artist,
+    required this.state,
+    required this.bytes,
+    required this.total,
+    this.error,
+  });
+
+  @override
+  int get hashCode =>
+      cacheKey.hashCode ^
+      title.hashCode ^
+      artist.hashCode ^
+      state.hashCode ^
+      bytes.hashCode ^
+      total.hashCode ^
+      error.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OfflineItem &&
+          runtimeType == other.runtimeType &&
+          cacheKey == other.cacheKey &&
+          title == other.title &&
+          artist == other.artist &&
+          state == other.state &&
+          bytes == other.bytes &&
+          total == other.total &&
+          error == other.error;
+}
+
+enum OfflineItemState { queued, active, done, failed }
+
+/// Andamento da fila de downloads offline.
+class OfflineStatus {
+  final bool paused;
+  final int parallel;
+  final int total;
+  final int done;
+  final int failed;
+  final int queued;
+  final int active;
+  final PlatformInt64 bytesDone;
+  final PlatformInt64 bytesTotal;
+
+  /// Bytes por segundo.
+  final PlatformInt64 speed;
+
+  /// Baixando agora, depois as que falharam, depois o começo da fila.
+  final List<OfflineItem> items;
+
+  const OfflineStatus({
+    required this.paused,
+    required this.parallel,
+    required this.total,
+    required this.done,
+    required this.failed,
+    required this.queued,
+    required this.active,
+    required this.bytesDone,
+    required this.bytesTotal,
+    required this.speed,
+    required this.items,
+  });
+
+  @override
+  int get hashCode =>
+      paused.hashCode ^
+      parallel.hashCode ^
+      total.hashCode ^
+      done.hashCode ^
+      failed.hashCode ^
+      queued.hashCode ^
+      active.hashCode ^
+      bytesDone.hashCode ^
+      bytesTotal.hashCode ^
+      speed.hashCode ^
+      items.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OfflineStatus &&
+          runtimeType == other.runtimeType &&
+          paused == other.paused &&
+          parallel == other.parallel &&
+          total == other.total &&
+          done == other.done &&
+          failed == other.failed &&
+          queued == other.queued &&
+          active == other.active &&
+          bytesDone == other.bytesDone &&
+          bytesTotal == other.bytesTotal &&
+          speed == other.speed &&
+          items == other.items;
+}
+
+/// Baixa faixas para ouvir offline (uma de cada vez, em segundo plano).
+/// Música para baixar e ouvir offline.
+class OfflineTrack {
+  final String cacheKey;
+  final String url;
+  final String title;
+  final String artist;
+
+  /// Tamanho informado pelo servidor (0 = desconhecido).
+  final PlatformInt64 sizeBytes;
+
+  const OfflineTrack({
+    required this.cacheKey,
+    required this.url,
+    required this.title,
+    required this.artist,
+    required this.sizeBytes,
+  });
+
+  @override
+  int get hashCode =>
+      cacheKey.hashCode ^
+      url.hashCode ^
+      title.hashCode ^
+      artist.hashCode ^
+      sizeBytes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OfflineTrack &&
+          runtimeType == other.runtimeType &&
+          cacheKey == other.cacheKey &&
+          url == other.url &&
+          title == other.title &&
+          artist == other.artist &&
+          sizeBytes == other.sizeBytes;
 }
 
 class OutputDevice {

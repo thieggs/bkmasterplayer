@@ -280,12 +280,115 @@ pub fn player_set_output_device(device_id: Option<String>) -> Result<()> {
 }
 
 /// Baixa faixas para ouvir offline (uma de cada vez, em segundo plano).
-pub fn player_download_offline(tracks: Vec<TrackSource>) -> Result<()> {
+/// Música para baixar e ouvir offline.
+pub struct OfflineTrack {
+    pub cache_key: String,
+    pub url: String,
+    pub title: String,
+    pub artist: String,
+    /// Tamanho informado pelo servidor (0 = desconhecido).
+    pub size_bytes: i64,
+}
+
+pub enum OfflineItemState {
+    Queued,
+    Active,
+    Done,
+    Failed,
+}
+
+pub struct OfflineItem {
+    pub cache_key: String,
+    pub title: String,
+    pub artist: String,
+    pub state: OfflineItemState,
+    pub bytes: i64,
+    pub total: i64,
+    pub error: Option<String>,
+}
+
+/// Andamento da fila de downloads offline.
+pub struct OfflineStatus {
+    pub paused: bool,
+    pub parallel: u32,
+    pub total: u32,
+    pub done: u32,
+    pub failed: u32,
+    pub queued: u32,
+    pub active: u32,
+    pub bytes_done: i64,
+    pub bytes_total: i64,
+    /// Bytes por segundo.
+    pub speed: i64,
+    /// Baixando agora, depois as que falharam, depois o começo da fila.
+    pub items: Vec<OfflineItem>,
+}
+
+/// Enfileira para ouvir offline (as que já estão no disco são ignoradas).
+pub fn player_download_offline(tracks: Vec<OfflineTrack>) -> Result<()> {
     let list = tracks
         .into_iter()
-        .filter_map(|t| t.cache_key.map(|k| (k, t.url)))
+        .map(|t| crate::stream::OfflineTrack { key: t.cache_key, url: t.url, title: t.title, artist: t.artist, size: t.size_bytes.max(0) as u64 })
         .collect();
     engine()?.download_offline(list);
+    Ok(())
+}
+
+#[frb(sync)]
+pub fn player_offline_status() -> Result<OfflineStatus> {
+    let s = engine()?.offline_status();
+    Ok(OfflineStatus {
+        paused: s.paused,
+        parallel: s.parallel,
+        total: s.total,
+        done: s.done,
+        failed: s.failed,
+        queued: s.queued,
+        active: s.active,
+        bytes_done: s.bytes_done as i64,
+        bytes_total: s.bytes_total as i64,
+        speed: s.speed as i64,
+        items: s
+            .items
+            .into_iter()
+            .map(|i| OfflineItem {
+                cache_key: i.key,
+                title: i.title,
+                artist: i.artist,
+                state: match i.state {
+                    crate::stream::OfflineState::Queued => OfflineItemState::Queued,
+                    crate::stream::OfflineState::Active => OfflineItemState::Active,
+                    crate::stream::OfflineState::Done => OfflineItemState::Done,
+                    crate::stream::OfflineState::Failed => OfflineItemState::Failed,
+                },
+                bytes: i.bytes as i64,
+                total: i.total as i64,
+                error: i.error,
+            })
+            .collect(),
+    })
+}
+
+/// Quantas músicas baixam ao mesmo tempo (1 a 8).
+pub fn player_offline_set_parallel(parallel: u32) -> Result<()> {
+    engine()?.set_offline_parallel(parallel as usize);
+    Ok(())
+}
+
+/// Pausa a fila (as que estão no meio param e recomeçam ao continuar).
+pub fn player_offline_set_paused(paused: bool) -> Result<()> {
+    engine()?.set_offline_paused(paused);
+    Ok(())
+}
+
+pub fn player_offline_retry_failed() -> Result<()> {
+    engine()?.retry_offline_failed();
+    Ok(())
+}
+
+/// Tira da lista as concluídas e as que falharam.
+pub fn player_offline_clear_finished() -> Result<()> {
+    engine()?.clear_offline_finished();
     Ok(())
 }
 

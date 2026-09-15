@@ -215,6 +215,8 @@ class PlayerController extends Notifier<PlayerState> {
         // build, quando o estado ainda não existe (a restauração falhava calada).
         Future.microtask(() => _restore().whenComplete(() {
               if (!_restoredDone.isCompleted) _restoredDone.complete();
+              // A fila de downloads offline não sobrevive ao app fechado: pede de novo o que falta.
+              if (account != null) unawaited(ref.read(offlineProvider.notifier).resumePending(account));
             }));
       }
     }, fireImmediately: true);

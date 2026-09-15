@@ -99,6 +99,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LocalTrack> dco_decode_list_local_track(dynamic raw);
 
   @protected
+  List<OfflineItem> dco_decode_list_offline_item(dynamic raw);
+
+  @protected
+  List<OfflineTrack> dco_decode_list_offline_track(dynamic raw);
+
+  @protected
   List<OutputDevice> dco_decode_list_output_device(dynamic raw);
 
   @protected
@@ -111,13 +117,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
-  List<TrackSource> dco_decode_list_track_source(dynamic raw);
-
-  @protected
   LocalTrack dco_decode_local_track(dynamic raw);
 
   @protected
   MediaAction dco_decode_media_action(dynamic raw);
+
+  @protected
+  OfflineItem dco_decode_offline_item(dynamic raw);
+
+  @protected
+  OfflineItemState dco_decode_offline_item_state(dynamic raw);
+
+  @protected
+  OfflineStatus dco_decode_offline_status(dynamic raw);
+
+  @protected
+  OfflineTrack dco_decode_offline_track(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -251,6 +266,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LocalTrack> sse_decode_list_local_track(SseDeserializer deserializer);
 
   @protected
+  List<OfflineItem> sse_decode_list_offline_item(SseDeserializer deserializer);
+
+  @protected
+  List<OfflineTrack> sse_decode_list_offline_track(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<OutputDevice> sse_decode_list_output_device(
     SseDeserializer deserializer,
   );
@@ -265,13 +288,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
-  List<TrackSource> sse_decode_list_track_source(SseDeserializer deserializer);
-
-  @protected
   LocalTrack sse_decode_local_track(SseDeserializer deserializer);
 
   @protected
   MediaAction sse_decode_media_action(SseDeserializer deserializer);
+
+  @protected
+  OfflineItem sse_decode_offline_item(SseDeserializer deserializer);
+
+  @protected
+  OfflineItemState sse_decode_offline_item_state(SseDeserializer deserializer);
+
+  @protected
+  OfflineStatus sse_decode_offline_status(SseDeserializer deserializer);
+
+  @protected
+  OfflineTrack sse_decode_offline_track(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -431,6 +463,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_offline_item(
+    List<OfflineItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_offline_track(
+    List<OfflineTrack> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_output_device(
     List<OutputDevice> self,
     SseSerializer serializer,
@@ -455,16 +499,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_list_track_source(
-    List<TrackSource> self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_local_track(LocalTrack self, SseSerializer serializer);
 
   @protected
   void sse_encode_media_action(MediaAction self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_offline_item(OfflineItem self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_offline_item_state(
+    OfflineItemState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_offline_status(OfflineStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_offline_track(OfflineTrack self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);

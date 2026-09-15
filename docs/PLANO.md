@@ -150,6 +150,24 @@ Pedido do usuário: *"igual a análise sônica fica salva no server e o celular 
   - Com 6 ao mesmo tempo, ou com a rede nas 12 threads (`RTEN_NUM_THREADS`; o padrão do rten é o número de núcleos físicos), o ritmo fica igual: o limite de energia do chip (15 W) é o teto, não a CPU parada.
   - O trabalhador usa 1 análise a cada 3 threads (até 4) e a rede em todas as threads.
 
+### Gerenciador de downloads (15/09)
+Pedido do usuário: *"um gerenciador de downloads que presta, com configuração de downloads simultâneos e mostrando o progresso total e por música"*.
+- **Motor** (`app/rust/src/stream/offline.rs`):
+  - fila com 1 a 8 ao mesmo tempo (padrão 3), trocável na hora;
+  - até 3 tentativas por música (espera 5 s, 10 s); depois fica em "falharam", com o motivo, e dá para tentar de novo;
+  - progresso em bytes por música e no total, velocidade (média de 6 s) e tempo que falta;
+  - status sob demanda (`player_offline_status`, síncrono).
+- **Pausar:** para na hora os downloads em andamento (menos o de uma música tocando) e apaga o `.part` antes de recomeçar, para a thread antiga nunca escrever no arquivo novo; ao continuar, elas recomeçam.
+- **Ao abrir o app,** a fila volta sozinha com o que falta das coleções da conta (antes, as pendentes só voltavam se a pessoa baixasse de novo).
+- **O tamanho da música** agora vai para a lista offline salva, então o total em MB fica certo depois de reabrir.
+- **Tela** (Biblioteca → Downloads, `download_manager.dart`):
+  - cartão com o total (músicas e MB/GB, velocidade, tempo que falta), Pausar/Continuar, "Ao mesmo tempo − N +", "Tentar de novo" e "Limpar concluídas";
+  - cada música baixando com a sua barra e porcentagem, as que falharam com o motivo, e o começo da fila;
+  - em Ajustes → Downloads e cache, "Downloads ao mesmo tempo".
+- **Testes:**
+  - no motor, limite de simultâneos, pausa que para no meio e retoma com o arquivo inteiro e certo, e tentativas e falha;
+  - no emulador, com a rede limitada a EDGE, o progresso, a pausa e a fila voltando ao reabrir.
+
 ### Correções (15/09)
 - **Despausar travava** (PC e celular): o motor pausava o stream do cpal depois de 10 s parado; retomar esse stream às vezes não voltava a pedir som, e o mixer só lê os comandos dentro do callback, então o play não saía ou demorava.
   - Agora a saída só fecha depois de 2 min parada (30 s no celular) e o próximo comando abre uma saída nova.

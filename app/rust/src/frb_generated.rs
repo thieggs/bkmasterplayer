@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -506308945;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -927030452;
 
 // Section: executor
 
@@ -449,7 +449,7 @@ fn wire__crate__api__engine__player_download_offline_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_tracks = <Vec<crate::api::engine::TrackSource>>::sse_decode(&mut deserializer);
+            let api_tracks = <Vec<crate::api::engine::OfflineTrack>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -596,6 +596,176 @@ fn wire__crate__api__engine__player_model_download_progress_impl(
                 let output_ok = Ok::<_, ()>(crate::api::engine::player_model_download_progress())?;
                 std::result::Result::Ok(output_ok)
             })())
+        },
+    )
+}
+fn wire__crate__api__engine__player_offline_clear_finished_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "player_offline_clear_finished",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::engine::player_offline_clear_finished()?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__engine__player_offline_retry_failed_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "player_offline_retry_failed",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::engine::player_offline_retry_failed()?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__engine__player_offline_set_parallel_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "player_offline_set_parallel",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_parallel = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok =
+                            crate::api::engine::player_offline_set_parallel(api_parallel)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__engine__player_offline_set_paused_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "player_offline_set_paused",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_paused = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::engine::player_offline_set_paused(api_paused)?;
+                        std::result::Result::Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__engine__player_offline_status_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "player_offline_status",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                (move || {
+                    let output_ok = crate::api::engine::player_offline_status()?;
+                    std::result::Result::Ok(output_ok)
+                })(),
+            )
         },
     )
 }
@@ -1387,6 +1557,30 @@ impl SseDecode for Vec<crate::api::library::LocalTrack> {
     }
 }
 
+impl SseDecode for Vec<crate::api::engine::OfflineItem> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::engine::OfflineItem>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::engine::OfflineTrack> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::engine::OfflineTrack>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::engine::OutputDevice> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1418,18 +1612,6 @@ impl SseDecode for Vec<u8> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<u8>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
-impl SseDecode for Vec<crate::api::engine::TrackSource> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = Vec::with_capacity(len_ as usize);
-        for idx_ in 0..len_ {
-            ans_.push(<crate::api::engine::TrackSource>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -1536,6 +1718,90 @@ impl SseDecode for crate::api::engine::MediaAction {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseDecode for crate::api::engine::OfflineItem {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_cacheKey = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_artist = <String>::sse_decode(deserializer);
+        let mut var_state = <crate::api::engine::OfflineItemState>::sse_decode(deserializer);
+        let mut var_bytes = <i64>::sse_decode(deserializer);
+        let mut var_total = <i64>::sse_decode(deserializer);
+        let mut var_error = <Option<String>>::sse_decode(deserializer);
+        return crate::api::engine::OfflineItem {
+            cache_key: var_cacheKey,
+            title: var_title,
+            artist: var_artist,
+            state: var_state,
+            bytes: var_bytes,
+            total: var_total,
+            error: var_error,
+        };
+    }
+}
+
+impl SseDecode for crate::api::engine::OfflineItemState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::engine::OfflineItemState::Queued,
+            1 => crate::api::engine::OfflineItemState::Active,
+            2 => crate::api::engine::OfflineItemState::Done,
+            3 => crate::api::engine::OfflineItemState::Failed,
+            _ => unreachable!("Invalid variant for OfflineItemState: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::engine::OfflineStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_paused = <bool>::sse_decode(deserializer);
+        let mut var_parallel = <u32>::sse_decode(deserializer);
+        let mut var_total = <u32>::sse_decode(deserializer);
+        let mut var_done = <u32>::sse_decode(deserializer);
+        let mut var_failed = <u32>::sse_decode(deserializer);
+        let mut var_queued = <u32>::sse_decode(deserializer);
+        let mut var_active = <u32>::sse_decode(deserializer);
+        let mut var_bytesDone = <i64>::sse_decode(deserializer);
+        let mut var_bytesTotal = <i64>::sse_decode(deserializer);
+        let mut var_speed = <i64>::sse_decode(deserializer);
+        let mut var_items = <Vec<crate::api::engine::OfflineItem>>::sse_decode(deserializer);
+        return crate::api::engine::OfflineStatus {
+            paused: var_paused,
+            parallel: var_parallel,
+            total: var_total,
+            done: var_done,
+            failed: var_failed,
+            queued: var_queued,
+            active: var_active,
+            bytes_done: var_bytesDone,
+            bytes_total: var_bytesTotal,
+            speed: var_speed,
+            items: var_items,
+        };
+    }
+}
+
+impl SseDecode for crate::api::engine::OfflineTrack {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_cacheKey = <String>::sse_decode(deserializer);
+        let mut var_url = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_artist = <String>::sse_decode(deserializer);
+        let mut var_sizeBytes = <i64>::sse_decode(deserializer);
+        return crate::api::engine::OfflineTrack {
+            cache_key: var_cacheKey,
+            url: var_url,
+            title: var_title,
+            artist: var_artist,
+            size_bytes: var_sizeBytes,
+        };
     }
 }
 
@@ -1891,23 +2157,47 @@ fn pde_ffi_dispatcher_primary_impl(
         13 => wire__crate__api__engine__player_events_impl(port, ptr, rust_vec_len, data_len),
         14 => wire__crate__api__engine__player_init_impl(port, ptr, rust_vec_len, data_len),
         15 => wire__crate__api__engine__player_is_cached_impl(port, ptr, rust_vec_len, data_len),
-        17 => {
-            wire__crate__api__engine__player_output_devices_impl(port, ptr, rust_vec_len, data_len)
-        }
-        20 => wire__crate__api__engine__player_prefetch_impl(port, ptr, rust_vec_len, data_len),
-        21 => {
-            wire__crate__api__engine__player_remove_offline_impl(port, ptr, rust_vec_len, data_len)
-        }
-        25 => wire__crate__api__engine__player_set_analysis_model_impl(
+        17 => wire__crate__api__engine__player_offline_clear_finished_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => {
+        18 => wire__crate__api__engine__player_offline_retry_failed_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        19 => wire__crate__api__engine__player_offline_set_parallel_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        20 => wire__crate__api__engine__player_offline_set_paused_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        22 => {
+            wire__crate__api__engine__player_output_devices_impl(port, ptr, rust_vec_len, data_len)
+        }
+        25 => wire__crate__api__engine__player_prefetch_impl(port, ptr, rust_vec_len, data_len),
+        26 => {
+            wire__crate__api__engine__player_remove_offline_impl(port, ptr, rust_vec_len, data_len)
+        }
+        30 => wire__crate__api__engine__player_set_analysis_model_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        32 => {
             wire__crate__api__engine__player_set_cache_limit_impl(port, ptr, rust_vec_len, data_len)
         }
-        31 => wire__crate__api__engine__player_set_output_device_impl(
+        36 => wire__crate__api__engine__player_set_output_device_impl(
             port,
             ptr,
             rust_vec_len,
@@ -1931,18 +2221,19 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__engine__player_pause_impl(ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__engine__player_play_impl(ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__engine__player_resume_impl(ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__engine__player_seek_impl(ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__engine__player_seek_by_impl(ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__engine__player_set_automix_impl(ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__engine__player_set_eq_impl(ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__engine__player_set_next_impl(ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__engine__player_set_notifications_impl(ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__engine__player_set_volume_impl(ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__engine__player_stop_impl(ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__engine__player_toggle_impl(ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__engine__player_offline_status_impl(ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__engine__player_pause_impl(ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__engine__player_play_impl(ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__engine__player_resume_impl(ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__engine__player_seek_impl(ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__engine__player_seek_by_impl(ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__engine__player_set_automix_impl(ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__engine__player_set_eq_impl(ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__engine__player_set_next_impl(ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__engine__player_set_notifications_impl(ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__engine__player_set_volume_impl(ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__engine__player_stop_impl(ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__engine__player_toggle_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2102,6 +2393,109 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::engine::MediaAction>
     for crate::api::engine::MediaAction
 {
     fn into_into_dart(self) -> crate::api::engine::MediaAction {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::engine::OfflineItem {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.cache_key.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.artist.into_into_dart().into_dart(),
+            self.state.into_into_dart().into_dart(),
+            self.bytes.into_into_dart().into_dart(),
+            self.total.into_into_dart().into_dart(),
+            self.error.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::engine::OfflineItem
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::engine::OfflineItem>
+    for crate::api::engine::OfflineItem
+{
+    fn into_into_dart(self) -> crate::api::engine::OfflineItem {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::engine::OfflineItemState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Queued => 0.into_dart(),
+            Self::Active => 1.into_dart(),
+            Self::Done => 2.into_dart(),
+            Self::Failed => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::engine::OfflineItemState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::engine::OfflineItemState>
+    for crate::api::engine::OfflineItemState
+{
+    fn into_into_dart(self) -> crate::api::engine::OfflineItemState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::engine::OfflineStatus {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.paused.into_into_dart().into_dart(),
+            self.parallel.into_into_dart().into_dart(),
+            self.total.into_into_dart().into_dart(),
+            self.done.into_into_dart().into_dart(),
+            self.failed.into_into_dart().into_dart(),
+            self.queued.into_into_dart().into_dart(),
+            self.active.into_into_dart().into_dart(),
+            self.bytes_done.into_into_dart().into_dart(),
+            self.bytes_total.into_into_dart().into_dart(),
+            self.speed.into_into_dart().into_dart(),
+            self.items.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::engine::OfflineStatus
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::engine::OfflineStatus>
+    for crate::api::engine::OfflineStatus
+{
+    fn into_into_dart(self) -> crate::api::engine::OfflineStatus {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::engine::OfflineTrack {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.cache_key.into_into_dart().into_dart(),
+            self.url.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.artist.into_into_dart().into_dart(),
+            self.size_bytes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::engine::OfflineTrack
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::engine::OfflineTrack>
+    for crate::api::engine::OfflineTrack
+{
+    fn into_into_dart(self) -> crate::api::engine::OfflineTrack {
         self
     }
 }
@@ -2463,6 +2857,26 @@ impl SseEncode for Vec<crate::api::library::LocalTrack> {
     }
 }
 
+impl SseEncode for Vec<crate::api::engine::OfflineItem> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::engine::OfflineItem>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::engine::OfflineTrack> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::engine::OfflineTrack>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::engine::OutputDevice> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2489,16 +2903,6 @@ impl SseEncode for Vec<u8> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <u8>::sse_encode(item, serializer);
-        }
-    }
-}
-
-impl SseEncode for Vec<crate::api::engine::TrackSource> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(self.len() as _, serializer);
-        for item in self {
-            <crate::api::engine::TrackSource>::sse_encode(item, serializer);
         }
     }
 }
@@ -2575,6 +2979,65 @@ impl SseEncode for crate::api::engine::MediaAction {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseEncode for crate::api::engine::OfflineItem {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.cache_key, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.artist, serializer);
+        <crate::api::engine::OfflineItemState>::sse_encode(self.state, serializer);
+        <i64>::sse_encode(self.bytes, serializer);
+        <i64>::sse_encode(self.total, serializer);
+        <Option<String>>::sse_encode(self.error, serializer);
+    }
+}
+
+impl SseEncode for crate::api::engine::OfflineItemState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::engine::OfflineItemState::Queued => 0,
+                crate::api::engine::OfflineItemState::Active => 1,
+                crate::api::engine::OfflineItemState::Done => 2,
+                crate::api::engine::OfflineItemState::Failed => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::engine::OfflineStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.paused, serializer);
+        <u32>::sse_encode(self.parallel, serializer);
+        <u32>::sse_encode(self.total, serializer);
+        <u32>::sse_encode(self.done, serializer);
+        <u32>::sse_encode(self.failed, serializer);
+        <u32>::sse_encode(self.queued, serializer);
+        <u32>::sse_encode(self.active, serializer);
+        <i64>::sse_encode(self.bytes_done, serializer);
+        <i64>::sse_encode(self.bytes_total, serializer);
+        <i64>::sse_encode(self.speed, serializer);
+        <Vec<crate::api::engine::OfflineItem>>::sse_encode(self.items, serializer);
+    }
+}
+
+impl SseEncode for crate::api::engine::OfflineTrack {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.cache_key, serializer);
+        <String>::sse_encode(self.url, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.artist, serializer);
+        <i64>::sse_encode(self.size_bytes, serializer);
     }
 }
 

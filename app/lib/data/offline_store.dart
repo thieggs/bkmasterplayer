@@ -89,12 +89,37 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
     return _ids;
   }
 
+  /// Músicas para a fila de downloads do motor (as já baixadas ele ignora).
+  List<engine.OfflineTrack> _tracks(Iterable<Song> songs) {
+    final player = ref.read(playerProvider.notifier);
+    return [
+      for (final s in songs)
+        if (player.sourceFor(s, offline: true) case final src? when src.cacheKey != null)
+          engine.OfflineTrack(
+            cacheKey: src.cacheKey!,
+            url: src.url,
+            title: s.title,
+            artist: s.displayArtist,
+            sizeBytes: s.size ?? 0,
+          ),
+    ];
+  }
+
   Future<void> add(OfflineCollection c) async {
     state = [...state.where((x) => x.id != c.id), c];
     await _save();
-    final player = ref.read(playerProvider.notifier);
-    final tracks = c.songs.map((s) => player.sourceFor(s, offline: true)).whereType<engine.TrackSource>().toList();
-    await engine.playerDownloadOffline(tracks: tracks);
+    await engine.playerDownloadOffline(tracks: _tracks(c.songs));
+  }
+
+  /// Ao abrir o app (com o login pronto): a fila de downloads é só da memória,
+  /// então volta a pedir o que ainda falta das coleções desta conta.
+  Future<void> resumePending(String account) async {
+    final songs = {
+      for (final c in state)
+        if (c.account == account) ...c.songs,
+    };
+    if (songs.isEmpty) return;
+    await engine.playerDownloadOffline(tracks: _tracks(songs));
   }
 
   Future<void> remove(String id) async {
