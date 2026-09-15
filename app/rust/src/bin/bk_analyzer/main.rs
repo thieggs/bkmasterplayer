@@ -100,8 +100,9 @@ fn worker_args(o: &HashMap<String, String>) -> Result<worker::Args> {
     let jobs = match o.get("jobs") {
         Some(j) => j.parse().map_err(|_| anyhow!("--jobs precisa ser um número"))?,
         // A rede usa todos os núcleos numa análise, mas decodificar e o resto
-        // da análise usam um só: umas poucas ao mesmo tempo aproveitam melhor.
-        None => (cores / 4).clamp(1, 3),
+        // usam um só: duas ao mesmo tempo aproveitam os intervalos. Três no
+        // i7-1355U rendem o mesmo que duas (memória e cache disputados).
+        None => if cores >= 8 { 2 } else { 1 },
     };
     let models = o.get("models").map(PathBuf::from).unwrap_or_else(|| home().join(".local/share/io.github.playermusica.player_musica/models"));
     let model = match o.get("model").map(String::as_str) {

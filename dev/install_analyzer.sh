@@ -7,7 +7,7 @@
 #
 #   ./dev/install_analyzer.sh worker <ssh-destino> <endereço do coordenador> [jobs]
 #       trabalhador em outra máquina, por SSH, ex.:
-#       ./dev/install_analyzer.sh worker thieggs@192.168.1.67 http://thieggs-pc.local:4540 3
+#       ./dev/install_analyzer.sh worker thieggs@192.168.1.67 http://thieggs-pc.local:4540 2
 #       O token vem do coordenador desta máquina e fica num arquivo 0600 lá.
 #       SSH_OPTS="-i ~/.ssh/chave" para escolher a chave.
 #
@@ -41,7 +41,7 @@ EOF
   echo "coordenador no ar: http://$(hostname).local:4540 (entre com a conta do Navidrome)"
   ;;
 worker)
-  DEST="$2"; SERVER="$3"; JOBS="${4:-3}"
+  DEST="$2"; SERVER="$3"; JOBS="${4:-2}"
   TOKEN="$(~/.local/bin/bk-analyzer token 2>/dev/null || "$BIN" token)"
   # shellcheck disable=SC2086
   scp ${SSH_OPTS:-} -q "$BIN" "$DEST:/tmp/bk-analyzer.new"

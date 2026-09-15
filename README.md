@@ -79,7 +79,7 @@ aparelho faz sozinho, mas no celular é lento e usa o modelo pequeno. Com o
 ```bash
 cd app/rust && cargo build --release --features analyzer-server --bin bk-analyzer
 ./dev/install_analyzer.sh server                                          # painel em http://<pc>:4540
-SSH_OPTS="-i ~/.ssh/chave" ./dev/install_analyzer.sh worker usuario@notebook http://<pc>.local:4540 3
+SSH_OPTS="-i ~/.ssh/chave" ./dev/install_analyzer.sh worker usuario@notebook http://<pc>.local:4540 2
 ```
 
 No painel, entre com a conta do Navidrome (fica guardado só o token, nunca a

@@ -141,7 +141,7 @@ Pedido do usuário: *"igual a análise sônica fica salva no server e o celular 
   - 6 ficam na transição simples (Dream Theater ao vivo, com fórmula de compasso mudando, intro sem batida, sax solo).
   - As mixagens sincronizadas continuam precisas: mediana de 6 ms (`eval_mix --cache`).
 - **Ferramentas:** `examples/tune.rs` roda a rede uma vez por faixa e refaz o resto a cada mudança (~20 s para 100 faixas); `eval_mix --cache` mixa com essas batidas.
-- **Ritmo:** 3 análises ao mesmo tempo no i7-1355U ≈ 260 músicas/h (a biblioteca de 5.363 em ~20 h).
+- **Ritmo no i7-1355U** (perfil "Economia de energia", ~1,6 GHz): ~16 s de áudio analisados por segundo, igual com 2 ou 3 análises ao mesmo tempo. Padrão de 2, que usa menos memória: ~280 músicas/h, a biblioteca de 5.363 em ~19 h.
 
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).
