@@ -17,7 +17,7 @@ impl KickEnv {
     fn new(mono: &[f32], rate: f64) -> Self {
         // Biquad passa-baixas (RBJ), ida e volta = fase zero.
         let w = 2.0 * std::f64::consts::PI * 150.0 / rate;
-        let alpha = w.sin() / (2.0 * 0.7071);
+        let alpha = w.sin() / (2.0 * std::f64::consts::FRAC_1_SQRT_2);
         let a0 = 1.0 + alpha;
         let b0 = ((1.0 - w.cos()) / 2.0) / a0;
         let b1 = (1.0 - w.cos()) / a0;

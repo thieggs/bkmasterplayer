@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use parking_lot::{Condvar, Mutex};
 
 use super::automix::TempoMap;
@@ -29,7 +29,7 @@ pub struct Handoff {
 
 enum HandoffState {
     Waiting,
-    Offered(Resampler),
+    Offered(Box<Resampler>),
     Declined,
     Taken,
 }
@@ -48,7 +48,7 @@ impl Handoff {
     }
 
     fn offer(&self, rs: Resampler) {
-        *self.state.lock() = HandoffState::Offered(rs);
+        *self.state.lock() = HandoffState::Offered(Box::new(rs));
         self.cond.notify_all();
     }
 
@@ -65,7 +65,7 @@ impl Handoff {
         let mut st = self.state.lock();
         loop {
             match std::mem::replace(&mut *st, HandoffState::Taken) {
-                HandoffState::Offered(rs) => return Some(rs),
+                HandoffState::Offered(rs) => return Some(*rs),
                 HandoffState::Waiting => *st = HandoffState::Waiting,
                 other => {
                     *st = other;
@@ -256,7 +256,11 @@ where
     let spawned = std::thread::Builder::new()
         .name(format!("deck-{token}"))
         .spawn(move || {
-            if let Err(e) = produce(&sh, producer, params, open) {
+            // Pânico ao decodificar (arquivo estranho) vira erro do deck: o
+            // player pula a música em vez de ficar mudo esperando o som.
+            let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| produce(&sh, producer, params, open)))
+                .unwrap_or_else(|_| Err(anyhow!("pânico ao decodificar")));
+            if let Err(e) = r {
                 if !sh.cancel.load(Ordering::Relaxed) {
                     log::warn!("deck {}: {e:#}", sh.token);
                     sh.set_error(format!("{e:#}"));

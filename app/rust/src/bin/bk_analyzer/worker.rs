@@ -45,8 +45,19 @@ struct Ctx {
     wait: std::sync::atomic::AtomicU64,
 }
 
+/// Pasta do Analyzer (o trabalhador analisa sem cache: fica vazia). Na pasta
+/// de cache do usuário, não no /tmp com nome previsível.
+fn scratch_dir() -> std::path::PathBuf {
+    std::env::var_os("XDG_CACHE_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".cache")))
+        .unwrap_or_else(std::env::temp_dir)
+        .join("bk-analyzer")
+}
+
 pub fn run(args: Args) -> Result<()> {
     // Antes de criar qualquer thread: todas (inclusive as do rayon) herdam.
+    // SAFETY: setpriority só lê os argumentos (processo atual, valor inteiro).
     unsafe {
         libc::setpriority(libc::PRIO_PROCESS, 0, args.nice);
     }
@@ -57,7 +68,7 @@ pub fn run(args: Args) -> Result<()> {
         let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
         std::env::set_var("RTEN_NUM_THREADS", threads.to_string());
     }
-    let probe = Analyzer::new(&args.models, std::env::temp_dir().join("bk-analyzer-probe"));
+    let probe = Analyzer::new(&args.models, scratch_dir());
     if !probe.model_available(args.model) {
         bail!("modelo {} não encontrado em {} (precisa de {} e mel_spectrogram.onnx)", args.model.name(), args.models.display(), args.model.file_name());
     }
@@ -108,8 +119,7 @@ impl Ctx {
     }
 
     fn job_loop(&self, slot: usize) {
-        let cache = std::env::temp_dir().join(format!("bk-analyzer-{}-{slot}", std::process::id()));
-        let analyzer = Analyzer::new(&self.args.models, &cache);
+        let analyzer = Analyzer::new(&self.args.models, scratch_dir());
         analyzer.set_model(self.args.model);
         std::thread::sleep(Duration::from_secs(slot as u64 * 2));
         let mut warned = false;

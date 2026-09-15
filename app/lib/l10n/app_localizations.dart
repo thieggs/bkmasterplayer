@@ -1921,6 +1921,48 @@ abstract class AppLocalizations {
   /// **'Não foi possível conectar a {device}'**
   String connectFailed(String device);
 
+  /// No description provided for @connectAuthFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'{device} não provou ser da sua conta. Entre de novo na conta nos dois aparelhos.'**
+  String connectAuthFailed(String device);
+
+  /// No description provided for @connectNeedsLogin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para ativar o Connect protegido neste aparelho (pede a senha da conta uma vez). Desde essa versão, a senha do servidor não passa mais de um aparelho para outro.'**
+  String get connectNeedsLogin;
+
+  /// No description provided for @deviceNeedsLogin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Precisa entrar de novo na conta'**
+  String get deviceNeedsLogin;
+
+  /// No description provided for @connectEnableTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar o Connect protegido'**
+  String get connectEnableTitle;
+
+  /// No description provided for @connectPasswordHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Senha da conta {user}. Ela não sai do aparelho: vira uma chave que só os aparelhos da sua conta têm. Faça o mesmo nos outros aparelhos.'**
+  String connectPasswordHint(String user);
+
+  /// No description provided for @connectEnabledNow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Connect protegido ativado neste aparelho'**
+  String get connectEnabledNow;
+
+  /// No description provided for @connectWrongPassword.
+  ///
+  /// In pt, this message translates to:
+  /// **'A senha não confere com a da conta'**
+  String get connectWrongPassword;
+
   /// No description provided for @connectSection.
   ///
   /// In pt, this message translates to:

@@ -383,7 +383,7 @@ class UiPrefs {
       cardSize: one('cardSize', d.cardSize, const ['small', 'medium', 'large']),
       background: one('background', d.background, const ['solid', 'gradient', 'cover', 'image']),
       // Só um nome de arquivo (nunca um caminho vindo de um tema importado).
-      backgroundImage: bg is String && RegExp(r'^[\w.-]+$').hasMatch(bg) ? bg : null,
+      backgroundImage: bg is String && RegExp(r'^[\w-][\w.-]{0,79}$').hasMatch(bg) ? bg : null,
       backgroundDim: num_('backgroundDim', d.backgroundDim, 0, 1),
       nowPlayingLayout: one('nowPlayingLayout', d.nowPlayingLayout, const ['side', 'lyrics', 'minimal', 'vinyl']),
       nowPlayingBlur: num_('nowPlayingBlur', d.nowPlayingBlur, 0, 1),

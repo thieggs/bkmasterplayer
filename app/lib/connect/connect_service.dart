@@ -13,6 +13,7 @@ import '../core/providers.dart';
 import '../data/settings.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
+import 'connect_auth.dart';
 
 /// BKmasterplayer Connect: escolher em qual aparelho tocar e controlá-lo (estilo
 /// Spotify Connect), entre aparelhos logados na mesma conta.
@@ -20,9 +21,10 @@ import '../player/player_controller.dart';
 /// - Descoberta: cada aparelho se anuncia na rede local por UDP a cada 15 s e
 ///   responde a buscas. O anúncio leva só id, nome, plataforma, porta e um hash
 ///   do usuário (para ignorar aparelhos de outras contas).
-/// - Controle: WebSocket (TCP). Só entra quem apresenta credenciais que o
-///   servidor deste aparelho aceita, ou seja, o login da mesma conta; daí recebe
-///   o estado do player e manda comandos.
+/// - Controle: WebSocket (TCP). Só entra quem prova ter a chave do Connect da
+///   mesma conta (desafio e resposta, ver connect_auth.dart); o token do
+///   servidor nunca vai para outro aparelho. Daí recebe o estado do player e
+///   manda comandos.
 /// - Fora da rede local (ex.: pelo Tailscale), dá para adicionar pelo endereço.
 const connectTcpPort = 47800;
 const connectUdpPort = 47801;
@@ -69,11 +71,23 @@ class ConnectDevice {
 
 /// O que um aparelho está tocando (para a lista).
 class DeviceStatus {
-  const DeviceStatus({required this.playing, this.title, this.artist});
+  const DeviceStatus({required this.playing, this.title, this.artist, this.needsLogin = false});
   final bool playing;
   final String? title;
   final String? artist;
+
+  /// O aparelho entrou na conta antes do Connect protegido: precisa entrar de novo.
+  final bool needsLogin;
   bool get hasTrack => title != null;
+}
+
+/// O outro aparelho não provou ter a chave do Connect da conta (senha
+/// diferente, entrou antes do Connect protegido, ou não é quem diz ser).
+class ConnectAuthException implements Exception {
+  const ConnectAuthException(this.message);
+  final String message;
+  @override
+  String toString() => message;
 }
 
 /// Este aparelho.
@@ -140,25 +154,61 @@ class LanJamOffer {
 
 String deviceIdFor(SharedPreferences prefs) => _deviceId(prefs);
 
+/// Lado de quem é controlado: desafia quem conectou a provar que tem a chave
+/// da conta. Devolve a assinatura do socket (um WebSocket só se ouve uma vez) e
+/// a prova deste aparelho, que vai no "hello"; null se não provou (o socket
+/// fica para quem chamou fechar).
+Future<(StreamSubscription<dynamic>, String)?> acceptConnectHandshake(WebSocket ws, String key) async {
+  final mine = connectNonce();
+  final reply = Completer<Map<String, dynamic>?>();
+  final sub = ws.listen((d) {
+    if (reply.isCompleted || d is! String) return;
+    try {
+      reply.complete(Map<String, dynamic>.from(jsonDecode(d) as Map));
+    } catch (_) {
+      reply.complete(null);
+    }
+  }, onDone: () {
+    if (!reply.isCompleted) reply.complete(null);
+  });
+  ws.add(jsonEncode({'t': 'challenge', 'n': mine}));
+  final m = await reply.future.timeout(const Duration(seconds: 10), onTimeout: () => null);
+  final theirs = m?['n'], h = m?['h'];
+  if (m?['t'] != 'auth' || theirs is! String || theirs.length < 16 || h is! String || !sameDigest(h, connectProof(key, 'client', [mine, theirs]))) {
+    await sub.cancel();
+    return null;
+  }
+  return (sub, connectProof(key, 'server', [theirs, mine]));
+}
+
 /// Conexão de controle com outro aparelho (lado de quem controla).
 class ConnectLink {
-  ConnectLink._(this.device, this._ws) {
+  ConnectLink._(this.device, this._ws, this._key) {
     _ws.listen(
       (data) {
         if (data is! String) return;
+        Map<String, dynamic> m;
         try {
-          final m = jsonDecode(data);
-          if (m is Map) _messages.add(Map<String, dynamic>.from(m));
-        } catch (_) {}
+          final j = jsonDecode(data);
+          if (j is! Map) return;
+          m = Map<String, dynamic>.from(j);
+        } catch (_) {
+          return;
+        }
+        if (!_ready.isCompleted) return _handshake(m);
+        _messages.add(m);
       },
-      onDone: _messages.close,
-      onError: (_) => _messages.close(),
+      onDone: _closed,
+      onError: (_) => _closed(),
       cancelOnError: true,
     );
   }
 
   final ConnectDevice device;
   final WebSocket _ws;
+  final String _key;
+  final _mine = connectNonce();
+  final _ready = Completer<void>();
   // Guarda as mensagens até alguém ouvir: a fila e o estado chegam logo que
   // conecta, antes de o player assinar.
   final _messages = StreamController<Map<String, dynamic>>();
@@ -166,17 +216,41 @@ class ConnectLink {
   /// Estado e fila do outro aparelho; fecha quando a conexão cai.
   Stream<Map<String, dynamic>> get messages => _messages.stream;
 
-  static Future<ConnectLink> open(ConnectDevice d, {required Map<String, String> auth, required ConnectInfo me}) async {
-    final uri = Uri(
-      scheme: 'ws',
-      host: d.host,
-      port: d.port,
-      path: '/connect',
-      queryParameters: {...auth, 'cid': me.id, 'cn': me.name},
-    );
+  void _closed() {
+    if (!_ready.isCompleted) _ready.completeError(const ConnectAuthException('o aparelho fechou a conexão'));
+    _messages.close();
+  }
+
+  /// Desafio do outro lado → nossa prova; depois, o "hello" com a prova dele.
+  void _handshake(Map<String, dynamic> m) {
+    switch (m) {
+      case {'t': 'challenge', 'n': final String theirs}:
+        _theirs = theirs;
+        _ws.add(jsonEncode({'t': 'auth', 'n': _mine, 'h': connectProof(_key, 'client', [theirs, _mine])}));
+      case {'t': 'hello', 'h': final String h} when _theirs != null && sameDigest(h, connectProof(_key, 'server', [_mine, _theirs!])):
+        _ready.complete();
+        _messages.add(m);
+      case {'t': 'error', 'e': 'relogin'}:
+        _ready.completeError(const ConnectAuthException('o outro aparelho precisa entrar de novo na conta'));
+      default:
+        _ready.completeError(const ConnectAuthException('o aparelho não provou ser da sua conta'));
+    }
+  }
+
+  String? _theirs;
+
+  static Future<ConnectLink> open(ConnectDevice d, {required String key, required ConnectInfo me}) async {
+    final uri = Uri(scheme: 'ws', host: d.host, port: d.port, path: '/connect', queryParameters: {'cid': me.id, 'cn': me.name});
     final ws = await WebSocket.connect(uri.toString()).timeout(const Duration(seconds: 6));
     ws.pingInterval = const Duration(seconds: 8);
-    return ConnectLink._(d, ws);
+    final link = ConnectLink._(d, ws, key);
+    try {
+      await link._ready.future.timeout(const Duration(seconds: 8));
+    } catch (_) {
+      await link.close();
+      rethrow;
+    }
+    return link;
   }
 
   void cmd(String c, [Map<String, dynamic> args = const {}]) {
@@ -210,8 +284,8 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
   String _username = '';
   ConnectInfo? _me;
   final _controllers = <_Controller>{};
-  final _validated = <String, DateTime>{};
   final _failures = <String, List<DateTime>>{};
+  final _statusNonces = NonceGuard();
   int _queueVersion = 0;
   List<InternetAddress>? _broadcasts;
   DateTime _broadcastsAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -573,20 +647,30 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
     }
   }
 
-  /// O que [d] está tocando (null = não respondeu).
+  /// Chave do Connect desta conta (null = entrou antes do Connect protegido).
+  String? get connectKey => ref.read(sessionProvider).value?.provider.connectKey;
+
+  /// O que [d] está tocando (null = não respondeu). O pedido leva só uma prova
+  /// com hora e desafio novos (nunca o token do servidor).
   Future<DeviceStatus?> status(ConnectDevice d) async {
-    final session = ref.read(sessionProvider).value;
-    if (session == null) return null;
+    final key = connectKey;
+    if (key == null) return null;
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
     try {
+      final ts = '${DateTime.now().millisecondsSinceEpoch ~/ 1000}';
+      final n = connectNonce();
       final uri = Uri(
         scheme: 'http',
         host: d.host,
         port: d.port,
         path: '/status',
-        queryParameters: session.provider.authParams,
+        queryParameters: {'ts': ts, 'n': n, 'h': connectProof(key, 'status', [ts, n])},
       );
       final res = await (await client.getUrl(uri)).close().timeout(const Duration(seconds: 4));
+      if (res.statusCode == 403) {
+        final j = jsonDecode(await utf8.decodeStream(res));
+        return j is Map && j['error'] == 'relogin' ? const DeviceStatus(playing: false, needsLogin: true) : null;
+      }
       if (res.statusCode != 200) return null;
       final j = jsonDecode(await utf8.decodeStream(res));
       if (j is! Map) return null;
@@ -604,27 +688,6 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
     final now = DateTime.now();
     final list = _failures[ip]?..removeWhere((t) => now.difference(t) > const Duration(minutes: 1));
     return (list?.length ?? 0) >= 8;
-  }
-
-  Map<String, String>? _authFrom(Map<String, String> q) {
-    if (q['u'] != null && q['t'] != null && q['s'] != null) {
-      // Só a mesma conta.
-      if (q['u']!.trim().toLowerCase() != _username.trim().toLowerCase()) return null;
-      return {'u': q['u']!, 't': q['t']!, 's': q['s']!};
-    }
-    if (q['apiKey'] != null) return {'apiKey': q['apiKey']!};
-    return null;
-  }
-
-  Future<bool> _checkAuth(Map<String, String> auth) async {
-    final key = sha256.convert(utf8.encode(jsonEncode(auth))).toString();
-    final ok = _validated[key];
-    if (ok != null && DateTime.now().difference(ok) < const Duration(hours: 12)) return true;
-    final session = ref.read(sessionProvider).value;
-    if (session == null) return false;
-    if (!await session.provider.validateAuth(auth)) return false;
-    _validated[key] = DateTime.now();
-    return true;
   }
 
   Future<void> _json(HttpRequest req, Object body, [int status = 200]) async {
@@ -656,12 +719,16 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
       if (!_connectAllowed) return _json(req, {'error': 'connect off'}, 403);
       final ip = req.connectionInfo?.remoteAddress.address ?? '?';
       if (_blocked(ip)) return _json(req, {'error': 'too many attempts'}, 429);
-      final auth = _authFrom(req.uri.queryParameters);
-      if (auth == null || !await _checkAuth(auth)) {
-        (_failures[ip] ??= []).add(DateTime.now());
-        return _json(req, {'error': 'unauthorized'}, 401);
-      }
+      final key = connectKey;
       if (path == '/status') {
+        if (key == null) return _json(req, {'error': 'relogin'}, 403);
+        final q = req.uri.queryParameters;
+        final ts = int.tryParse(q['ts'] ?? ''), n = q['n'], h = q['h'];
+        // Prova primeiro: só pedido de quem tem a chave ocupa a lista de desafios vistos.
+        if (ts == null || n == null || h == null || !sameDigest(h, connectProof(key, 'status', ['$ts', n])) || !_statusNonces.fresh(n, ts)) {
+          (_failures[ip] ??= []).add(DateTime.now());
+          return _json(req, {'error': 'unauthorized'}, 401);
+        }
         final s = ref.read(playerProvider);
         final song = s.current?.song;
         return _json(req, {'playing': s.playing, 'title': song?.title, 'artist': song?.displayArtist});
@@ -669,31 +736,48 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
       if (path == '/connect' && WebSocketTransformer.isUpgradeRequest(req)) {
         final ws = await WebSocketTransformer.upgrade(req);
         ws.pingInterval = const Duration(seconds: 8);
-        _attach(ws, req.uri.queryParameters['cn'] ?? '?');
+        await _handshake(ws, key, ip, req.uri.queryParameters['cn'] ?? '?');
         return;
       }
       return _json(req, {'error': 'not found'}, 404);
     } catch (e) {
+      debugPrint('Connect: $e');
       try {
-        await _json(req, {'error': '$e'}, 500);
+        await _json(req, {'error': 'internal'}, 500);
       } catch (_) {}
     }
   }
 
-  void _attach(WebSocket ws, String name) {
+  Future<void> _handshake(WebSocket ws, String? key, String ip, String name) async {
+    if (key == null) {
+      ws.add(jsonEncode({'t': 'error', 'e': 'relogin'}));
+      await ws.close();
+      return;
+    }
+    final ok = await acceptConnectHandshake(ws, key);
+    if (ok == null) {
+      (_failures[ip] ??= []).add(DateTime.now());
+      await ws.close();
+      return;
+    }
+    _attach(ws, ok.$1, name, ok.$2);
+  }
+
+  void _attach(WebSocket ws, StreamSubscription<dynamic> sub, String name, String proof) {
     final me = _me!;
     final c = _Controller(ws, name);
     _controllers.add(c);
     final s = ref.read(playerProvider);
-    c.send({'t': 'hello', 'id': me.id, 'n': me.name, 'p': me.platform});
+    c.send({'t': 'hello', 'id': me.id, 'n': me.name, 'p': me.platform, 'h': proof});
     c.send(_queueMessage(s));
     c.send(_stateMessage(s));
-    ws.listen(
-      (data) => _onCommand(data),
-      onDone: () => _controllers.remove(c),
-      onError: (_) => _controllers.remove(c),
-      cancelOnError: true,
-    );
+    sub
+      ..onData(_onCommand)
+      ..onDone(() => _controllers.remove(c))
+      ..onError((_) {
+        _controllers.remove(c);
+        sub.cancel();
+      });
   }
 
   Map<String, dynamic> _queueMessage(PlayerState s) => {

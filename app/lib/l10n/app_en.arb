@@ -331,6 +331,27 @@
    }
   }
  },
+ "connectAuthFailed": "{device} didn't prove it belongs to your account. Sign in again on both devices.",
+ "@connectAuthFailed": {
+  "placeholders": {
+   "device": {
+    "type": "String"
+   }
+  }
+ },
+ "connectNeedsLogin": "Tap to turn on protected Connect on this device (asks for the account password once). Since this version, the server password no longer travels between devices.",
+ "deviceNeedsLogin": "Needs to sign in again",
+ "connectEnableTitle": "Turn on protected Connect",
+ "connectPasswordHint": "Password of the account {user}. It never leaves this device: it becomes a key only your account's devices have. Do the same on your other devices.",
+ "@connectPasswordHint": {
+  "placeholders": {
+   "user": {
+    "type": "String"
+   }
+  }
+ },
+ "connectEnabledNow": "Protected Connect is on for this device",
+ "connectWrongPassword": "That password doesn't match the account",
  "connectSection": "Other devices (Connect)",
  "connectEnable": "Play and control across devices",
  "connectEnableHint": "This device shows up for your other devices with the same account and can be controlled by them, like Spotify Connect.",

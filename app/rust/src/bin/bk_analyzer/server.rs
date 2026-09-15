@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::{Cursor, Read, Write};
 use std::net::IpAddr;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -22,10 +22,18 @@ use crate::store::{Outcome, Store, WorkerInfo};
 const DASHBOARD: &str = include_str!("dashboard.html");
 const SYNC_EVERY: Duration = Duration::from_secs(3600);
 const COOKIE: &str = "bka";
+/// Pedidos atendidos ao mesmo tempo (cada um numa thread): acima disso, 503.
+const MAX_IN_FLIGHT: usize = 256;
+/// Logins de player errados por endereço em 5 min antes de parar de perguntar
+/// ao Navidrome (sem isso, o coordenador serviria para chutar senhas).
+const MAX_PLAYER_FAILURES: u32 = 20;
 
 type Resp = Response<Box<dyn Read + Send>>;
+/// Login de player (u, t, s) → (vale?, quando foi conferido).
+type PlayerAuthCache = HashMap<(String, String, String), (bool, Instant)>;
 
 static STOP: AtomicBool = AtomicBool::new(false);
+static IN_FLIGHT: AtomicUsize = AtomicUsize::new(0);
 
 extern "C" fn on_signal(_: libc::c_int) {
     STOP.store(true, Ordering::SeqCst);
@@ -34,15 +42,23 @@ extern "C" fn on_signal(_: libc::c_int) {
 struct App {
     store: Store,
     /// Logins de players já conferidos no Navidrome: (u, t, s) → (vale?, quando).
-    player_auth: Mutex<HashMap<(String, String, String), (bool, Instant)>>,
+    player_auth: Mutex<PlayerAuthCache>,
     /// Senhas erradas por endereço (contra chute de senha).
     failures: Mutex<HashMap<IpAddr, (u32, Instant)>>,
+    /// Logins de player errados por endereço.
+    player_failures: Mutex<HashMap<IpAddr, (u32, Instant)>>,
 }
 
 pub fn serve(dir: &Path, listen: &str) -> Result<()> {
-    let app = Arc::new(App { store: Store::open(dir)?, player_auth: Mutex::new(HashMap::new()), failures: Mutex::new(HashMap::new()) });
+    let app = Arc::new(App {
+        store: Store::open(dir)?,
+        player_auth: Mutex::new(HashMap::new()),
+        failures: Mutex::new(HashMap::new()),
+        player_failures: Mutex::new(HashMap::new()),
+    });
     let http = tiny_http::Server::http(listen).map_err(|e| anyhow!("não deu para abrir {listen}: {e}"))?;
     eprintln!("BK Analyzer v{} no ar em http://{listen} (dados em {})", env!("CARGO_PKG_VERSION"), dir.display());
+    // SAFETY: o tratador só grava num AtomicBool (seguro dentro de um sinal).
     unsafe {
         libc::signal(libc::SIGTERM, on_signal as extern "C" fn(libc::c_int) as libc::sighandler_t);
         libc::signal(libc::SIGINT, on_signal as extern "C" fn(libc::c_int) as libc::sighandler_t);
@@ -68,8 +84,16 @@ pub fn serve(dir: &Path, listen: &str) -> Result<()> {
     while !STOP.load(Ordering::SeqCst) {
         match http.recv_timeout(Duration::from_millis(500)) {
             Ok(Some(req)) => {
+                if IN_FLIGHT.fetch_add(1, Ordering::SeqCst) >= MAX_IN_FLIGHT {
+                    IN_FLIGHT.fetch_sub(1, Ordering::SeqCst);
+                    let _ = req.respond(err(503, "ocupado; tente de novo"));
+                    continue;
+                }
                 let app = app.clone();
-                std::thread::spawn(move || app.handle(req));
+                std::thread::spawn(move || {
+                    app.handle(req);
+                    IN_FLIGHT.fetch_sub(1, Ordering::SeqCst);
+                });
             }
             Ok(None) => {}
             Err(e) => eprintln!("conexão: {e}"),
@@ -118,7 +142,7 @@ impl App {
             }
             (_, p) if p.starts_with("/api/worker/") => self.worker_api(&mut req, &method, &p["/api/worker/".len()..]),
             (Method::Get, p) if p.starts_with("/api/analysis/") => self.analysis(&req, &pct_decode(&p["/api/analysis/".len()..]), &q),
-            (Method::Get, "/api/summary") if self.player_ok(&q) => {
+            (Method::Get, "/api/summary") if self.player_ok(&req, &q) => {
                 let s = self.store.status();
                 json_resp(200, &json!({"total": s["total"], "counts": s["counts"], "analysis_version": ANALYSIS_VERSION,
                     "workers_online": s["workers"].as_array().map(|w| w.iter().filter(|x| x["online"] == true).count()).unwrap_or(0)}))
@@ -247,7 +271,7 @@ impl App {
 
     /// Login de player (u/t/s da API Subsonic), conferido no Navidrome e
     /// lembrado por 10 min (errado: por 30 s).
-    fn player_ok(&self, q: &HashMap<String, String>) -> bool {
+    fn player_ok(&self, req: &Request, q: &HashMap<String, String>) -> bool {
         let key = match (q.get("u"), q.get("t"), q.get("s"), q.get("apiKey")) {
             (Some(u), Some(t), Some(s), _) => (u.clone(), t.clone(), s.clone()),
             (_, _, _, Some(k)) => (String::new(), String::new(), k.clone()),
@@ -258,8 +282,22 @@ impl App {
                 return *ok;
             }
         }
+        let ip = req.remote_addr().map(|a| a.ip());
+        if let Some(ip) = ip {
+            let mut f = self.player_failures.lock();
+            f.retain(|_, (_, at)| at.elapsed() < Duration::from_secs(300));
+            if f.get(&ip).is_some_and(|(n, _)| *n >= MAX_PLAYER_FAILURES) {
+                return false;
+            }
+        }
         let Some(login) = self.store.config().navidrome else { return false };
         let ok = if key.0.is_empty() { navidrome::check_key(&login.url, &key.2) } else { navidrome::check(&login.url, &key.0, &key.1, &key.2) }.is_ok();
+        if let (false, Some(ip)) = (ok, ip) {
+            let mut f = self.player_failures.lock();
+            let e = f.entry(ip).or_insert((0, Instant::now()));
+            e.0 += 1;
+            e.1 = Instant::now();
+        }
         let mut cache = self.player_auth.lock();
         if cache.len() > 1000 {
             cache.clear();
@@ -269,7 +307,7 @@ impl App {
     }
 
     fn analysis(&self, req: &Request, id: &str, q: &HashMap<String, String>) -> Resp {
-        if !self.player_ok(q) && self.session(req).is_none() {
+        if self.session(req).is_none() && !self.player_ok(req, q) {
             return err(401, "login do Navidrome inválido");
         }
         match self.store.analysis(id) {
@@ -342,7 +380,8 @@ impl App {
                 let Some(login) = self.store.config().navidrome else { return err(503, "sem Navidrome configurado") };
                 match Navidrome::new(login).stream(&id, song.stream_format()) {
                     Ok((len, ctype, body)) => {
-                        Response::new(StatusCode(200), vec![hdr("Content-Type", &ctype)], body, len.map(|l| l as usize), None)
+                        let ctype = if ctype.is_ascii() && !ctype.contains(['\r', '\n']) { ctype.as_str() } else { "application/octet-stream" };
+                        Response::new(StatusCode(200), vec![hdr("Content-Type", ctype)], body, len.map(|l| l as usize), None)
                     }
                     Err(e) => err(502, &format!("{e:#}")),
                 }
@@ -370,7 +409,8 @@ impl App {
                     Err(e) => return err(400, &format!("resultado inválido: {e}")),
                 };
                 let outcome = match (d.analysis, d.error) {
-                    (Some(a), _) if a.version == ANALYSIS_VERSION => Outcome::Ok(Box::new(a)),
+                    (Some(a), _) if a.version == ANALYSIS_VERSION && a.is_sane() => Outcome::Ok(Box::new(a)),
+                    (Some(a), _) if a.version == ANALYSIS_VERSION => Outcome::Err("análise com valores fora do possível".into()),
                     (Some(a), _) => Outcome::Err(format!("versão da análise {} (esperada {ANALYSIS_VERSION})", a.version)),
                     (None, e) => Outcome::Err(e.unwrap_or_else(|| "erro desconhecido".into())),
                 };

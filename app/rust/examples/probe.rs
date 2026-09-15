@@ -9,7 +9,7 @@ fn main() -> anyhow::Result<()> {
         let mut d = Decoder::open(Box::new(File::open(&path)?), ext.as_deref(), None)?;
         let mut buf = Vec::new();
         let mut all = Vec::new();
-        while let Some(_) = d.next_chunk(&mut buf)? {
+        while d.next_chunk(&mut buf)?.is_some() {
             all.extend(buf.chunks(d.channels).map(|f| f[0]));
         }
         let n = all.len();

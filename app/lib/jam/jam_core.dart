@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../connect/connect_auth.dart';
 import '../connect/connect_service.dart';
 import '../core/providers.dart';
 import '../domain/models.dart';
@@ -44,22 +45,54 @@ abstract class JamLink {
 
 /// Pedido para entrar na Jam (lado do dono).
 class JamJoinRequest {
-  JamJoinRequest({required this.guestId, required this.guestName, required this.via}) : key = _randomId(10);
+  JamJoinRequest({required this.guestId, required this.guestName, required this.via, this.pass}) : key = _randomId(10);
   final String key;
   final String guestId;
   final String guestName;
   final String via;
+
+  /// Passe que o dono deu a este convidado ao pô-lo em "aceitar sempre". O id
+  /// sozinho não basta: ele aparece nos anúncios da rede.
+  final String? pass;
   final decision = Completer<bool>();
   final at = DateTime.now();
 }
 
 /// Jam encontrada por perto (lado do convidado).
 class JamOffer {
-  const JamOffer({required this.key, required this.hostName, required this.via, required this.join});
+  const JamOffer({required this.key, required this.hostId, required this.hostName, required this.via, required this.join});
   final String key;
+  final String hostId;
   final String hostName;
   final String via;
-  final Future<JamLink> Function(String myId, String myName) join;
+
+  /// [pass]: o passe que este dono deu para entrar sem pedir (se houver).
+  final Future<JamLink> Function(String myId, String myName, String? pass) join;
+}
+
+/// Limites do que um convidado manda: tamanho de cada música, total da Festa
+/// e ofertas esperando o arquivo.
+const jamMaxUpload = 200 * 1024 * 1024;
+const jamMaxTotal = 2 * 1024 * 1024 * 1024;
+const _jamMaxPendingOffers = 20;
+const _jamMaxCoverB64 = 700 * 1024;
+
+/// Bytes de uma imagem de verdade (JPEG, PNG, GIF, WebP, BMP)? Capa de arquivo
+/// só sai do aparelho se for imagem.
+bool looksLikeImage(List<int> b) {
+  bool at(int i, List<int> sig) {
+    if (b.length < i + sig.length) return false;
+    for (var k = 0; k < sig.length; k++) {
+      if (b[i + k] != sig[k]) return false;
+    }
+    return true;
+  }
+
+  return at(0, [0xFF, 0xD8, 0xFF]) ||
+      at(0, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) ||
+      at(0, 'GIF8'.codeUnits) ||
+      (at(0, 'RIFF'.codeUnits) && at(8, 'WEBP'.codeUnits)) ||
+      at(0, 'BM'.codeUnits);
 }
 
 class JamRejected implements Exception {
@@ -124,6 +157,10 @@ class _LanLink implements JamLink {
   /// Endereço de upload no dono (lado do convidado).
   final Uri? uploadUrl;
 
+  /// Lado do dono: arquivos oferecidos e aceitos (id → tamanho anunciado).
+  /// Upload sem oferta é recusado.
+  final expectedUploads = <String, int>{};
+
   @override
   final String peerId;
   @override
@@ -184,10 +221,10 @@ class _LanLink implements JamLink {
 }
 
 /// Entra numa Jam da rede local.
-Future<JamLink> joinLan(LanJamOffer offer, String myId, String myName) async {
+Future<JamLink> joinLan(LanJamOffer offer, String myId, String myName, String? pass) async {
   final ws = await WebSocket.connect('ws://${offer.host}:${offer.port}/jam').timeout(const Duration(seconds: 6));
   ws.pingInterval = const Duration(seconds: 8);
-  ws.add(jsonEncode({'t': 'hello', 'id': myId, 'n': myName}));
+  ws.add(jsonEncode({'t': 'hello', 'id': myId, 'n': myName, 'k': ?pass}));
   // Espera o dono decidir (pode demorar: ele precisa tocar em "Aceitar").
   final first = Completer<Map<String, dynamic>>();
   final early = <Map<String, dynamic>>[];
@@ -233,9 +270,13 @@ Future<JamLink> joinLan(LanJamOffer offer, String myId, String myName) async {
 // ---- Lista de aceitos automaticamente ----
 
 class JamAllowed {
-  const JamAllowed(this.id, this.name);
+  const JamAllowed(this.id, this.name, [this.pass]);
   final String id;
   final String name;
+
+  /// Passe entregue ao convidado (null = entrada antiga, de antes do passe:
+  /// o dono confirma uma vez e o passe é entregue).
+  final String? pass;
 }
 
 class JamAllowlistNotifier extends Notifier<List<JamAllowed>> {
@@ -246,15 +287,22 @@ class JamAllowlistNotifier extends Notifier<List<JamAllowed>> {
     final raw = ref.watch(prefsProvider).getStringList(_key) ?? const [];
     return [
       for (final e in raw)
-        if (jsonDecode(e) case {'id': final String id, 'n': final String n}) JamAllowed(id, n),
+        if (jsonDecode(e) case {'id': final String id, 'n': final String n} && final m) JamAllowed(id, n, m['k'] is String ? m['k'] as String : null),
     ];
   }
 
-  bool allows(String id) => state.any((a) => a.id == id);
+  /// Entra sem pedir: está na lista e mostrou o passe que recebeu.
+  bool allows(String id, String? pass) =>
+      pass != null && state.any((a) => a.id == id && a.pass != null && sameDigest(a.pass!, pass));
 
-  void add(String id, String name) {
-    state = [...state.where((a) => a.id != id), JamAllowed(id, name)];
+  bool contains(String id) => state.any((a) => a.id == id);
+
+  /// Põe (ou mantém) na lista e devolve o passe a entregar ao convidado.
+  String add(String id, String name) {
+    final pass = _randomId(24);
+    state = [...state.where((a) => a.id != id), JamAllowed(id, name, pass)];
     _save();
+    return pass;
   }
 
   void remove(String id) {
@@ -263,7 +311,7 @@ class JamAllowlistNotifier extends Notifier<List<JamAllowed>> {
   }
 
   void _save() =>
-      ref.read(prefsProvider).setStringList(_key, [for (final a in state) jsonEncode({'id': a.id, 'n': a.name})]);
+      ref.read(prefsProvider).setStringList(_key, [for (final a in state) jsonEncode({'id': a.id, 'n': a.name, 'k': ?a.pass})]);
 }
 
 final jamAllowlistProvider = NotifierProvider<JamAllowlistNotifier, List<JamAllowed>>(JamAllowlistNotifier.new);
@@ -322,6 +370,12 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   /// Músicas daqui mostradas aos convidados (id → música com o arquivo, se
   /// local): o "adicionar" usa estas, nunca o que o convidado manda de volta.
   final _shown = <String, Song>{};
+
+  /// Passes a entregar na entrada (id do convidado → passe).
+  final _passToSend = <String, String>{};
+
+  /// Bytes aceitos de convidados nesta Festa (cota: [jamMaxTotal]).
+  int _jamBytes = 0;
   Timer? _announce;
   Timer? _statePush;
   bool _pushQueued = false;
@@ -355,6 +409,8 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
     state = JamHostState(active: true, jamId: id);
     // Músicas que convidados mandaram numa Festa anterior não ficam guardadas.
     await clearJamFiles(ref.read(cacheDirProvider).path);
+    _jamBytes = 0;
+    _passToSend.clear();
     await _dir.create(recursive: true);
     final connect = ref.read(connectProvider.notifier);
     connect.jamRoutes = this;
@@ -403,7 +459,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   /// Decide um pedido: aceito automaticamente se a pessoa está na lista;
   /// senão espera o dono (acceptRequest/rejectRequest).
   Future<bool> _decide(JamJoinRequest req) {
-    if (ref.read(jamAllowlistProvider.notifier).allows(req.guestId)) {
+    if (ref.read(jamAllowlistProvider.notifier).allows(req.guestId, req.pass)) {
       req.decision.complete(true);
       return req.decision.future;
     }
@@ -417,7 +473,10 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   }
 
   void respond(JamJoinRequest req, {required bool accept, bool always = false}) {
-    if (accept && always) ref.read(jamAllowlistProvider.notifier).add(req.guestId, req.guestName);
+    final allowlist = ref.read(jamAllowlistProvider.notifier);
+    // "Sempre" (ou entrada antiga da lista, sem passe): o convidado recebe um
+    // passe novo na entrada e, com ele, entra direto da próxima vez.
+    if (accept && (always || allowlist.contains(req.guestId))) _passToSend[req.guestId] = allowlist.add(req.guestId, req.guestName);
     state = state.copyWith(pending: state.pending.where((r) => r != req).toList());
     jamHideRequest?.call(req);
     if (!req.decision.isCompleted) req.decision.complete(accept);
@@ -445,7 +504,12 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
       await ws.close();
       return;
     }
-    final req = JamJoinRequest(guestId: m['id'] as String, guestName: m['n'] as String? ?? remoteIp, via: 'wifi');
+    final req = JamJoinRequest(
+      guestId: m['id'] as String,
+      guestName: m['n'] is String ? m['n'] as String : remoteIp,
+      via: 'wifi',
+      pass: m['k'] is String ? m['k'] as String : null,
+    );
     final ok = await _decide(req);
     if (!ok || !state.active) {
       try {
@@ -458,7 +522,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
     final token = _randomId(20);
     final link = _LanLink(ws, sub, peerId: req.guestId, peerName: req.guestName);
     _tokens[token] = link;
-    link.send({'t': 'welcome', 'n': _name, 'jid': jamId, 'token': token});
+    link.send({'t': 'welcome', 'n': _name, 'jid': jamId, 'token': token, 'k': ?_passToSend.remove(req.guestId)});
     _attach(link);
   }
 
@@ -466,7 +530,9 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   Future<void> handleUpload(HttpRequest req) async {
     final link = _tokens[req.uri.queryParameters['t']];
     final fid = req.uri.queryParameters['f'];
-    if (link == null || fid == null || !RegExp(r'^[a-z0-9]{6,32}$').hasMatch(fid)) {
+    // Só o arquivo que o convidado ofereceu e o dono aceitou, até o tamanho anunciado.
+    final expected = fid == null ? null : link?.expectedUploads.remove(fid);
+    if (link == null || fid == null || expected == null || !RegExp(r'^[a-z0-9]{6,32}$').hasMatch(fid)) {
       req.response.statusCode = 403;
       await req.response.close();
       return;
@@ -477,7 +543,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
     try {
       await for (final chunk in req) {
         size += chunk.length;
-        if (size > 200 * 1024 * 1024) throw const FileSystemException('arquivo grande demais');
+        if (size > expected) throw const FileSystemException('maior do que o anunciado');
         sink.add(chunk);
       }
       await sink.close();
@@ -497,7 +563,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   void _attach(JamLink link) {
     final pa = JamParticipant(link: link, id: link.peerId, name: link.peerName, via: link.via);
     state = state.copyWith(participants: [...state.participants.where((x) => x.id != pa.id), pa]);
-    if (link.via != 'wifi') link.send({'t': 'welcome', 'n': _name, 'jid': jamId});
+    if (link.via != 'wifi') link.send({'t': 'welcome', 'n': _name, 'jid': jamId, 'k': ?_passToSend.remove(link.peerId)});
     link.send(_stateMessage());
     final offers = <String, Map<String, dynamic>>{};
     link.files.listen((f) => _fileReceived(pa, offers.remove(f.$1), f.$1, f.$2));
@@ -542,8 +608,13 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
           if (known != null) {
             songs.add(known);
           } else if (!local && e['id'] is String) {
-            // Do servidor: a música é identificada pelo id (sem caminho de arquivo).
-            songs.add(Song.fromJson(Map<String, dynamic>.from(e)..remove('path')));
+            // Do servidor: a música é identificada pelo id. Nada de caminho de
+            // arquivo daqui (nem como capa: a capa sairia para os convidados).
+            final j = Map<String, dynamic>.from(e)..remove('path');
+            if (j['coverArt'] is! String || isFileCover(j['coverArt'] as String)) j.remove('coverArt');
+            try {
+              songs.add(Song.fromJson(j));
+            } catch (_) {}
           }
         }
         final uids = player.jamInsert(songs);
@@ -562,13 +633,20 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
             player.seek(Duration(milliseconds: (m['ms'] as num?)?.toInt() ?? 0));
         }
       case 'offer':
-        final fid = m['fid'];
+        final fid = m['fid'], size = m['size'];
         if (fid is! String || !RegExp(r'^[a-z0-9]{6,32}$').hasMatch(fid)) return;
+        if (size is! int || size <= 0 || size > jamMaxUpload || offers.length >= _jamMaxPendingOffers) return;
+        if (_jamBytes + size > jamMaxTotal) return;
+        if (m['cover'] is String && (m['cover'] as String).length > _jamMaxCoverB64) m.remove('cover');
         offers[fid] = m;
+        _jamBytes += size;
+        if (pa.link case final _LanLink l) l.expectedUploads[fid] = size;
         pa.link.send({'t': 'accept', 'fid': fid});
       case 'cover':
         final id = m['id'];
-        if (id is! String) return;
+        // Só capa de música que este aparelho mostrou (fila ou buscas): o id
+        // pode ser um caminho de arquivo, e o convidado não escolhe qual.
+        if (id is! String || !_coverShared(id)) return;
         final bytes = await _coverBytes(id);
         if (bytes != null) pa.link.send({'t': 'cover', 'id': id, 'b64': base64Encode(bytes)});
       case 'bye':
@@ -577,7 +655,12 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   }
 
   Future<void> _fileReceived(JamParticipant pa, Map<String, dynamic>? offer, String fid, String path) async {
-    if (offer == null) return;
+    if (offer == null || await File(path).length() > jamMaxUpload) {
+      try {
+        await File(path).delete();
+      } catch (_) {}
+      return;
+    }
     final j = Map<String, dynamic>.from(offer['song'] as Map? ?? const {});
     // Formato pela extensão do nome original (o arquivo chega sem extensão).
     final ext = (j['suffix'] as String?)?.replaceAll(RegExp(r'[^a-z0-9]'), '') ?? 'mp3';
@@ -609,11 +692,16 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
     pa.link.send({'t': 'queued', 'fid': fid, 'title': song.title});
   }
 
+  /// Capa de uma música que os convidados já viram (fila ou resultados de busca).
+  bool _coverShared(String id) =>
+      _shown.values.any((s) => s.coverArt == id) || ref.read(playerProvider).queue.any((q) => q.song.coverArt == id);
+
   Future<Uint8List?> _coverBytes(String id) async {
     try {
       Uint8List bytes;
       if (isFileCover(id)) {
         bytes = await File(id).readAsBytes();
+        if (!looksLikeImage(bytes)) return null;
       } else {
         final provider = ref.read(musicProvider);
         final uri = provider.coverUri(id, size: 150);
@@ -786,7 +874,7 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     final lan = ref.read(connectProvider.notifier).jamOffers.value;
     final offers = <JamOffer>[
       for (final o in lan)
-        JamOffer(key: 'wifi:${o.deviceId}', hostName: o.name, via: 'wifi', join: (id, name) => joinLan(o, id, name)),
+        JamOffer(key: 'wifi:${o.deviceId}', hostId: o.deviceId, hostName: o.name, via: 'wifi', join: (id, name, pass) => joinLan(o, id, name, pass)),
       ..._nearbyOffers,
     ];
     state = state.copyWith(offers: offers);
@@ -804,10 +892,27 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     jamNearby?.stopDiscovery();
   }
 
+  static const _kPasses = 'jamPasses';
+
+  Map<String, String> _passes() {
+    try {
+      final raw = ref.read(prefsProvider).getString(_kPasses);
+      return raw == null ? {} : Map<String, String>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  void _savePass(String hostId, String pass) {
+    final all = _passes()..remove(hostId);
+    final kept = Map.fromEntries([...all.entries].skip(all.length >= 50 ? all.length - 49 : 0));
+    ref.read(prefsProvider).setString(_kPasses, jsonEncode({...kept, hostId: pass}));
+  }
+
   Future<void> join(JamOffer offer) async {
     state = state.copyWith(phase: JamPhase.waiting, hostName: offer.hostName);
     try {
-      final link = await offer.join(_myId(ref), await _myName(ref));
+      final link = await offer.join(_myId(ref), await _myName(ref), _passes()[offer.hostId]);
       _stopSearch();
       _link = link;
       state = state.copyWith(phase: JamPhase.joined);
@@ -838,6 +943,8 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     switch (m['t']) {
       case 'welcome':
         state = state.copyWith(hostName: m['n'] as String?);
+        final pass = m['k'], host = _link?.peerId;
+        if (pass is String && host != null) _savePass(host, pass);
       case 'state':
         state = state.copyWith(
           playing: m['playing'] == true,

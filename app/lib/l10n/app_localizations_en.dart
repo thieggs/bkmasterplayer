@@ -1026,6 +1026,32 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String connectAuthFailed(String device) {
+    return '$device didn\'t prove it belongs to your account. Sign in again on both devices.';
+  }
+
+  @override
+  String get connectNeedsLogin =>
+      'Tap to turn on protected Connect on this device (asks for the account password once). Since this version, the server password no longer travels between devices.';
+
+  @override
+  String get deviceNeedsLogin => 'Needs to sign in again';
+
+  @override
+  String get connectEnableTitle => 'Turn on protected Connect';
+
+  @override
+  String connectPasswordHint(String user) {
+    return 'Password of the account $user. It never leaves this device: it becomes a key only your account\'s devices have. Do the same on your other devices.';
+  }
+
+  @override
+  String get connectEnabledNow => 'Protected Connect is on for this device';
+
+  @override
+  String get connectWrongPassword => 'That password doesn\'t match the account';
+
+  @override
   String get connectSection => 'Other devices (Connect)';
 
   @override

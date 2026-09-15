@@ -19,9 +19,11 @@ class SubsonicException implements Exception {
 
 /// Credenciais já prontas para a API. Nunca guardamos a senha em texto:
 /// só o token md5(senha + salt) e o salt (ou a API key, se o servidor suportar).
+/// [connectKey] vem da senha no login (ver connect_auth.dart) e nunca vai para
+/// a rede: é o que prova aos outros aparelhos que é a mesma conta.
 class SubsonicAuth {
-  const SubsonicAuth.token({required this.username, required this.token, required this.salt}) : apiKey = null;
-  const SubsonicAuth.apiKey(String key)
+  const SubsonicAuth.token({required this.username, required this.token, required this.salt, this.connectKey}) : apiKey = null;
+  const SubsonicAuth.apiKey(String key, {this.connectKey})
       : apiKey = key,
         username = null,
         token = null,
@@ -31,28 +33,35 @@ class SubsonicAuth {
   final String? token;
   final String? salt;
   final String? apiKey;
+  final String? connectKey;
 
-  factory SubsonicAuth.fromPassword(String username, String password) {
+  factory SubsonicAuth.fromPassword(String username, String password, {String? connectKey}) {
     final rnd = Random.secure();
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final salt = List.generate(12, (_) => chars[rnd.nextInt(chars.length)]).join();
     // Bytes UTF-8 (não code units UTF-16), senão senhas com acento falham.
     final token = md5.convert(utf8.encode('$password$salt')).toString();
-    return SubsonicAuth.token(username: username, token: token, salt: salt);
+    return SubsonicAuth.token(username: username, token: token, salt: salt, connectKey: connectKey);
   }
+
+  /// A senha digitada é a desta conta? (confere pelo token, sem ir ao servidor)
+  bool matchesPassword(String password) =>
+      token != null && salt != null && md5.convert(utf8.encode('$password$salt')).toString() == token;
 
   Map<String, String> get params => apiKey != null
       ? {'apiKey': apiKey!}
       : {'u': username!, 't': token!, 's': salt!};
 
-  Map<String, dynamic> toJson() => apiKey != null
-      ? {'apiKey': apiKey}
-      : {'username': username, 'token': token, 'salt': salt};
+  Map<String, dynamic> toJson() => {
+        ...(apiKey != null ? {'apiKey': apiKey} : {'username': username, 'token': token, 'salt': salt}),
+        'connectKey': ?connectKey,
+      };
 
   static SubsonicAuth? fromJson(Map<String, dynamic> j) {
-    if (j['apiKey'] is String) return SubsonicAuth.apiKey(j['apiKey'] as String);
+    final ck = j['connectKey'] is String && RegExp(r'^[0-9a-f]{64}$').hasMatch(j['connectKey'] as String) ? j['connectKey'] as String : null;
+    if (j['apiKey'] is String) return SubsonicAuth.apiKey(j['apiKey'] as String, connectKey: ck);
     if (j['username'] is String && j['token'] is String && j['salt'] is String) {
-      return SubsonicAuth.token(username: j['username'], token: j['token'], salt: j['salt']);
+      return SubsonicAuth.token(username: j['username'], token: j['token'], salt: j['salt'], connectKey: ck);
     }
     return null;
   }
@@ -125,22 +134,6 @@ class SubsonicClient {
         receiveTimeout: const Duration(seconds: 3),
         responseType: ResponseType.json,
       )).get('$base/rest/ping', queryParameters: _baseParams, options: Options(validateStatus: (_) => true));
-      final data = res.data;
-      return data is Map && data['subsonic-response'] is Map && data['subsonic-response']['status'] == 'ok';
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// Confere credenciais de outro aparelho (BKmasterplayer Connect) neste servidor:
-  /// só quem sabe a senha da conta gera um token que o servidor aceita.
-  Future<bool> validate(Map<String, String> authParams) async {
-    try {
-      final res = await _dio.get(
-        '$baseUrl/rest/ping',
-        queryParameters: {...authParams, 'v': apiVersion, 'c': clientName, 'f': 'json'},
-        options: Options(validateStatus: (_) => true),
-      );
       final data = res.data;
       return data is Map && data['subsonic-response'] is Map && data['subsonic-response']['status'] == 'ok';
     } catch (_) {

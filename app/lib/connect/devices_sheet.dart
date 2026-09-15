@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_router/go_router.dart';
 
+import '../core/providers.dart';
 import '../jam/jam_core.dart';
 import '../l10n/l10n.dart';
 import '../player/player_controller.dart';
@@ -125,7 +126,47 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _connecting = null);
-      showSnack(context, context.l10n.connectFailed(d.name));
+      final l10n = context.l10n;
+      showSnack(context, e is ConnectAuthException ? l10n.connectAuthFailed(d.name) : l10n.connectFailed(d.name));
+    }
+  }
+
+  /// Conta de antes do Connect protegido: pede a senha uma vez e ativa.
+  Future<void> _enableConnect() async {
+    final l10n = context.l10n;
+    final session = ref.read(sessionProvider).value;
+    final ctl = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.connectEnableTitle),
+        content: TextField(
+          controller: ctl,
+          autofocus: true,
+          obscureText: true,
+          autocorrect: false,
+          enableSuggestions: false,
+          decoration: InputDecoration(
+            labelText: l10n.password,
+            helperText: l10n.connectPasswordHint(session?.account.username ?? ''),
+            helperMaxLines: 4,
+          ),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, ctl.text), child: Text(l10n.ok)),
+        ],
+      ),
+    );
+    ctl.dispose();
+    if (password == null || password.isEmpty || !mounted) return;
+    final ok = await ref.read(sessionProvider.notifier).enableConnect(password);
+    if (!mounted) return;
+    showSnack(context, ok ? l10n.connectEnabledNow : l10n.connectWrongPassword);
+    if (ok) {
+      setState(() {});
+      await _loadStatus();
     }
   }
 
@@ -170,6 +211,9 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
     final online = devices.where((d) => d.online).toList();
     final offline = devices.where((d) => !d.online && d.manual).toList();
     final me = ref.read(connectProvider.notifier).me;
+    // Conta de antes do Connect protegido: sem a chave, não controla nem é controlado.
+    final session = ref.watch(sessionProvider).value;
+    final needsLogin = session != null && !session.isLocal && session.provider.connectKey == null;
 
     Widget check(bool on) =>
         on ? Icon(Icons.check_circle, color: theme.colorScheme.primary) : const SizedBox(width: 24);
@@ -185,6 +229,12 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
               child: Text(l10n.playOn, style: theme.textTheme.titleLarge),
             ),
+            if (needsLogin)
+              ListTile(
+                leading: Icon(Icons.lock_outline, color: theme.colorScheme.error),
+                title: Text(l10n.connectNeedsLogin, style: theme.textTheme.bodyMedium),
+                onTap: _enableConnect,
+              ),
             ListTile(
               leading: Icon(deviceIcon(Platform.operatingSystem)),
               title: Text(l10n.thisDevice),
@@ -203,6 +253,7 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
                   remoteId == d.id
                       ? l10n.deviceControlling
                       : switch (_status[d.id]) {
+                          DeviceStatus(needsLogin: true) => l10n.deviceNeedsLogin,
                           DeviceStatus(:final title?, :final artist, :final playing) => (playing
                               ? l10n.devicePlaying
                               : l10n.devicePaused)([title, if (artist != null && artist.isNotEmpty) artist].join(' — ')),

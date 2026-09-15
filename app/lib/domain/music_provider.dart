@@ -24,11 +24,9 @@ abstract class MusicProvider {
   /// Troca entre o endereço de casa (true) e o principal (false).
   Stream<bool> get endpointChanges;
 
-  /// Credenciais desta conta (para se apresentar a outro aparelho).
-  Map<String, String> get authParams;
-
-  /// Confere se credenciais de outro aparelho valem neste servidor.
-  Future<bool> validateAuth(Map<String, String> params);
+  /// Chave do Connect desta conta (vem da senha no login; null = conta sem
+  /// ela, entrou antes do Connect protegido, ou sem servidor).
+  String? get connectKey;
 
   Future<List<Album>> albumList(
     AlbumListType type, {

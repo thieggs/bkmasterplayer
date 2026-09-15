@@ -32,11 +32,13 @@ class SubsonicProvider implements MusicProvider {
   @override
   Stream<bool> get endpointChanges => client.endpointChanges;
 
-  @override
-  Map<String, String> get authParams => client.auth.params;
+  String? _connectKey;
 
   @override
-  Future<bool> validateAuth(Map<String, String> params) => client.validate(params);
+  String? get connectKey => _connectKey ?? client.auth.connectKey;
+
+  /// Chave ativada depois do login (conta de antes do Connect protegido).
+  set connectKey(String? key) => _connectKey = key;
 
   @override
   Future<ServerInfo> connect() async {

@@ -153,6 +153,54 @@ impl BeatGrid {
 }
 
 impl TrackAnalysis {
+    /// Valores dentro do possível para uma música: vale para toda análise que
+    /// vem de fora (servidor, trabalhador, cache no disco). Uma análise
+    /// adulterada ou corrompida (tempo negativo, batidas fora de ordem, compasso
+    /// de 0 tempos, listas gigantes) é recusada em vez de chegar ao planejador.
+    pub fn is_sane(&self) -> bool {
+        let d = self.duration;
+        if !(d.is_finite() && d > 0.0 && d <= 6.0 * 3600.0) {
+            return false;
+        }
+        let time = |t: f64| t.is_finite() && (-1.0..=d + 1.0).contains(&t);
+        // Até 1200 batidas por minuto: folga larga sobre qualquer música real.
+        let max_beats = (d * 20.0) as usize + 16;
+        let times = |v: &[f64]| v.len() <= max_beats && v.iter().all(|&t| time(t)) && v.windows(2).all(|w| w[0] <= w[1]);
+        let unit = |x: f64| x.is_finite() && (-0.01..=1.01).contains(&x);
+        let grid_ok = |g: &BeatGrid| {
+            g.period.is_finite()
+                && (0.05..=5.0).contains(&g.period)
+                && (1..=16).contains(&g.beats_per_bar)
+                && g.phase < g.beats_per_bar
+                && [g.start, g.end, g.t0].iter().all(|t| t.is_finite() && t.abs() <= d + 60.0)
+                && g.residual.is_finite()
+                && g.residual >= 0.0
+                && unit(g.coverage)
+                && unit(g.lock)
+                && g.windows.len() <= max_beats
+                && g.windows.iter().all(|(c, off)| c.is_finite() && off.is_finite())
+        };
+        (1..=16).contains(&self.beats_per_bar)
+            && self.bpm.is_none_or(|b| b.is_finite() && b > 0.0 && b <= 1200.0)
+            && self.bpm_confidence.is_finite()
+            && self.key_confidence.is_finite()
+            && self.peak.is_finite()
+            && self.lufs.is_none_or(f64::is_finite)
+            && self.key.as_ref().is_none_or(|k| k.len() <= 16)
+            && self.camelot.as_ref().is_none_or(|k| k.len() <= 8)
+            && times(&self.beats)
+            && times(&self.downbeats)
+            && times(&self.bars)
+            && self.bar_energy.len() <= max_beats
+            && self.bar_energy.iter().all(|e| e.is_finite())
+            && self.grids.len() <= 16
+            && self.grids.iter().all(grid_ok)
+            && time(self.first_sound)
+            && time(self.last_sound)
+            && self.intro_end.is_none_or(time)
+            && self.outro_start.is_none_or(time)
+    }
+
     /// Tem batida para sincronizar em algum trecho (o planejador ainda confere
     /// as grades exatas do fim de A e do começo de B).
     pub fn has_beat(&self) -> bool {
@@ -352,7 +400,7 @@ impl Analyzer {
     fn read_cache(path: &Path) -> Option<TrackAnalysis> {
         let raw = std::fs::read(path).ok()?;
         let a: TrackAnalysis = serde_json::from_slice(&raw).ok()?;
-        (a.version == ANALYSIS_VERSION).then_some(a)
+        (a.version == ANALYSIS_VERSION && a.is_sane()).then_some(a)
     }
 
     fn write_cache(path: PathBuf, a: &TrackAnalysis) {
@@ -1200,7 +1248,7 @@ fn structure(downbeats: &[f64], energy: &[f32]) -> (Option<f64>, Option<f64>) {
     let high = |i: usize| energy[i] >= reference - 4.0;
     let sustained = |i: usize, dir: i32| {
         (0..4).filter(|k| {
-            let j = i as i32 + dir * *k as i32;
+            let j = i as i32 + dir * *k;
             j >= 0 && (j as usize) < n && high(j as usize)
         })
         .count()

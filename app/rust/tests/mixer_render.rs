@@ -102,7 +102,7 @@ fn gapless_album(ext: &str, album: &str, rate: u32, max_peak: f32) -> Option<Vec
     let mut h = Harness::new(rate);
     // Como o motor faz: a atual ganha um "sucessor" e a próxima herda o conversor dela.
     let mut shareds: Vec<Arc<DeckShared>> = Vec::new();
-    let mut gapless_next = |cur: &Arc<DeckShared>, token: u64, p: PathBuf| {
+    let gapless_next = |cur: &Arc<DeckShared>, token: u64, p: PathBuf| {
         let hd = Handoff::new();
         cur.set_successor(Some(hd.clone()));
         deck_with(token, p, rate, Some(hd))
@@ -147,7 +147,10 @@ fn gapless_album(ext: &str, album: &str, rate: u32, max_peak: f32) -> Option<Vec
         if stopped || out.len() > 90 * rate_us * 2 {
             break;
         }
-        std::thread::sleep(Duration::from_micros(300));
+        // 8× o tempo real (512 frames por bloco): com vários testes em paralelo
+        // no build de debug, a ~70× o decodificador não acompanhava e o teste
+        // acusava underrun que a placa de som, no ritmo dela, nunca veria.
+        std::thread::sleep(Duration::from_secs_f64(512.0 / rate as f64 / 8.0));
     }
 
     // Tira o silêncio final do último bloco.

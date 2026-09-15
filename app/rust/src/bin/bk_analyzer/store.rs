@@ -3,6 +3,7 @@
 //! - `songs.json`: a biblioteca e o estado da análise de cada música;
 //! - `analyses/<id>.json`: as análises prontas, do jeito que o player usa;
 //! - `sessions.json` (0600): logins no painel.
+//!
 //! Quem está analisando o quê fica só na memória: se o coordenador reinicia, as
 //! músicas em andamento voltam para a fila.
 
@@ -273,6 +274,9 @@ struct Inner {
 pub struct Store {
     dir: PathBuf,
     inner: Mutex<Inner>,
+    /// Uma gravação por vez: a do timer e a da saída usam o mesmo .tmp e,
+    /// juntas, podiam deixar o songs.json corrompido.
+    saving: Mutex<()>,
 }
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Option<T> {
@@ -345,6 +349,7 @@ impl Store {
             read_json::<HashMap<String, Session>>(&dir.join("sessions.json")).unwrap_or_default().into_iter().filter(|(_, s)| s.expires > now_s).collect();
         let store = Self {
             dir: dir.to_path_buf(),
+            saving: Mutex::new(()),
             inner: Mutex::new(Inner {
                 config,
                 songs,
@@ -783,6 +788,7 @@ impl Store {
 
     /// Grava o que mudou (chamado de tempos em tempos e ao sair).
     pub fn save(&self) -> Result<()> {
+        let _one_at_a_time = self.saving.lock();
         let (songs, sessions) = {
             let mut g = self.inner.lock();
             let songs = if g.dirty {

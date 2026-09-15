@@ -58,6 +58,10 @@ void main() {
       'playerButtonsVersion': 2,
     });
     expect(p.backgroundImage, isNull);
+    for (final bad in ['..', '.hidden', '/etc/passwd', 'a/b.jpg', r'..\x', 'x' * 200]) {
+      expect(UiPrefs.fromJson({'backgroundImage': bad}).backgroundImage, isNull, reason: bad);
+    }
+    expect(UiPrefs.fromJson({'backgroundImage': 'a1b2c3.jpg'}).backgroundImage, 'a1b2c3.jpg');
     expect(p.radius, 28);
     expect(p.uiScale, 0.8);
     expect(p.variant, 'tonalSpot');

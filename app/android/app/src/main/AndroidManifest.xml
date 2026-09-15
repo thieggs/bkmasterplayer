@@ -23,11 +23,14 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="32"/>
 
-    <!-- usesCleartextTraffic: servidores Navidrome na rede local costumam ser http://. -->
+    <!-- usesCleartextTraffic: servidores Navidrome na rede local costumam ser http://.
+         Backup: as credenciais cifradas ficam de fora (res/xml/*backup*). -->
     <application
         android:label="BKmasterplayer 🎵"
         android:name=".BkApplication"
         android:icon="@mipmap/ic_launcher"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"

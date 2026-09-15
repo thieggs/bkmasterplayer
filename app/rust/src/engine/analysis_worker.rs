@@ -37,7 +37,7 @@ const REMOTE_TRIES: u8 = 4;
 const REMOTE_WAIT: Duration = Duration::from_secs(10);
 
 enum Remote {
-    Ready(TrackAnalysis),
+    Ready(Box<TrackAnalysis>),
     /// Ainda não tem, mas um trabalhador está ligado: vale esperar.
     Soon,
     No,
@@ -238,7 +238,11 @@ impl AnalysisWorker {
                     .ok()
                     .and_then(|b| serde_json::from_slice::<TrackAnalysis>(&b).ok());
                 match parsed {
-                    Some(a) if a.version == ANALYSIS_VERSION => Remote::Ready(a),
+                    Some(a) if a.version == ANALYSIS_VERSION && a.is_sane() => Remote::Ready(Box::new(a)),
+                    Some(a) if a.version == ANALYSIS_VERSION => {
+                        log::warn!("servidor de análise mandou valores fora do possível; ignorada");
+                        Remote::No
+                    }
                     _ => Remote::No,
                 }
             }
@@ -275,7 +279,7 @@ impl AnalysisWorker {
                 match self.fetch_remote(job.remote.as_deref().unwrap_or_default()) {
                     Remote::Ready(a) => {
                         self.analyzer.store_remote(&job.key, &a);
-                        let a = Arc::new(a);
+                        let a = Arc::new(*a);
                         self.results.lock().insert(job.key.clone(), a.clone());
                         self.from_server.lock().insert(job.key.clone());
                         self.failed.lock().remove(&job.key);
@@ -302,9 +306,14 @@ impl AnalysisWorker {
                 continue;
             }
             let cancel = Arc::new(AtomicBool::new(false));
-            let result = downloads
-                .open(job.cache_key.as_deref(), &job.url, cancel)
-                .and_then(|opened| self.analyzer.analyze(&job.key, opened.source, job.ext.as_deref()));
+            // Um pânico numa música (arquivo estranho, bug) não pode parar as
+            // análises da sessão inteira: vira falha só dessa música.
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                downloads
+                    .open(job.cache_key.as_deref(), &job.url, cancel)
+                    .and_then(|opened| self.analyzer.analyze(&job.key, opened.source, job.ext.as_deref()))
+            }))
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("pânico na análise")));
             match result {
                 Ok(a) => {
                     let a = Arc::new(a);
@@ -326,6 +335,7 @@ impl AnalysisWorker {
 /// desta herdam a prioridade.
 fn lower_priority() {
     #[cfg(any(target_os = "linux", target_os = "android"))]
+    // SAFETY: gettid e setpriority só leem inteiros; mexem só nesta thread.
     unsafe {
         let tid = libc::syscall(libc::SYS_gettid) as libc::id_t;
         libc::setpriority(libc::PRIO_PROCESS, tid, 10);

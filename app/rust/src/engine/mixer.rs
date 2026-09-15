@@ -850,6 +850,16 @@ fn automix_outgoing(
     }
 }
 
+#[inline]
+fn soft_clip(x: f32) -> f32 {
+    let a = x.abs();
+    if a <= 0.9 {
+        x
+    } else {
+        (0.9 + 0.1 * ((a - 0.9) / 0.1).tanh()).copysign(x)
+    }
+}
+
 #[cfg(test)]
 mod eq_tests {
     use super::*;
@@ -883,15 +893,5 @@ mod eq_tests {
         assert!(gain_at(1000.0, s).abs() < 1.0);
         let off = EqSettings { enabled: false, ..s };
         assert!(gain_at(125.0, off).abs() < 0.01);
-    }
-}
-
-#[inline]
-fn soft_clip(x: f32) -> f32 {
-    let a = x.abs();
-    if a <= 0.9 {
-        x
-    } else {
-        (0.9 + 0.1 * ((a - 0.9) / 0.1).tanh()).copysign(x)
     }
 }

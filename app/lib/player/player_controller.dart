@@ -1034,7 +1034,9 @@ class PlayerController extends Notifier<PlayerState> {
     final p = _provider;
     final me = ref.read(connectProvider.notifier).me;
     if (p == null || me == null) throw StateError('Connect indisponível');
-    final link = await ConnectLink.open(device, auth: p.authParams, me: me);
+    final key = p.connectKey;
+    if (key == null) throw const ConnectAuthException('entre de novo na conta neste aparelho para usar o Connect');
+    final link = await ConnectLink.open(device, key: key, me: me);
     final local = state;
     await _dropRemote();
     if (transfer && local.current != null) {

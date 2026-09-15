@@ -400,9 +400,7 @@ class LocalProvider implements MusicProvider {
   @override
   Stream<bool> get endpointChanges => const Stream.empty();
   @override
-  Map<String, String> get authParams => const {};
-  @override
-  Future<bool> validateAuth(Map<String, String> params) async => false;
+  String? get connectKey => null;
 
   List<T> _page<T>(List<T> list, int offset, int size) =>
       offset >= list.length ? const [] : list.sublist(offset, min(list.length, offset + size));

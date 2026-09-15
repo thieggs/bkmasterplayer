@@ -29,6 +29,8 @@ pub extern "system" fn Java_io_github_playermusica_player_1musica_BkApplication_
     if vm.is_null() || env.is_null() || context.is_null() {
         return;
     }
+    // SAFETY: env, vm e context vêm da JVM nesta chamada JNI e foram checados
+    // (não nulos); a referência global mantém o Context vivo para o ndk_context.
     unsafe {
         let Some(new_global_ref) = (**env).NewGlobalRef else { return };
         let global = new_global_ref(env, context);

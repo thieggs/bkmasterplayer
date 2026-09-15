@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup (Android 11 e antes). As credenciais do servidor ficam cifradas com
+     uma chave do Keystore, que não vai no backup: restauradas em outro
+     aparelho, virariam dados ilegíveis (e erro ao abrir a conta). Ficam de
+     fora; o resto (ajustes, temas, fila) vai. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="FlutterSecureStorage.xml"/>
+</full-backup-content>

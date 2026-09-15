@@ -51,9 +51,14 @@ class NearbyJam implements JamTransport {
   final _joining = <String, Completer<JamLink>>{};
 
   static Uint8List _info(Map<String, dynamic> m) {
-    // O Nearby aceita pouco espaço aqui: nome curto.
-    final n = '${m['n'] ?? ''}';
-    return Uint8List.fromList(utf8.encode(jsonEncode({...m, 'n': n.length > 40 ? n.substring(0, 40) : n})));
+    // O Nearby aceita pouco espaço aqui (~130 bytes): encurta o nome até caber.
+    var n = '${m['n'] ?? ''}';
+    if (n.length > 40) n = n.substring(0, 40);
+    while (true) {
+      final b = utf8.encode(jsonEncode({...m, 'n': n}));
+      if (b.length <= 128 || n.isEmpty) return Uint8List.fromList(b);
+      n = n.substring(0, n.length - 1);
+    }
   }
 
   static Map<String, dynamic>? _parse(dynamic s) {
@@ -134,17 +139,18 @@ class NearbyJam implements JamTransport {
       for (final e in _found.entries)
         JamOffer(
           key: 'bt:${e.key}',
+          hostId: '${e.value.$2['i'] ?? e.key}',
           hostName: e.value.$1,
           via: 'bluetooth',
-          join: (id, name) => _join(e.key, id, name),
+          join: (id, name, pass) => _join(e.key, id, name, pass),
         ),
     ]);
   }
 
-  Future<JamLink> _join(String endpointId, String myId, String myName) async {
+  Future<JamLink> _join(String endpointId, String myId, String myName, String? pass) async {
     final c = Completer<JamLink>();
     _joining[endpointId] = c;
-    await _m.invokeMethod('requestConnection', {'id': endpointId, 'info': _info({'i': myId, 'n': myName})});
+    await _m.invokeMethod('requestConnection', {'id': endpointId, 'info': _info({'i': myId, 'n': myName, 'k': ?pass})});
     return c.future.timeout(const Duration(minutes: 3), onTimeout: () {
       _joining.remove(endpointId);
       throw const JamRejected();
@@ -167,7 +173,12 @@ class NearbyJam implements JamTransport {
       case 'initiated':
         if (e['incoming'] == true && _hosting) {
           final info = _parse(e['info']) ?? const {};
-          final req = JamJoinRequest(guestId: '${info['i'] ?? id}', guestName: '${info['n'] ?? '?'}', via: 'bluetooth');
+          final req = JamJoinRequest(
+            guestId: '${info['i'] ?? id}',
+            guestName: '${info['n'] ?? '?'}',
+            via: 'bluetooth',
+            pass: info['k'] is String ? info['k'] as String : null,
+          );
           final ok = await (_onRequest?.call(req) ?? Future.value(false));
           try {
             if (ok) {

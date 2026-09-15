@@ -736,4 +736,116 @@ mod tests {
         }
         assert!((m.speed_at(48000.0 * 40.0) - 0.98).abs() < 1e-9);
     }
+
+    #[test]
+    fn tampered_analysis_is_rejected() {
+        let good = fake(120.0, 240.0, 16.0, 16.0, "8A");
+        assert!(good.is_sane());
+        type Tamper = Box<dyn Fn(&mut TrackAnalysis)>;
+        let broken: Vec<(&str, Tamper)> = vec![
+            ("compasso de 0 tempos", Box::new(|a| a.beats_per_bar = 0)),
+            ("grade com compasso de 0 tempos", Box::new(|a| a.grids[0].beats_per_bar = 0)),
+            ("fase fora do compasso", Box::new(|a| a.grids[0].phase = 4)),
+            ("período zero", Box::new(|a| a.grids[0].period = 0.0)),
+            ("período NaN", Box::new(|a| a.grids[0].period = f64::NAN)),
+            ("BPM infinito", Box::new(|a| a.bpm = Some(f64::INFINITY))),
+            ("duração negativa", Box::new(|a| a.duration = -5.0)),
+            ("batidas fora de ordem", Box::new(|a| a.beats = vec![10.0, 5.0])),
+            ("batida depois do fim", Box::new(|a| a.downbeats = vec![1.0, 9999.0])),
+            ("lista gigante", Box::new(|a| a.beats = (0..1_000_000).map(|i| i as f64 * 1e-4).collect())),
+            ("começo do som infinito", Box::new(|a| a.first_sound = f64::NEG_INFINITY)),
+            ("fim da intro NaN", Box::new(|a| a.intro_end = Some(f64::NAN))),
+            ("janela NaN", Box::new(|a| a.grids[0].windows.push((f64::NAN, 0.0)))),
+            ("energia NaN", Box::new(|a| a.bar_energy = vec![f32::NAN])),
+            ("tom enorme", Box::new(|a| a.key = Some("x".repeat(1000)))),
+        ];
+        for (what, f) in broken {
+            let mut a = good.clone();
+            f(&mut a);
+            assert!(!a.is_sane(), "devia recusar: {what}");
+        }
+    }
+
+    /// Fuzz do planejador: milhares de análises aleatórias que passam na
+    /// validação nunca podem fazer o planejador entrar em pânico nem devolver
+    /// posição/velocidade que não seja número.
+    #[test]
+    fn random_sane_analyses_never_break_the_planner() {
+        let mut seed = 0x5eed_u64;
+        let mut rnd = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            (seed >> 11) as f64 / (1u64 << 53) as f64
+        };
+        let (mut planned, mut rejected) = (0, 0);
+        for i in 0..4000 {
+            let make = |rnd: &mut dyn FnMut() -> f64| {
+                let duration = 1.0 + rnd() * 600.0;
+                let bpm = 40.0 + rnd() * 200.0;
+                let mut a = fake(bpm, duration, (rnd() * 40.0).floor(), (rnd() * 40.0).floor(), ["8A", "1B", "12A", "?", ""][(rnd() * 5.0) as usize]);
+                let bpb = 1 + (rnd() * 7.0) as u32;
+                a.beats_per_bar = bpb;
+                for g in a.grids.iter_mut() {
+                    g.beats_per_bar = bpb;
+                    g.phase = (rnd() * bpb as f64) as u32;
+                    g.t0 = rnd() * 4.0 - 2.0;
+                    g.start = rnd() * duration * 0.5;
+                    g.end = g.start + rnd() * duration;
+                    g.residual = rnd() * 0.03;
+                    g.coverage = rnd();
+                    g.lock = rnd();
+                    g.inliers = (rnd() * 400.0) as u32;
+                    g.validated = rnd() < 0.5;
+                    g.windows.truncate((rnd() * g.windows.len() as f64) as usize);
+                    for w in g.windows.iter_mut() {
+                        w.1 = rnd() * 0.08 - 0.04;
+                    }
+                }
+                if rnd() < 0.4 {
+                    let mut extra = a.grids[0].clone();
+                    extra.start = duration * 0.7;
+                    extra.period *= 0.9 + rnd() * 0.2;
+                    a.grids.push(extra);
+                }
+                let n = (rnd() * duration * 2.0) as usize;
+                a.beats = (0..n).map(|k| k as f64 * duration / n.max(1) as f64).collect();
+                a.downbeats = a.beats.iter().step_by(bpb as usize).copied().collect();
+                a.bars = a.downbeats.clone();
+                a.bar_energy = a.bars.iter().map(|_| (rnd() * 60.0 - 60.0) as f32).collect();
+                a.first_sound = rnd() * duration.min(20.0);
+                a.last_sound = duration - rnd() * duration.min(20.0);
+                if rnd() < 0.2 {
+                    a.intro_end = None;
+                }
+                if rnd() < 0.2 {
+                    a.outro_start = Some(rnd() * duration);
+                }
+                if rnd() < 0.1 {
+                    a.bpm = None;
+                }
+                a
+            };
+            let a = make(&mut rnd);
+            let b = make(&mut rnd);
+            if !a.is_sane() || !b.is_sane() {
+                rejected += 1;
+                continue;
+            }
+            let mut s = AutomixSettings::default();
+            if i % 3 == 1 {
+                s.trim_silence = !s.trim_silence;
+                s.preferred_bars = [4, 8, 16, 32][i % 4];
+                s.harmonic = !s.harmonic;
+            }
+            let a_now = rnd() * a.duration;
+            let p = std::panic::catch_unwind(|| plan(&a, &b, &s, a_now)).unwrap_or_else(|_| panic!("pânico no caso {i}: {a:?} → {b:?}"));
+            for (what, v) in [("from_start", p.from_start), ("to_start", p.to_start), ("duration", p.duration), ("speed", p.speed), ("ramp", p.ramp), ("beat", p.beat)] {
+                assert!(v.is_finite(), "caso {i}: {what} = {v} ({p:?})");
+            }
+            assert!(p.speed > 0.0 && p.duration >= 0.0, "caso {i}: {p:?}");
+            planned += 1;
+        }
+        assert!(planned > 2000, "poucos casos válidos: {planned} (recusados {rejected})");
+    }
 }

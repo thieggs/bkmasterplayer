@@ -420,6 +420,27 @@
    }
   }
  },
+ "connectAuthFailed": "{device} não provou ser da sua conta. Entre de novo na conta nos dois aparelhos.",
+ "@connectAuthFailed": {
+  "placeholders": {
+   "device": {
+    "type": "String"
+   }
+  }
+ },
+ "connectNeedsLogin": "Toque para ativar o Connect protegido neste aparelho (pede a senha da conta uma vez). Desde essa versão, a senha do servidor não passa mais de um aparelho para outro.",
+ "deviceNeedsLogin": "Precisa entrar de novo na conta",
+ "connectEnableTitle": "Ativar o Connect protegido",
+ "connectPasswordHint": "Senha da conta {user}. Ela não sai do aparelho: vira uma chave que só os aparelhos da sua conta têm. Faça o mesmo nos outros aparelhos.",
+ "@connectPasswordHint": {
+  "placeholders": {
+   "user": {
+    "type": "String"
+   }
+  }
+ },
+ "connectEnabledNow": "Connect protegido ativado neste aparelho",
+ "connectWrongPassword": "A senha não confere com a da conta",
  "connectSection": "Outros aparelhos (Connect)",
  "connectEnable": "Tocar e controlar entre aparelhos",
  "connectEnableHint": "Este aparelho aparece para os outros com a mesma conta e pode ser controlado por eles, como no Spotify Connect.",

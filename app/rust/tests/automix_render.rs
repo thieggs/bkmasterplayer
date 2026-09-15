@@ -121,7 +121,10 @@ fn check_pair(a_path: PathBuf, b_path: PathBuf, bpm_a: f64, bpm_b: f64) {
                 underruns += 1;
             }
         }
-        std::thread::sleep(Duration::from_micros(300));
+        // 8× o tempo real (512 frames por bloco): rápido, mas sem exigir do
+        // time-stretch um ritmo que a placa de som nunca pede (no build de
+        // debug, a ~70× ele não acompanhava e o teste acusava cortes falsos).
+        std::thread::sleep(Duration::from_secs_f64(512.0 / rate as f64 / 8.0));
     }
     assert_eq!(underruns, 0);
     let mono: Vec<f32> = out.chunks(2).map(|f| (f[0] + f[1]) * 0.5).collect();

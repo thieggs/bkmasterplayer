@@ -1026,6 +1026,32 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String connectAuthFailed(String device) {
+    return '$device não provou ser da sua conta. Entre de novo na conta nos dois aparelhos.';
+  }
+
+  @override
+  String get connectNeedsLogin =>
+      'Toque para ativar o Connect protegido neste aparelho (pede a senha da conta uma vez). Desde essa versão, a senha do servidor não passa mais de um aparelho para outro.';
+
+  @override
+  String get deviceNeedsLogin => 'Precisa entrar de novo na conta';
+
+  @override
+  String get connectEnableTitle => 'Ativar o Connect protegido';
+
+  @override
+  String connectPasswordHint(String user) {
+    return 'Senha da conta $user. Ela não sai do aparelho: vira uma chave que só os aparelhos da sua conta têm. Faça o mesmo nos outros aparelhos.';
+  }
+
+  @override
+  String get connectEnabledNow => 'Connect protegido ativado neste aparelho';
+
+  @override
+  String get connectWrongPassword => 'A senha não confere com a da conta';
+
+  @override
   String get connectSection => 'Outros aparelhos (Connect)';
 
   @override

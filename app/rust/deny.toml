@@ -1,0 +1,21 @@
+# Política de licenças das dependências Rust (dev/auditoria.sh roda
+# `cargo deny check licenses`). O app é MIT: só licenças permissivas, mais a
+# MPL-2.0 (copyleft por arquivo, do symphonia; não passa para o nosso código
+# enquanto os arquivos dele não forem modificados — ver docs/JURIDICO.md).
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "Unlicense",
+    "Unicode-DFS-2016",
+    "CDLA-Permissive-2.0",
+    "MPL-2.0",
+]
+confidence-threshold = 0.9
+unused-allowed-license = "allow"

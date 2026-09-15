@@ -407,7 +407,12 @@ impl Inner {
             *self.planned.lock() = Some((a_req.id, b_req.id, automix::gapless_plan(&aa)));
             return;
         }
-        let plan = automix::plan(&aa, &ab, &settings, a_now);
+        // Pânico no planejador (caso não previsto) fica só sem AutoMix nessa
+        // troca: a música segue com a transição normal.
+        let Ok(plan) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| automix::plan(&aa, &ab, &settings, a_now))) else {
+            log::error!("planejador do AutoMix entrou em pânico ({} → {})", a_req.id, b_req.id);
+            return;
+        };
 
         let start_native = (plan.from_start * rate as f64).round() as u64;
         // Precisa de folga para B ser preparado (decodificar/baixar o começo).
@@ -415,7 +420,7 @@ impl Inner {
             return;
         }
         let len = ((plan.duration * rate as f64).round() as u64).max(rate as u64 / 100);
-        let tempo = ((plan.speed - 1.0).abs() > 1e-4).then(|| TempoMap {
+        let tempo = ((plan.speed - 1.0).abs() > 1e-4).then_some(TempoMap {
             speed: plan.speed,
             hold: len as f64,
             ramp: plan.ramp * rate as f64,
@@ -459,7 +464,7 @@ impl Inner {
                 .collect();
             let next_id = self.ctl.lock().next.as_ref().and_then(|(r, _)| (r.analysis_key.as_deref() == Some(key)).then(|| r.id.clone()));
             let mut seen = std::collections::HashSet::new();
-            let server = self.from_server(key);
+            let server = self.analysis_from_server(key);
             for id in ids.into_iter().chain(next_id).chain(asked).filter(|id| seen.insert(id.clone())) {
                 self.emit(analysis_event(id, a, server));
             }
@@ -475,7 +480,7 @@ impl Inner {
         self.try_plan();
     }
 
-    fn from_server(&self, key: &str) -> bool {
+    fn analysis_from_server(&self, key: &str) -> bool {
         self.analysis.lock().as_ref().is_some_and(|w| w.is_from_server(key))
     }
 
@@ -830,13 +835,16 @@ const IDLE_CLOSE: Duration = Duration::from_secs(120);
 fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
     let mut last_pos = Instant::now();
     let mut last_gc = Instant::now();
-    let mut last_reopen = Instant::now() - Duration::from_secs(10);
+    // checked_sub: logo depois de ligar o aparelho, o relógio monotônico pode
+    // estar abaixo disso (no Windows, subtrair entraria em pânico).
+    let long_ago = |s: u64| Instant::now().checked_sub(Duration::from_secs(s)).unwrap_or_else(Instant::now);
+    let mut last_reopen = long_ago(10);
     let mut last_state = (false, false, false);
     let mut last_mpris_pos = Instant::now();
     let mut last_default_check = Instant::now();
     let mut idle_since: Option<Instant> = None;
     // Vigia da saída: último valor do contador de pedidos de som e quando mudou.
-    let (mut last_hb, mut last_hb_at, mut last_watchdog) = (u64::MAX, Instant::now(), Instant::now() - Duration::from_secs(60));
+    let (mut last_hb, mut last_hb_at, mut last_watchdog) = (u64::MAX, Instant::now(), long_ago(60));
     // BK_IDLE_CLOSE_SECS: só para teste (fechar logo depois de pausar).
     let idle_close = std::env::var("BK_IDLE_CLOSE_SECS").ok().and_then(|s| s.parse().ok()).map(Duration::from_secs).unwrap_or(IDLE_CLOSE);
 

@@ -54,7 +54,7 @@ fn flux(mono: &[f32], rate: f64) -> Vec<f32> {
 /// centrado de 5 ms), um valor por ms.
 fn low_env(mono: &[f32], rate: f64) -> Vec<f32> {
     let w = 2.0 * std::f64::consts::PI * 150.0 / rate;
-    let alpha = w.sin() / (2.0 * 0.7071);
+    let alpha = w.sin() / (2.0 * std::f64::consts::FRAC_1_SQRT_2);
     let a0 = 1.0 + alpha;
     let (b0, b1, a1, a2) = (((1.0 - w.cos()) / 2.0) / a0, (1.0 - w.cos()) / a0, (-2.0 * w.cos()) / a0, (1.0 - alpha) / a0);
     let run = |x: &mut Vec<f64>| {

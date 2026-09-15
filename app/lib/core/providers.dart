@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../connect/connect_auth.dart';
 import '../data/accounts.dart';
 import '../data/lastfm.dart';
 import '../data/local/local_provider.dart';
@@ -219,7 +221,9 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     String? name,
     String? localUrl,
   }) async {
-    final auth = SubsonicAuth.fromPassword(username, password);
+    // Chave do Connect: lenta de propósito (PBKDF2), fora da thread da interface.
+    final connectKey = await compute(deriveConnectKeyInIsolate, [username, password]);
+    final auth = SubsonicAuth.fromPassword(username, password, connectKey: connectKey);
     final raw = url.trim();
     final candidates = raw.contains('://') ? [raw] : ['https://$raw', 'http://$raw'];
     SubsonicException? error;
@@ -252,6 +256,23 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   }
 
   static const localBaseUrl = 'local:';
+
+  /// Ativa o Connect protegido numa conta que entrou antes dele: confere a
+  /// senha pelo token guardado (md5(senha + salt), sem ir ao servidor), deriva
+  /// a chave e grava. Não reconecta nem para a música. false = senha errada.
+  Future<bool> enableConnect(String password) async {
+    final session = state.value;
+    final provider = session?.provider;
+    if (session == null || provider is! SubsonicProvider) return false;
+    final store = ref.read(accountStoreProvider);
+    final auth = await store.auth(session.account.id);
+    final (user, token, salt) = (auth?.username, auth?.token, auth?.salt);
+    if (auth == null || user == null || token == null || salt == null || !auth.matchesPassword(password)) return false;
+    final key = await compute(deriveConnectKeyInIsolate, [user, password]);
+    await store.save(session.account, SubsonicAuth.token(username: user, token: token, salt: salt, connectKey: key));
+    provider.connectKey = key;
+    return true;
+  }
 
   /// Capas achadas na internet: recarrega as telas da biblioteca.
   void _watchLocalCovers(LocalProvider local) {
