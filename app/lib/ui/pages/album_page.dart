@@ -10,6 +10,7 @@ import '../../player/player_controller.dart';
 import '../actions.dart';
 import '../widgets/async_view.dart';
 import '../widgets/cover_art.dart';
+import '../widgets/follow_playing.dart';
 import '../widgets/song_tile.dart';
 import 'offline_page.dart';
 
@@ -79,11 +80,7 @@ class _AlbumView extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    FilledButton.icon(
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(l10n.play),
-                      onPressed: () => player.playSongs(songs),
-                    ),
+                    FilledButton.icon(icon: const Icon(Icons.play_arrow), label: Text(l10n.play), onPressed: () => player.playSongs(songs)),
                     FilledButton.tonalIcon(
                       icon: const Icon(Icons.shuffle),
                       label: Text(l10n.shuffle),
@@ -121,28 +118,32 @@ class _AlbumView extends ConsumerWidget {
       ),
     );
 
-    final rows = <Widget>[];
-    int? lastDisc;
-    for (var i = 0; i < songs.length; i++) {
-      final s = songs[i];
-      if (multiDisc && s.disc != lastDisc) {
-        lastDisc = s.disc;
-        rows.add(Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text(l10n.disc(s.disc ?? 1), style: theme.textTheme.titleSmall),
-        ));
-      }
-      rows.add(SongTile(
-        song: s,
-        number: s.track ?? i + 1,
-        showCover: false,
-        onTap: () => player.playFrom(songs, i),
-      ));
-    }
-
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
-      children: [header, ...rows],
+    // A lista acompanha a música tocando (quando ela é deste álbum).
+    return FollowPlayingScope(
+      songs: songs,
+      builder: (context, follow) {
+        final rows = <Widget>[];
+        int? lastDisc;
+        for (var i = 0; i < songs.length; i++) {
+          final s = songs[i];
+          if (multiDisc && s.disc != lastDisc) {
+            lastDisc = s.disc;
+            rows.add(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                child: Text(l10n.disc(s.disc ?? 1), style: theme.textTheme.titleSmall),
+              ),
+            );
+          }
+          rows.add(
+            KeyedSubtree(
+              key: follow.keyFor(i),
+              child: SongTile(song: s, number: s.track ?? i + 1, showCover: false, onTap: () => player.playFrom(songs, i)),
+            ),
+          );
+        }
+        return ListView(controller: follow.controller, padding: const EdgeInsets.only(bottom: 24), children: [header, ...rows]);
+      },
     );
   }
 }

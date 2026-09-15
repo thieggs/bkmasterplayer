@@ -9,6 +9,7 @@ import '../../player/player_controller.dart';
 import '../actions.dart';
 import '../widgets/async_view.dart';
 import '../widgets/cover_art.dart';
+import '../widgets/follow_playing.dart';
 import '../widgets/song_tile.dart';
 import 'offline_page.dart';
 
@@ -78,94 +79,104 @@ class PlaylistPage extends ConsumerWidget {
     return AsyncView(
       value: playlist,
       onRetry: () => ref.invalidate(playlistProvider(id)),
-      builder: (p) => ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                CoverArt(coverArtId: p.coverArt, size: 160, icon: Icons.queue_music),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.playlist, style: theme.textTheme.labelMedium),
-                      Text(p.name, style: theme.textTheme.headlineMedium),
-                      if (p.comment != null) Text(p.comment!, style: theme.textTheme.bodyMedium),
-                      Text([l10n.songCount(p.songs.length), formatLongDuration(p.duration)].join(' • '),
-                          style: theme.textTheme.bodySmall),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          FilledButton.icon(
-                            icon: const Icon(Icons.play_arrow),
-                            label: Text(l10n.play),
-                            onPressed: p.songs.isEmpty ? null : () => player.playSongs(p.songs),
-                          ),
-                          FilledButton.tonalIcon(
-                            icon: const Icon(Icons.shuffle),
-                            label: Text(l10n.shuffle),
-                            onPressed: p.songs.isEmpty ? null : () => player.playSongs(p.songs, shuffle: true),
-                          ),
-                          OfflineButton(type: 'playlist', id: p.id, name: p.name, coverArt: p.coverArt, songs: p.songs),
-                          IconButton.outlined(
-                            tooltip: l10n.rename,
-                            icon: const Icon(Icons.edit),
-                            onPressed: () async {
-                              final name = await LibraryActions.promptText(context, l10n.rename, l10n.playlistName, initial: p.name);
-                              if (name == null || name.trim().isEmpty) return;
-                              await ref.read(musicProvider).renamePlaylist(p.id, name.trim());
-                              ref.invalidate(playlistProvider(id));
-                              ref.invalidate(playlistsProvider);
-                            },
-                          ),
-                          IconButton.outlined(
-                            tooltip: l10n.delete,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () async {
-                              final ok = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(l10n.deletePlaylistQuestion(p.name)),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
-                                    FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
-                                  ],
-                                ),
-                              );
-                              if (ok != true) return;
-                              await ref.read(musicProvider).deletePlaylist(p.id);
-                              ref.invalidate(playlistsProvider);
-                              if (context.mounted) context.pop();
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+      // A lista acompanha a música tocando (quando ela é desta playlist).
+      builder: (p) => FollowPlayingScope(
+        songs: p.songs,
+        builder: (context, follow) => ListView(
+          controller: follow.controller,
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  CoverArt(coverArtId: p.coverArt, size: 160, icon: Icons.queue_music),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.playlist, style: theme.textTheme.labelMedium),
+                        Text(p.name, style: theme.textTheme.headlineMedium),
+                        if (p.comment != null) Text(p.comment!, style: theme.textTheme.bodyMedium),
+                        Text(
+                          [l10n.songCount(p.songs.length), formatLongDuration(p.duration)].join(' • '),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilledButton.icon(
+                              icon: const Icon(Icons.play_arrow),
+                              label: Text(l10n.play),
+                              onPressed: p.songs.isEmpty ? null : () => player.playSongs(p.songs),
+                            ),
+                            FilledButton.tonalIcon(
+                              icon: const Icon(Icons.shuffle),
+                              label: Text(l10n.shuffle),
+                              onPressed: p.songs.isEmpty ? null : () => player.playSongs(p.songs, shuffle: true),
+                            ),
+                            OfflineButton(type: 'playlist', id: p.id, name: p.name, coverArt: p.coverArt, songs: p.songs),
+                            IconButton.outlined(
+                              tooltip: l10n.rename,
+                              icon: const Icon(Icons.edit),
+                              onPressed: () async {
+                                final name = await LibraryActions.promptText(context, l10n.rename, l10n.playlistName, initial: p.name);
+                                if (name == null || name.trim().isEmpty) return;
+                                await ref.read(musicProvider).renamePlaylist(p.id, name.trim());
+                                ref.invalidate(playlistProvider(id));
+                                ref.invalidate(playlistsProvider);
+                              },
+                            ),
+                            IconButton.outlined(
+                              tooltip: l10n.delete,
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () async {
+                                final ok = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(l10n.deletePlaylistQuestion(p.name)),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+                                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete)),
+                                    ],
+                                  ),
+                                );
+                                if (ok != true) return;
+                                await ref.read(musicProvider).deletePlaylist(p.id);
+                                ref.invalidate(playlistsProvider);
+                                if (context.mounted) context.pop();
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          for (var i = 0; i < p.songs.length; i++)
-            SongTile(
-              song: p.songs[i],
-              showAlbum: true,
-              onTap: () => player.playFrom(p.songs, i),
-              trailing: IconButton(
-                tooltip: l10n.removeFromPlaylist,
-                icon: const Icon(Icons.remove_circle_outline, size: 20),
-                onPressed: () async {
-                  await ref.read(musicProvider).removeFromPlaylist(p.id, [i]);
-                  ref.invalidate(playlistProvider(id));
-                },
+                ],
               ),
             ),
-        ],
+            for (var i = 0; i < p.songs.length; i++)
+              KeyedSubtree(
+                key: follow.keyFor(i),
+                child: SongTile(
+                  song: p.songs[i],
+                  showAlbum: true,
+                  onTap: () => player.playFrom(p.songs, i),
+                  trailing: IconButton(
+                    tooltip: l10n.removeFromPlaylist,
+                    icon: const Icon(Icons.remove_circle_outline, size: 20),
+                    onPressed: () async {
+                      await ref.read(musicProvider).removeFromPlaylist(p.id, [i]);
+                      ref.invalidate(playlistProvider(id));
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
