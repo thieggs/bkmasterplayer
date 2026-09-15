@@ -142,6 +142,7 @@ Pedido do usuário: *"igual a análise sônica fica salva no server e o celular 
   - 11 servem numa ponta só;
   - 6 ficam na transição simples (Dream Theater ao vivo, com fórmula de compasso mudando, intro sem batida, sax solo).
   - As mixagens sincronizadas continuam precisas: mediana de 6 ms (`eval_mix --cache`).
+- **Celular × PC** (`dev/phone_diag.sh`, 15/09): as batidas saem idênticas (12 faixas do Mandragora, 100% a ±5 ms, diferença máxima de 0 ms, mesmo BPM, 11 de 12 confiáveis nos dois) e o tempo é parecido (~20 s por faixa). O processador ARM não era a causa da pouca batida confiável no celular: eram as regras (música tocada, poucas janelas), que as regras novas resolvem também na análise local.
 - **Ferramentas:** `examples/tune.rs` roda a rede uma vez por faixa e refaz o resto a cada mudança (~20 s para 100 faixas); `eval_mix --cache` mixa com essas batidas.
 - **Ritmo no i7-1355U:**
   - No perfil "Economia de energia" (~1,6 GHz): ~280 músicas/h, igual com 2 ou 3 análises ao mesmo tempo.
