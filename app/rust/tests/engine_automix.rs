@@ -90,3 +90,57 @@ fn automix_orchestration() {
     assert!(mix_started, "a transição DJ não começou");
     assert!(b_started, "B não virou a faixa atual");
 }
+
+/// Pausa até a saída fechar (inatividade) e despausa: a música tem de voltar a
+/// andar na hora, várias vezes seguidas (antes, às vezes o play não saía).
+#[test]
+#[ignore]
+fn resume_after_idle_close() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let music = root.join("../../dev/music/Sintético Beats/Pista Um");
+    if !music.exists() {
+        return;
+    }
+    std::env::set_var("BK_IDLE_CLOSE_SECS", "2");
+    let cache = std::env::temp_dir().join(format!("player-engine-resume-{}", std::process::id()));
+    let engine = Engine::new(
+        EngineConfig {
+            cache_dir: cache,
+            cache_limit_bytes: u64::MAX,
+            device_id: None,
+            app_id: "player_musica_test".into(),
+            app_name: "teste".into(),
+            media_controls: false,
+            model_dir: None,
+        },
+        None,
+    )
+    .unwrap();
+    engine.set_volume(0.0);
+    engine.play(track("A", music.join("01 - Abertura.flac"), "t:a"), 0);
+    std::thread::sleep(Duration::from_secs(2));
+    let advancing = |what: &str| {
+        let p0 = engine.position_ms().unwrap_or(0);
+        let t = Instant::now();
+        while t.elapsed() < Duration::from_secs(3) {
+            std::thread::sleep(Duration::from_millis(50));
+            if engine.position_ms().unwrap_or(0) > p0 + 200 {
+                eprintln!("{what}: andando em {} ms", t.elapsed().as_millis());
+                return;
+            }
+        }
+        panic!("{what}: a música não voltou a andar");
+    };
+    advancing("começo");
+    for round in 1..=4 {
+        engine.pause();
+        // Mais que o tempo de fechar a saída.
+        std::thread::sleep(Duration::from_millis(std::env::var("BK_TEST_PAUSE_MS").ok().and_then(|s| s.parse().ok()).unwrap_or(3500)));
+        let paused_at = engine.position_ms().unwrap_or(0);
+        std::thread::sleep(Duration::from_millis(500));
+        assert_eq!(engine.position_ms().unwrap_or(0), paused_at, "pausada, não anda");
+        engine.resume();
+        advancing(&format!("despausou {round}"));
+    }
+    engine.shutdown();
+}

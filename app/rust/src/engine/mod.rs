@@ -131,6 +131,10 @@ struct Track {
 struct Control {
     cmd: rtrb::Producer<MixerCmd>,
     output: Option<Output>,
+    /// Saída fechada por estar parado há um tempo: o próximo comando reabre.
+    idle_closed: bool,
+    /// Quando a saída atual abriu (o vigia dá um tempo para o 1º pedido de som).
+    opened_at: Instant,
     device_id: Option<String>,
     rate: u32,
     next_token: u64,
@@ -146,6 +150,8 @@ struct Inner {
     tracks: Mutex<HashMap<u64, Track>>,
     callback: Mutex<Option<EventCallback>>,
     stream_failed: Arc<AtomicBool>,
+    /// Chegou comando com a saída fechada por inatividade: reabrir já.
+    wake_output: AtomicBool,
     running: AtomicBool,
     covers_dir: PathBuf,
     notifications: AtomicBool,
@@ -186,6 +192,8 @@ impl Inner {
             let old = ctl.rate;
             ctl.rate = rate;
             ctl.output = Some(out);
+            ctl.idle_closed = false;
+            ctl.opened_at = Instant::now();
             old
         };
         self.emit(EngineEvent::DeviceChanged { name, sample_rate: rate });
@@ -198,11 +206,12 @@ impl Inner {
 
     /// Se o app segue a saída padrão e ela mudou (ex.: fone Bluetooth conectou), migra.
     fn follow_default_output(self: &Arc<Self>) {
-        let (following, current) = {
+        let (following, current, closed) = {
             let ctl = self.ctl.lock();
-            (ctl.device_id.is_none(), ctl.output.as_ref().and_then(|o| o.device_id.clone()))
+            (ctl.device_id.is_none(), ctl.output.as_ref().and_then(|o| o.device_id.clone()), ctl.idle_closed)
         };
-        if !following {
+        // Fechada por inatividade: a próxima abertura já pega a saída padrão.
+        if !following || closed {
             return;
         }
         let Some(default) = output::default_device_id() else { return };
@@ -228,15 +237,15 @@ impl Inner {
         }
     }
 
+    /// O mixer só lê os comandos quando a saída pede som: com ela fechada por
+    /// inatividade, pede para reabrir (a thread de eventos abre na hora).
     fn send(&self, cmd: MixerCmd) {
         let mut ctl = self.ctl.lock();
         if ctl.cmd.push(cmd).is_err() {
             log::error!("fila de comandos do mixer cheia");
         }
-        if let Some(o) = ctl.output.as_mut() {
-            if !o.wake() {
-                self.stream_failed.store(true, Ordering::Relaxed);
-            }
+        if ctl.idle_closed {
+            self.wake_output.store(true, Ordering::Relaxed);
         }
     }
 
@@ -532,6 +541,8 @@ impl Engine {
             ctl: Mutex::new(Control {
                 cmd: cmd_tx,
                 output: None,
+                idle_closed: false,
+                opened_at: Instant::now(),
                 device_id: config.device_id.clone(),
                 rate,
                 next_token: 1,
@@ -544,6 +555,7 @@ impl Engine {
             tracks: Mutex::new(HashMap::new()),
             callback: Mutex::new(callback),
             stream_failed,
+            wake_output: AtomicBool::new(false),
             running: AtomicBool::new(true),
             covers_dir,
             notifications: AtomicBool::new(false),
@@ -789,6 +801,12 @@ impl Drop for Engine {
 
 // ---- Thread de eventos ----
 
+/// Parado por esse tempo, a saída fecha. No celular é menor (bateria).
+#[cfg(any(target_os = "android", target_os = "ios"))]
+const IDLE_CLOSE: Duration = Duration::from_secs(30);
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+const IDLE_CLOSE: Duration = Duration::from_secs(120);
+
 fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
     let mut last_pos = Instant::now();
     let mut last_gc = Instant::now();
@@ -797,6 +815,10 @@ fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
     let mut last_mpris_pos = Instant::now();
     let mut last_default_check = Instant::now();
     let mut idle_since: Option<Instant> = None;
+    // Vigia da saída: último valor do contador de pedidos de som e quando mudou.
+    let (mut last_hb, mut last_hb_at, mut last_watchdog) = (u64::MAX, Instant::now(), Instant::now() - Duration::from_secs(60));
+    // BK_IDLE_CLOSE_SECS: só para teste (fechar logo depois de pausar).
+    let idle_close = std::env::var("BK_IDLE_CLOSE_SECS").ok().and_then(|s| s.parse().ok()).map(Duration::from_secs).unwrap_or(IDLE_CLOSE);
 
     while inner.running.load(Ordering::Relaxed) {
         while let Ok(ev) = ev_rx.pop() {
@@ -825,13 +847,45 @@ fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
             update_desktop_playback(&inner);
         }
 
-        // Parado há 10 s: suspende o stream (qualquer comando novo ao mixer acorda).
+        // Parado por um tempo: fecha a saída, para o sistema não manter o áudio
+        // (e a CPU, no celular) acordado tocando silêncio. Uma pausa curta não
+        // fecha nada: despausar é na hora, sem esperar a caixa Bluetooth acordar.
+        // Qualquer comando novo reabre (ver `send`), numa saída nova: retomar a
+        // antiga às vezes não voltava a pedir som e o play não saía.
         if state.0 || state.1 {
             idle_since = None;
-        } else if idle_since.get_or_insert_with(Instant::now).elapsed() >= Duration::from_secs(10) {
+        } else if idle_since.get_or_insert_with(Instant::now).elapsed() >= idle_close {
             let mut ctl = inner.ctl.lock();
-            if let Some(o) = ctl.output.as_mut().filter(|o| !o.is_suspended()) {
-                o.suspend();
+            if ctl.output.is_some() && !ctl.idle_closed {
+                ctl.output = None;
+                ctl.idle_closed = true;
+            }
+        }
+        if inner.wake_output.swap(false, Ordering::Relaxed) && inner.ctl.lock().idle_closed {
+            idle_since = None;
+            if let Err(e) = inner.open_output() {
+                log::warn!("reabrindo saída de áudio: {e:#}");
+                inner.stream_failed.store(true, Ordering::Relaxed);
+            }
+        }
+
+        // Saída aberta que parou de pedir som (3 s, fora a abertura): reabre.
+        let beat = {
+            let ctl = inner.ctl.lock();
+            ctl.output.as_ref().map(|o| (o.heartbeat.load(Ordering::Relaxed), ctl.opened_at))
+        };
+        if let Some((hb, opened_at)) = beat {
+            if hb != last_hb {
+                (last_hb, last_hb_at) = (hb, Instant::now());
+            }
+            let quiet = last_hb_at.max(opened_at).elapsed();
+            if quiet >= Duration::from_secs(3) && last_watchdog.elapsed() >= Duration::from_secs(5) {
+                last_watchdog = Instant::now();
+                eprintln!("[áudio] a saída parou de pedir som há {:.1} s; reabrindo", quiet.as_secs_f64());
+                if let Err(e) = inner.open_output() {
+                    log::warn!("reabrindo saída de áudio: {e:#}");
+                    inner.stream_failed.store(true, Ordering::Relaxed);
+                }
             }
         }
 

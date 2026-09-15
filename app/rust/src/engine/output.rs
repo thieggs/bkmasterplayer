@@ -5,7 +5,7 @@
 //! aparece no mixer do desktop e lista os dispositivos com nomes legíveis.
 //! Sem servidor de som, cai no ALSA.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
@@ -16,40 +16,15 @@ use parking_lot::Mutex;
 use super::mixer::Mixer;
 
 pub struct Output {
-    stream: cpal::Stream,
-    suspended: bool,
+    _stream: cpal::Stream,
+    /// Conta as vezes que o sistema pediu som: parado com a saída aberta =
+    /// saída travada (o motor reabre).
+    pub heartbeat: Arc<AtomicU64>,
     pub sample_rate: u32,
     pub channels: u16,
     pub device_name: String,
     /// Id do dispositivo aberto (para detectar mudança da saída padrão).
     pub device_id: Option<String>,
-}
-
-impl Output {
-    /// Para o stream (pausado há um tempo): o sistema deixa de manter o áudio
-    /// e a CPU acordados só para tocar silêncio (bateria, no celular).
-    pub fn suspend(&mut self) {
-        if !self.suspended && self.stream.pause().is_ok() {
-            self.suspended = true;
-        }
-    }
-
-    /// Volta a rodar o stream (o mixer só processa comandos dentro do callback).
-    /// false = não voltou (ex.: o servidor de som reiniciou): reabrir a saída.
-    pub fn wake(&mut self) -> bool {
-        if self.suspended {
-            self.suspended = false;
-            if let Err(e) = self.stream.play() {
-                eprintln!("[áudio] retomando stream: {e}");
-                return false;
-            }
-        }
-        true
-    }
-
-    pub fn is_suspended(&self) -> bool {
-        self.suspended
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -159,18 +134,19 @@ pub fn open(device_id: Option<&str>, mixer: Arc<Mutex<Mixer>>, failed: Arc<Atomi
     let channels = config.channels;
     mixer.lock().set_rate(sample_rate);
 
+    let hb = Arc::new(AtomicU64::new(0));
     let stream = match format {
-        SampleFormat::F32 => build::<f32>(&device, config, mixer, failed)?,
-        SampleFormat::I16 => build::<i16>(&device, config, mixer, failed)?,
-        SampleFormat::I32 => build::<i32>(&device, config, mixer, failed)?,
-        SampleFormat::U16 => build::<u16>(&device, config, mixer, failed)?,
-        SampleFormat::F64 => build::<f64>(&device, config, mixer, failed)?,
-        SampleFormat::I24 => build::<cpal::I24>(&device, config, mixer, failed)?,
+        SampleFormat::F32 => build::<f32>(&device, config, mixer, failed, hb.clone())?,
+        SampleFormat::I16 => build::<i16>(&device, config, mixer, failed, hb.clone())?,
+        SampleFormat::I32 => build::<i32>(&device, config, mixer, failed, hb.clone())?,
+        SampleFormat::U16 => build::<u16>(&device, config, mixer, failed, hb.clone())?,
+        SampleFormat::F64 => build::<f64>(&device, config, mixer, failed, hb.clone())?,
+        SampleFormat::I24 => build::<cpal::I24>(&device, config, mixer, failed, hb.clone())?,
         other => return Err(anyhow!("formato de saída não suportado: {other}")),
     };
     Ok(Output {
-        stream,
-        suspended: false,
+        _stream: stream,
+        heartbeat: hb,
         sample_rate,
         channels,
         device_name: device_name(&device),
@@ -183,6 +159,7 @@ fn build<T>(
     config: cpal::StreamConfig,
     mixer: Arc<Mutex<Mixer>>,
     failed: Arc<AtomicBool>,
+    heartbeat: Arc<AtomicU64>,
 ) -> Result<cpal::Stream>
 where
     T: SizedSample + FromSample<f32>,
@@ -192,6 +169,7 @@ where
     let stream = device.build_output_stream(
         config,
         move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
+            heartbeat.fetch_add(1, Ordering::Relaxed);
             let frames = data.len() / channels;
             if stereo.len() < frames * 2 {
                 stereo.resize(frames * 2, 0.0);

@@ -247,7 +247,13 @@ class PlayerController extends Notifier<PlayerState> {
     _syncSoon();
   }
 
-  Future<void> _persistNow() async {
+  Future<void> _saveChain = Future.value();
+
+  /// Um salvamento por vez: dois ao mesmo tempo disputavam o arquivo
+  /// temporário (o segundo não achava o que renomear).
+  Future<void> _persistNow() => _saveChain = _saveChain.then((_) => _writeQueue());
+
+  Future<void> _writeQueue() async {
     final p = _provider;
     if (p == null) return;
     // Guarda até 1000 faixas em volta da atual.
