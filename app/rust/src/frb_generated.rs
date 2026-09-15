@@ -1728,12 +1728,14 @@ impl SseDecode for crate::api::engine::PlayerEvent {
                 let mut var_key = <Option<String>>::sse_decode(deserializer);
                 let mut var_camelot = <Option<String>>::sse_decode(deserializer);
                 let mut var_reliable = <bool>::sse_decode(deserializer);
+                let mut var_detail = <String>::sse_decode(deserializer);
                 return crate::api::engine::PlayerEvent::Analysis {
                     id: var_id,
                     bpm: var_bpm,
                     key: var_key,
                     camelot: var_camelot,
                     reliable: var_reliable,
+                    detail: var_detail,
                 };
             }
             8 => {
@@ -2205,6 +2207,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::engine::PlayerEvent {
                 key,
                 camelot,
                 reliable,
+                detail,
             } => [
                 7.into_dart(),
                 id.into_into_dart().into_dart(),
@@ -2212,6 +2215,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::engine::PlayerEvent {
                 key.into_into_dart().into_dart(),
                 camelot.into_into_dart().into_dart(),
                 reliable.into_into_dart().into_dart(),
+                detail.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::api::engine::PlayerEvent::MixPlanned {
@@ -2728,6 +2732,7 @@ impl SseEncode for crate::api::engine::PlayerEvent {
                 key,
                 camelot,
                 reliable,
+                detail,
             } => {
                 <i32>::sse_encode(7, serializer);
                 <String>::sse_encode(id, serializer);
@@ -2735,6 +2740,7 @@ impl SseEncode for crate::api::engine::PlayerEvent {
                 <Option<String>>::sse_encode(key, serializer);
                 <Option<String>>::sse_encode(camelot, serializer);
                 <bool>::sse_encode(reliable, serializer);
+                <String>::sse_encode(detail, serializer);
             }
             crate::api::engine::PlayerEvent::MixPlanned {
                 from_id,

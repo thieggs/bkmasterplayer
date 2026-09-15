@@ -701,5 +701,17 @@
  "@lyricsSource": {"placeholders": {"source": {"type": "String"}}},
  "lastFmCredit": "Dados do Last.fm",
  "lastFmCreditHint": "Músicas e artistas parecidos, mais tocadas e biografias vêm do Last.fm. Toque para abrir o site.",
- "openOnLastFm": "Ver no Last.fm"
+ "openOnLastFm": "Ver no Last.fm",
+ "automixStatus": "Estado do AutoMix",
+ "automixTapStatus": "Toque para ver o estado do AutoMix",
+ "mixNowPlaying": "Tocando agora",
+ "mixUpNext": "Próxima",
+ "mixNoNext": "Sem próxima música na fila",
+ "mixAnalyzing": "Analisando…",
+ "beatReliable": "batida confiável",
+ "beatUnreliable": "batida não confiável",
+ "automixWaitingAnalysis": "Esperando as análises das duas músicas para planejar a transição.",
+ "automixOffStatus": "Desligado: as músicas trocam do jeito normal (crossfade ou sem pausa).",
+ "automixSettingsLink": "Ajustes do AutoMix",
+ "automixUnreliableHelp": "Para sincronizar, as batidas precisam cair numa grade fixa (±10 ms) em boa parte do trecho. Música tocada ao vivo, com andamento que varia, costuma não passar; aí a transição fica simples."
 }

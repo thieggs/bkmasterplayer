@@ -1520,6 +1520,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           key: dco_decode_opt_String(raw[3]),
           camelot: dco_decode_opt_String(raw[4]),
           reliable: dco_decode_bool(raw[5]),
+          detail: dco_decode_String(raw[6]),
         );
       case 8:
         return PlayerEvent_MixPlanned(
@@ -2125,12 +2126,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         var var_key = sse_decode_opt_String(deserializer);
         var var_camelot = sse_decode_opt_String(deserializer);
         var var_reliable = sse_decode_bool(deserializer);
+        var var_detail = sse_decode_String(deserializer);
         return PlayerEvent_Analysis(
           id: var_id,
           bpm: var_bpm,
           key: var_key,
           camelot: var_camelot,
           reliable: var_reliable,
+          detail: var_detail,
         );
       case 8:
         var var_fromId = sse_decode_String(deserializer);
@@ -2719,6 +2722,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         key: final key,
         camelot: final camelot,
         reliable: final reliable,
+        detail: final detail,
       ):
         sse_encode_i_32(7, serializer);
         sse_encode_String(id, serializer);
@@ -2726,6 +2730,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_opt_String(key, serializer);
         sse_encode_opt_String(camelot, serializer);
         sse_encode_bool(reliable, serializer);
+        sse_encode_String(detail, serializer);
       case PlayerEvent_MixPlanned(
         fromId: final fromId,
         toId: final toId,

@@ -1664,4 +1664,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openOnLastFm => 'View on Last.fm';
+
+  @override
+  String get automixStatus => 'AutoMix status';
+
+  @override
+  String get automixTapStatus => 'Tap to see the AutoMix status';
+
+  @override
+  String get mixNowPlaying => 'Now playing';
+
+  @override
+  String get mixUpNext => 'Up next';
+
+  @override
+  String get mixNoNext => 'No next song in the queue';
+
+  @override
+  String get mixAnalyzing => 'Analyzing…';
+
+  @override
+  String get beatReliable => 'reliable beat';
+
+  @override
+  String get beatUnreliable => 'unreliable beat';
+
+  @override
+  String get automixWaitingAnalysis =>
+      'Waiting for both songs\' analyses to plan the transition.';
+
+  @override
+  String get automixOffStatus =>
+      'Off: songs change the regular way (crossfade or gapless).';
+
+  @override
+  String get automixSettingsLink => 'AutoMix settings';
+
+  @override
+  String get automixUnreliableHelp =>
+      'To sync, beats must fall on a steady grid (±10 ms) through most of the section. Live-played music with drifting tempo often doesn\'t pass; then the transition is simple.';
 }

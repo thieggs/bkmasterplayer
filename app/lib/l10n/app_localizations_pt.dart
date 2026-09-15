@@ -1665,4 +1665,43 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get openOnLastFm => 'Ver no Last.fm';
+
+  @override
+  String get automixStatus => 'Estado do AutoMix';
+
+  @override
+  String get automixTapStatus => 'Toque para ver o estado do AutoMix';
+
+  @override
+  String get mixNowPlaying => 'Tocando agora';
+
+  @override
+  String get mixUpNext => 'Próxima';
+
+  @override
+  String get mixNoNext => 'Sem próxima música na fila';
+
+  @override
+  String get mixAnalyzing => 'Analisando…';
+
+  @override
+  String get beatReliable => 'batida confiável';
+
+  @override
+  String get beatUnreliable => 'batida não confiável';
+
+  @override
+  String get automixWaitingAnalysis =>
+      'Esperando as análises das duas músicas para planejar a transição.';
+
+  @override
+  String get automixOffStatus =>
+      'Desligado: as músicas trocam do jeito normal (crossfade ou sem pausa).';
+
+  @override
+  String get automixSettingsLink => 'Ajustes do AutoMix';
+
+  @override
+  String get automixUnreliableHelp =>
+      'Para sincronizar, as batidas precisam cair numa grade fixa (±10 ms) em boa parte do trecho. Música tocada ao vivo, com andamento que varia, costuma não passar; aí a transição fica simples.';
 }

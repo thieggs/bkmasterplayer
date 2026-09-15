@@ -10,6 +10,7 @@ import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
 import '../../desktop/desktop_integration.dart';
 import '../actions.dart';
+import 'automix_status.dart';
 import '../widgets/cover_art.dart';
 
 /// Barra de progresso com arrasto (só aplica o seek ao soltar) e buffer.
@@ -282,12 +283,14 @@ class PlayerBar extends ConsumerWidget {
   }
 }
 
-/// Botão do AutoMix: clique liga/desliga. Desligado, só o ícone; ligado,
-/// mostra o estado (mixando agora, próxima sincronizada ou simples).
+/// Ícone do AutoMix: o toque abre o painel com o estado (ligar/desligar, a
+/// próxima transição e a análise das músicas). O ícone já diz o principal:
+/// contorno = desligado; brilho = sincroniza (ou ainda analisando); setas =
+/// transição simples; destacado = mixando agora.
 class _MixChip extends ConsumerWidget {
   const _MixChip({this.compact = false});
 
-  /// Só o ícone (mini player do celular); segurar mostra o status.
+  /// Só o ícone (mini player do celular).
   final bool compact;
 
   @override
@@ -296,9 +299,9 @@ class _MixChip extends ConsumerWidget {
     final enabled = ref.watch(settingsProvider.select((s) => s.automixEnabled));
     final (mix, planned, synced) = ref.watch(playerProvider.select((s) => (s.mix, s.plannedMix, s.plannedSynced)));
     final scheme = Theme.of(context).colorScheme;
-    void toggle() => ref.read(settingsProvider.notifier).update((s) => s.copyWith(automixEnabled: !s.automixEnabled));
+    void open() => showAutomixStatus(context);
     if (!enabled) {
-      return IconButton(tooltip: l10n.automixOffTap, icon: const Icon(Icons.auto_awesome_outlined), onPressed: toggle);
+      return IconButton(tooltip: l10n.automixTapStatus, icon: const Icon(Icons.auto_awesome_outlined), onPressed: open);
     }
     final active = mix != null;
     final kind = synced ? l10n.mixSynced : l10n.mixSimple;
@@ -311,20 +314,20 @@ class _MixChip extends ConsumerWidget {
     final icon = active || synced || planned == null ? Icons.auto_awesome : Icons.swap_horiz;
     if (compact) {
       return IconButton(
-        tooltip: '$status\n${l10n.automixOnTap}',
+        tooltip: '$status\n${l10n.automixTapStatus}',
         icon: Icon(icon),
         color: scheme.primary,
         style: active ? IconButton.styleFrom(backgroundColor: scheme.primary, foregroundColor: scheme.onPrimary) : null,
-        onPressed: toggle,
+        onPressed: open,
       );
     }
     return Tooltip(
-      message: '$status\n${l10n.automixOnTap}',
+      message: '$status\n${l10n.automixTapStatus}',
       child: Padding(
         padding: const EdgeInsets.only(right: 4),
         child: ActionChip(
           visualDensity: VisualDensity.compact,
-          onPressed: toggle,
+          onPressed: open,
           avatar: Icon(icon, size: 16, color: active ? scheme.onPrimary : scheme.primary),
           label: Text(active ? l10n.mixing : 'AutoMix'),
           labelStyle: TextStyle(color: active ? scheme.onPrimary : null, fontSize: 12),
@@ -383,7 +386,7 @@ class MiniPlayer extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const _MixChip(compact: true),
+                  if (ref.watch(uiPrefsProvider.select((p) => p.playerButtons.contains('mix')))) const _MixChip(compact: true),
                   IconButton(
                     icon: Icon(playing ? Icons.pause : Icons.play_arrow),
                     onPressed: ref.read(playerProvider.notifier).toggle,

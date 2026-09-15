@@ -3066,6 +3066,78 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver no Last.fm'**
   String get openOnLastFm;
+
+  /// No description provided for @automixStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estado do AutoMix'**
+  String get automixStatus;
+
+  /// No description provided for @automixTapStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque para ver o estado do AutoMix'**
+  String get automixTapStatus;
+
+  /// No description provided for @mixNowPlaying.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocando agora'**
+  String get mixNowPlaying;
+
+  /// No description provided for @mixUpNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próxima'**
+  String get mixUpNext;
+
+  /// No description provided for @mixNoNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem próxima música na fila'**
+  String get mixNoNext;
+
+  /// No description provided for @mixAnalyzing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisando…'**
+  String get mixAnalyzing;
+
+  /// No description provided for @beatReliable.
+  ///
+  /// In pt, this message translates to:
+  /// **'batida confiável'**
+  String get beatReliable;
+
+  /// No description provided for @beatUnreliable.
+  ///
+  /// In pt, this message translates to:
+  /// **'batida não confiável'**
+  String get beatUnreliable;
+
+  /// No description provided for @automixWaitingAnalysis.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esperando as análises das duas músicas para planejar a transição.'**
+  String get automixWaitingAnalysis;
+
+  /// No description provided for @automixOffStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligado: as músicas trocam do jeito normal (crossfade ou sem pausa).'**
+  String get automixOffStatus;
+
+  /// No description provided for @automixSettingsLink.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajustes do AutoMix'**
+  String get automixSettingsLink;
+
+  /// No description provided for @automixUnreliableHelp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para sincronizar, as batidas precisam cair numa grade fixa (±10 ms) em boa parte do trecho. Música tocada ao vivo, com andamento que varia, costuma não passar; aí a transição fica simples.'**
+  String get automixUnreliableHelp;
 }
 
 class _AppLocalizationsDelegate

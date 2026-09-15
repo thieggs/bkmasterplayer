@@ -620,5 +620,17 @@
  "@lyricsSource": {"placeholders": {"source": {"type": "String"}}},
  "lastFmCredit": "Data from Last.fm",
  "lastFmCreditHint": "Similar songs and artists, top tracks and biographies come from Last.fm. Tap to open the site.",
- "openOnLastFm": "View on Last.fm"
+ "openOnLastFm": "View on Last.fm",
+ "automixStatus": "AutoMix status",
+ "automixTapStatus": "Tap to see the AutoMix status",
+ "mixNowPlaying": "Now playing",
+ "mixUpNext": "Up next",
+ "mixNoNext": "No next song in the queue",
+ "mixAnalyzing": "Analyzing…",
+ "beatReliable": "reliable beat",
+ "beatUnreliable": "unreliable beat",
+ "automixWaitingAnalysis": "Waiting for both songs' analyses to plan the transition.",
+ "automixOffStatus": "Off: songs change the regular way (crossfade or gapless).",
+ "automixSettingsLink": "AutoMix settings",
+ "automixUnreliableHelp": "To sync, beats must fall on a steady grid (±10 ms) through most of the section. Live-played music with drifting tempo often doesn't pass; then the transition is simple."
 }

@@ -110,7 +110,8 @@ pub enum EngineEvent {
     DeviceChanged { name: String, sample_rate: u32 },
     Error { message: String },
     /// Análise pronta para uma faixa (id = entrada da fila).
-    Analysis { id: String, bpm: Option<f64>, key: Option<String>, camelot: Option<String>, reliable: bool },
+    /// `detail`: por que a batida é ou não confiável (uma linha por grade).
+    Analysis { id: String, bpm: Option<f64>, key: Option<String>, camelot: Option<String>, reliable: bool, detail: String },
     /// Transição DJ planejada entre a atual e a próxima.
     MixPlanned { from_id: String, to_id: String, summary: String, beatmatched: bool, starts_in_ms: u64 },
     /// A transição planejada começou agora (dura `duration_ms`).
@@ -453,7 +454,7 @@ impl Inner {
         } else {
             // Falhou: quem pediu avulso não fica esperando à toa.
             for id in asked {
-                self.emit(EngineEvent::Analysis { id, bpm: None, key: None, camelot: None, reliable: false });
+                self.emit(EngineEvent::Analysis { id, bpm: None, key: None, camelot: None, reliable: false, detail: "a análise falhou (formato ou download)".into() });
             }
         }
         self.try_plan();
@@ -468,7 +469,7 @@ impl Inner {
 }
 
 fn analysis_event(id: String, a: &TrackAnalysis) -> EngineEvent {
-    EngineEvent::Analysis { id, bpm: a.bpm, key: a.key.clone(), camelot: a.camelot.clone(), reliable: a.has_beat() }
+    EngineEvent::Analysis { id, bpm: a.bpm, key: a.key.clone(), camelot: a.camelot.clone(), reliable: a.has_beat(), detail: a.grid_summary() }
 }
 
 fn replay_gain(gain_db: f32, peak: Option<f32>) -> f32 {
@@ -612,7 +613,7 @@ impl Engine {
     /// (na hora, se já estiver pronta; sem BPM, se falhar).
     pub fn analyze(&self, req: &TrackRequest) {
         let Some(worker) = self.inner.analysis.lock().clone() else {
-            self.inner.emit(EngineEvent::Analysis { id: req.id.clone(), bpm: None, key: None, camelot: None, reliable: false });
+            self.inner.emit(EngineEvent::Analysis { id: req.id.clone(), bpm: None, key: None, camelot: None, reliable: false, detail: "análise indisponível".into() });
             return;
         };
         let Some(key) = req.analysis_key.clone() else { return };
@@ -621,7 +622,7 @@ impl Engine {
             return;
         }
         if worker.has_failed(&key) {
-            self.inner.emit(EngineEvent::Analysis { id: req.id.clone(), bpm: None, key: None, camelot: None, reliable: false });
+            self.inner.emit(EngineEvent::Analysis { id: req.id.clone(), bpm: None, key: None, camelot: None, reliable: false, detail: "a análise falhou (formato ou download)".into() });
             return;
         }
         self.inner.watchers.lock().entry(key).or_default().push(req.id.clone());

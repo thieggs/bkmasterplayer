@@ -147,6 +147,31 @@ impl TrackAnalysis {
         self.bpm.is_some() && self.grids.iter().any(|g| g.is_steady())
     }
 
+    /// Uma linha por grade, para mostrar por que a batida é (ou não) confiável.
+    pub fn grid_summary(&self) -> String {
+        if self.grids.is_empty() {
+            return "nenhuma grade de batida".into();
+        }
+        self.grids
+            .iter()
+            .map(|g| {
+                format!(
+                    "{} {:.0}–{:.0} s: {:.1} BPM, {:.0}% travado ({} jan.), erro {:.1} ms, {} batidas{}",
+                    if g.is_steady() { "✓" } else { "✗" },
+                    g.start,
+                    g.end,
+                    g.bpm(),
+                    g.lock * 100.0,
+                    g.windows.len(),
+                    g.residual * 1000.0,
+                    g.inliers,
+                    if g.validated { ", confirmada" } else { "" }
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     /// Grade que cobre o instante `t`. Não estende grades de longe: minutos
     /// de extrapolação acumulam dezenas de ms de erro de fase.
     pub fn grid_at(&self, t: f64) -> Option<&BeatGrid> {

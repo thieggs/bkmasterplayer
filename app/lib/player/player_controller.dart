@@ -20,11 +20,14 @@ import '../src/rust/api/engine.dart' as engine;
 
 /// Resultado da análise (BPM/tom) de uma entrada da fila.
 class TrackInsight {
-  const TrackInsight({this.bpm, this.key, this.camelot, this.reliable = false});
+  const TrackInsight({this.bpm, this.key, this.camelot, this.reliable = false, this.detail});
   final double? bpm;
   final String? key;
   final String? camelot;
   final bool reliable;
+
+  /// Por que a batida é (ou não) confiável: uma linha por grade analisada.
+  final String? detail;
 }
 
 /// Transição de DJ em andamento (para o indicador "Mixando…").
@@ -787,8 +790,8 @@ class PlayerController extends Notifier<PlayerState> {
         break;
       case engine.PlayerEvent_Error(:final message):
         state = state.copyWith(message: message);
-      case engine.PlayerEvent_Analysis(:final id, :final bpm, :final key, :final camelot, :final reliable):
-        final insight = TrackInsight(bpm: bpm, key: key, camelot: camelot, reliable: reliable);
+      case engine.PlayerEvent_Analysis(:final id, :final bpm, :final key, :final camelot, :final reliable, :final detail):
+        final insight = TrackInsight(bpm: bpm, key: key, camelot: camelot, reliable: reliable, detail: detail);
         // Candidatas do Modo DJ: só a espera, sem mexer no estado da fila.
         final waiter = _analysisWaiters.remove(id);
         if (waiter != null) {

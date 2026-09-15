@@ -339,6 +339,7 @@ sealed class PlayerEvent with _$PlayerEvent {
     String? key,
     String? camelot,
     required bool reliable,
+    required String detail,
   }) = PlayerEvent_Analysis;
   const factory PlayerEvent.mixPlanned({
     required String fromId,

@@ -115,7 +115,7 @@ pub enum PlayerEvent {
     MediaControl { action: MediaAction },
     DeviceChanged { name: String, sample_rate: u32 },
     Error { message: String },
-    Analysis { id: String, bpm: Option<f64>, key: Option<String>, camelot: Option<String>, reliable: bool },
+    Analysis { id: String, bpm: Option<f64>, key: Option<String>, camelot: Option<String>, reliable: bool, detail: String },
     MixPlanned { from_id: String, to_id: String, summary: String, beatmatched: bool, starts_in_ms: i64 },
     MixStarted { from_id: String, to_id: String, summary: String, style: String, duration_ms: i64 },
 }
@@ -152,7 +152,7 @@ impl From<engine::EngineEvent> for PlayerEvent {
             },
             E::DeviceChanged { name, sample_rate } => Self::DeviceChanged { name, sample_rate },
             E::Error { message } => Self::Error { message },
-            E::Analysis { id, bpm, key, camelot, reliable } => Self::Analysis { id, bpm, key, camelot, reliable },
+            E::Analysis { id, bpm, key, camelot, reliable, detail } => Self::Analysis { id, bpm, key, camelot, reliable, detail },
             E::MixPlanned { from_id, to_id, summary, beatmatched, starts_in_ms } => {
                 Self::MixPlanned { from_id, to_id, summary, beatmatched, starts_in_ms: starts_in_ms as i64 }
             }
