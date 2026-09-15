@@ -150,6 +150,13 @@ Pedido do usuário: *"igual a análise sônica fica salva no server e o celular 
   - Com 6 ao mesmo tempo, ou com a rede nas 12 threads (`RTEN_NUM_THREADS`; o padrão do rten é o número de núcleos físicos), o ritmo fica igual: o limite de energia do chip (15 W) é o teto, não a CPU parada.
   - O trabalhador usa 1 análise a cada 3 threads (até 4) e a rede em todas as threads.
 
+### Correções (15/09)
+- **Despausar travava** (PC e celular): o motor pausava o stream do cpal depois de 10 s parado; retomar esse stream às vezes não voltava a pedir som, e o mixer só lê os comandos dentro do callback, então o play não saía ou demorava.
+  - Agora a saída só fecha depois de 2 min parada (30 s no celular) e o próximo comando abre uma saída nova.
+  - Um vigia reabre a saída que fica 3 s sem pedir som.
+  - O teste `resume_after_idle_close` (`tests/engine_automix.rs`, `--ignored`) falha no código antigo e passa no novo: a música volta a tocar em 150 ms.
+- **Fila salva:** um salvamento por vez (dois ao mesmo tempo disputavam o `queue.json.tmp`).
+
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.
