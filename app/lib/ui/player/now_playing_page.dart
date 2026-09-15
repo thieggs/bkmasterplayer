@@ -13,6 +13,7 @@ import '../actions.dart';
 import '../widgets/cover_art.dart';
 import 'player_bar.dart';
 import 'queue_panel.dart';
+import 'sleep_timer_button.dart';
 
 class NowPlayingPage extends ConsumerStatefulWidget {
   const NowPlayingPage({super.key, this.showLyrics = false});
@@ -148,6 +149,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
         children: [
           if (song != null)
             IconButton(
+              tooltip: isSongStarred(ref, song) ? l10n.unfavorite : l10n.favorite,
               icon: Icon(isSongStarred(ref, song) ? Icons.favorite : Icons.favorite_border),
               color: isSongStarred(ref, song) ? theme.colorScheme.primary : null,
               onPressed: () => LibraryActions.toggleStar(context, ref, song),
@@ -158,6 +160,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
               icon: const Icon(Icons.auto_awesome),
               onPressed: () => LibraryActions.instantMix(context, ref, song),
             ),
+          const SleepTimerButton(),
           const DevicesButton(),
           const VolumeControl(),
         ],
@@ -233,6 +236,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
+                    tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
                     icon: const Icon(Icons.keyboard_arrow_down),
                     onPressed: () => context.canPop() ? context.pop() : context.go('/'),
                   ),

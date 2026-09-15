@@ -11,6 +11,7 @@ import '../../player/player_controller.dart';
 import '../../desktop/desktop_integration.dart';
 import '../actions.dart';
 import 'automix_status.dart';
+import 'sleep_timer_button.dart';
 import '../widgets/cover_art.dart';
 
 /// Barra de progresso com arrasto (só aplica o seek ao soltar) e buffer.
@@ -96,9 +97,10 @@ class TransportControls extends ConsumerWidget {
           icon: const Icon(Icons.skip_previous),
           onPressed: hasTrack ? p.previous : null,
         ),
+        // 48 dp: área de toque mínima (o tablet usa esta barra com o dedo).
         SizedBox(
-          width: big ? 64 : 44,
-          height: big ? 64 : 44,
+          width: big ? 64 : 48,
+          height: big ? 64 : 48,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -111,8 +113,8 @@ class TransportControls extends ConsumerWidget {
               if (buffering)
                 IgnorePointer(
                   child: SizedBox(
-                    width: big ? 60 : 40,
-                    height: big ? 60 : 40,
+                    width: big ? 60 : 44,
+                    height: big ? 60 : 44,
                     child: const CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
@@ -172,9 +174,11 @@ class PlayerBar extends ConsumerWidget {
     final buttons = ref.watch(uiPrefsProvider.select((p) => p.playerButtons));
     return floatingFrame(ref, theme.colorScheme.surfaceContainer, Material(
       color: theme.colorScheme.surfaceContainer,
-      child: SizedBox(
-        height: 84,
-        child: Row(
+      // No mínimo 84 dp; com densidade padrão (tablet, ou escolhida nos ajustes)
+      // os controles são maiores e a barra cresce em vez de cortar.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 84),
+        child: IntrinsicHeight(child: Row(
           children: [
             // Faixa atual
             Expanded(
@@ -214,6 +218,7 @@ class PlayerBar extends ConsumerWidget {
                       ),
                       if (song != null && buttons.contains('favorite'))
                         IconButton(
+                          tooltip: isSongStarred(ref, song) ? l10n.unfavorite : l10n.favorite,
                           icon: Icon(isSongStarred(ref, song) ? Icons.favorite : Icons.favorite_border, size: 20),
                           color: isSongStarred(ref, song) ? theme.colorScheme.primary : null,
                           onPressed: () => LibraryActions.toggleStar(context, ref, song),
@@ -264,6 +269,7 @@ class PlayerBar extends ConsumerWidget {
                         ),
                         'volume' => const VolumeControl(),
                         'devices' => const DevicesButton(),
+                        'sleep' => const SleepTimerButton(),
                         'mini' => IconButton(
                           tooltip: l10n.miniPlayer,
                           icon: const Icon(Icons.picture_in_picture_alt_outlined),
@@ -277,7 +283,7 @@ class PlayerBar extends ConsumerWidget {
               ),
             ),
           ],
-        ),
+        )),
       ),
     ));
   }
@@ -346,6 +352,7 @@ class MiniPlayer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final s = ref.watch(playerProvider.select((s) => (s.current, s.playing, s.position, s.duration)));
     final (item, playing, pos, dur) = s;
     if (item == null) return const SizedBox.shrink();
@@ -388,10 +395,15 @@ class MiniPlayer extends ConsumerWidget {
                   ),
                   if (ref.watch(uiPrefsProvider.select((p) => p.playerButtons.contains('mix')))) const _MixChip(compact: true),
                   IconButton(
+                    tooltip: playing ? l10n.pause : l10n.play,
                     icon: Icon(playing ? Icons.pause : Icons.play_arrow),
                     onPressed: ref.read(playerProvider.notifier).toggle,
                   ),
-                  IconButton(icon: const Icon(Icons.skip_next), onPressed: ref.read(playerProvider.notifier).next),
+                  IconButton(
+                    tooltip: l10n.next,
+                    icon: const Icon(Icons.skip_next),
+                    onPressed: ref.read(playerProvider.notifier).next,
+                  ),
                 ],
               ),
             ),

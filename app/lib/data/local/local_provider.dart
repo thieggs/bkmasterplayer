@@ -402,6 +402,10 @@ class LocalProvider implements MusicProvider {
   @override
   String? get connectKey => null;
 
+  @override
+  Future<Uri> createShare(List<String> ids, {String? description}) =>
+      Future.error(UnsupportedError('músicas do aparelho não têm link'));
+
   List<T> _page<T>(List<T> list, int offset, int size) =>
       offset >= list.length ? const [] : list.sublist(offset, min(list.length, offset + size));
 

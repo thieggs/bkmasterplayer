@@ -134,6 +134,24 @@ abstract class AppLocalizations {
   /// **'Adicionar à playlist'**
   String get addToPlaylist;
 
+  /// No description provided for @shareLink.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar link'**
+  String get shareLink;
+
+  /// No description provided for @shareLinkCopied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link copiado: {link}'**
+  String shareLinkCopied(String link);
+
+  /// No description provided for @shareUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para criar o link. No Navidrome, o compartilhamento precisa estar ligado (ND_ENABLESHARING=true).'**
+  String get shareUnavailable;
+
   /// No description provided for @addToQueue.
   ///
   /// In pt, this message translates to:
@@ -590,6 +608,24 @@ abstract class AppLocalizations {
   /// **'Busque por artistas, álbuns e músicas'**
   String get searchEmptyHint;
 
+  /// No description provided for @recentSearches.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscas recentes'**
+  String get recentSearches;
+
+  /// No description provided for @clearRecentSearches.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get clearRecentSearches;
+
+  /// No description provided for @removeRecentSearch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tirar das recentes'**
+  String get removeRecentSearch;
+
   /// No description provided for @searchHint.
   ///
   /// In pt, this message translates to:
@@ -697,6 +733,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Qualidade do streaming'**
   String get streamQuality;
+
+  /// No description provided for @mobileQuality.
+  ///
+  /// In pt, this message translates to:
+  /// **'Qualidade nos dados móveis'**
+  String get mobileQuality;
+
+  /// No description provided for @mobileQualityHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Economiza o plano quando não há Wi-Fi'**
+  String get mobileQualityHint;
+
+  /// No description provided for @sameAsWifi.
+  ///
+  /// In pt, this message translates to:
+  /// **'A mesma do Wi-Fi'**
+  String get sameAsWifi;
 
   /// No description provided for @systemDefault.
   ///
@@ -1159,6 +1213,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Quantas músicas baixam juntas para ouvir offline. Mais é mais rápido numa conexão boa; menos deixa a rede livre para tocar.'**
   String get dlParallelHint;
+
+  /// No description provided for @dlWifiOnly.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar só no Wi-Fi'**
+  String get dlWifiOnly;
+
+  /// No description provided for @dlWifiOnlyHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nos dados móveis, os downloads esperam o Wi-Fi'**
+  String get dlWifiOnlyHint;
+
+  /// No description provided for @dlWaitingWifi.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esperando o Wi-Fi'**
+  String get dlWaitingWifi;
 
   /// No description provided for @analysisServerOk.
   ///
@@ -1873,6 +1945,60 @@ abstract class AppLocalizations {
   /// **'Parado'**
   String get deviceIdle;
 
+  /// No description provided for @sleepTimer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Timer para dormir'**
+  String get sleepTimer;
+
+  /// No description provided for @sleepTimerHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A música para sozinha; o volume abaixa aos poucos antes.'**
+  String get sleepTimerHint;
+
+  /// No description provided for @sleepTimerActive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para em {time}'**
+  String sleepTimerActive(String time);
+
+  /// No description provided for @sleepTimerEndOfTrackActive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para no fim desta música'**
+  String get sleepTimerEndOfTrackActive;
+
+  /// No description provided for @sleepTimerEndOfTrack.
+  ///
+  /// In pt, this message translates to:
+  /// **'No fim desta música'**
+  String get sleepTimerEndOfTrack;
+
+  /// No description provided for @sleepTimerMinutes.
+  ///
+  /// In pt, this message translates to:
+  /// **'{minutes} minutos'**
+  String sleepTimerMinutes(int minutes);
+
+  /// No description provided for @sleepTimerAdd10.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais 10 minutos'**
+  String get sleepTimerAdd10;
+
+  /// No description provided for @sleepTimerOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligar o timer'**
+  String get sleepTimerOff;
+
+  /// No description provided for @sleepTimerDone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Timer para dormir: música pausada'**
+  String get sleepTimerDone;
+
   /// No description provided for @deviceOffline.
   ///
   /// In pt, this message translates to:
@@ -2538,6 +2664,72 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Licenças de código aberto'**
   String get licenses;
+
+  /// No description provided for @appVersion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Versão {version}'**
+  String appVersion(String version);
+
+  /// No description provided for @diagnostics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diagnóstico'**
+  String get diagnostics;
+
+  /// No description provided for @diagnosticsSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erros registrados e o relatório para mandar junto com um problema'**
+  String get diagnosticsSubtitle;
+
+  /// No description provided for @diagnosticsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O app registra os erros que acontecem. Ao pedir ajuda com um problema, mande o relatório: ele não leva sua senha, tokens, o endereço do servidor nem o seu usuário.'**
+  String get diagnosticsHint;
+
+  /// No description provided for @diagnosticsErrors.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{Nenhum erro nesta sessão} =1{1 erro nesta sessão} other{{count} erros nesta sessão}}'**
+  String diagnosticsErrors(int count);
+
+  /// No description provided for @diagnosticsCopy.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar relatório'**
+  String get diagnosticsCopy;
+
+  /// No description provided for @diagnosticsSave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar relatório'**
+  String get diagnosticsSave;
+
+  /// No description provided for @diagnosticsClear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar registro'**
+  String get diagnosticsClear;
+
+  /// No description provided for @diagnosticsCopied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Relatório copiado'**
+  String get diagnosticsCopied;
+
+  /// No description provided for @diagnosticsCleared.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registro limpo'**
+  String get diagnosticsCleared;
+
+  /// No description provided for @diagnosticsEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nada registrado ainda.'**
+  String get diagnosticsEmpty;
 
   /// No description provided for @fontCredits.
   ///

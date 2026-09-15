@@ -28,6 +28,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToPlaylist => 'Add to playlist';
 
   @override
+  String get shareLink => 'Share link';
+
+  @override
+  String shareLinkCopied(String link) {
+    return 'Link copied: $link';
+  }
+
+  @override
+  String get shareUnavailable =>
+      'Couldn\'t create the link. On Navidrome, sharing has to be on (ND_ENABLESHARING=true).';
+
+  @override
   String get addToQueue => 'Add to queue';
 
   @override
@@ -261,6 +273,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchEmptyHint => 'Search for artists, albums and songs';
 
   @override
+  String get recentSearches => 'Recent searches';
+
+  @override
+  String get clearRecentSearches => 'Clear';
+
+  @override
+  String get removeRecentSearch => 'Remove from recent';
+
+  @override
   String get searchHint => 'Search…';
 
   @override
@@ -313,6 +334,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get streamQuality => 'Streaming quality';
+
+  @override
+  String get mobileQuality => 'Quality on mobile data';
+
+  @override
+  String get mobileQualityHint => 'Saves your data plan when there is no Wi-Fi';
+
+  @override
+  String get sameAsWifi => 'Same as Wi-Fi';
 
   @override
   String get systemDefault => 'System default';
@@ -610,6 +640,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dlParallelHint =>
       'How many songs download together for offline listening. More is faster on a good connection; fewer leaves bandwidth for playback.';
+
+  @override
+  String get dlWifiOnly => 'Download on Wi-Fi only';
+
+  @override
+  String get dlWifiOnlyHint => 'On mobile data, downloads wait for Wi-Fi';
+
+  @override
+  String get dlWaitingWifi => 'Waiting for Wi-Fi';
 
   @override
   String analysisServerOk(String done, String total, int workers) {
@@ -993,6 +1032,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceIdle => 'Idle';
+
+  @override
+  String get sleepTimer => 'Sleep timer';
+
+  @override
+  String get sleepTimerHint =>
+      'Music stops on its own; the volume fades out first.';
+
+  @override
+  String sleepTimerActive(String time) {
+    return 'Stops in $time';
+  }
+
+  @override
+  String get sleepTimerEndOfTrackActive => 'Stops at the end of this song';
+
+  @override
+  String get sleepTimerEndOfTrack => 'At the end of this song';
+
+  @override
+  String sleepTimerMinutes(int minutes) {
+    return '$minutes minutes';
+  }
+
+  @override
+  String get sleepTimerAdd10 => '10 more minutes';
+
+  @override
+  String get sleepTimerOff => 'Turn off the timer';
+
+  @override
+  String get sleepTimerDone => 'Sleep timer: music paused';
 
   @override
   String get deviceOffline => 'Out of reach';
@@ -1402,6 +1473,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licenses => 'Open source licenses';
+
+  @override
+  String appVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get diagnostics => 'Diagnostics';
+
+  @override
+  String get diagnosticsSubtitle =>
+      'Logged errors and the report to send along with a problem';
+
+  @override
+  String get diagnosticsHint =>
+      'The app logs the errors that happen. When asking for help with a problem, send the report: it doesn\'t include your password, tokens, the server address or your username.';
+
+  @override
+  String diagnosticsErrors(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count errors this session',
+      one: '1 error this session',
+      zero: 'No errors this session',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get diagnosticsCopy => 'Copy report';
+
+  @override
+  String get diagnosticsSave => 'Save report';
+
+  @override
+  String get diagnosticsClear => 'Clear log';
+
+  @override
+  String get diagnosticsCopied => 'Report copied';
+
+  @override
+  String get diagnosticsCleared => 'Log cleared';
+
+  @override
+  String get diagnosticsEmpty => 'Nothing logged yet.';
 
   @override
   String get fontCredits =>

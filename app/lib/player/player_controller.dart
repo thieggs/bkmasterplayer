@@ -14,6 +14,7 @@ import '../data/settings.dart';
 import '../data/similar.dart';
 import 'dj_mode.dart';
 import '../domain/models.dart';
+import '../data/network.dart';
 import '../data/offline_store.dart';
 import '../domain/music_provider.dart';
 import '../src/rust/api/engine.dart' as engine;
@@ -184,11 +185,18 @@ class PlayerController extends Notifier<PlayerState> {
           prev?.replayGainPreampDb != next.replayGainPreampDb ||
           prev?.automixEnabled != next.automixEnabled ||
           prev?.automixRespectAlbums != next.automixRespectAlbums ||
-          prev?.analysisServer != next.analysisServer) {
+          prev?.analysisServer != next.analysisServer ||
+          prev?.maxBitRate != next.maxBitRate ||
+          prev?.mobileMaxBitRate != next.mobileMaxBitRate) {
         if (prev?.automixEnabled != next.automixEnabled) state = state.copyWith(clearPlanned: true);
         _scheduledKey = null;
         _scheduleNext();
       }
+    });
+    // Entrou ou saiu dos dados móveis: a próxima faixa vem na qualidade da rede nova.
+    ref.listen(meteredProvider, (_, _) {
+      _scheduledKey = null;
+      _scheduleNext();
     });
     // Trocou entre o endereço de casa e o principal: a próxima faixa vai pelo novo.
     ref.listen(endpointProvider, (_, _) {
@@ -602,6 +610,13 @@ class PlayerController extends Notifier<PlayerState> {
   /// sem mexer no volume salvo.
   void duck(bool on) => engine.playerSetVolume(volume: _gain(state.volume) * (on ? 0.3 : 1.0));
 
+  /// Volume relativo ao salvo (timer para dormir), sem gravar. No modo remoto
+  /// não mexe (o volume de lá é do outro aparelho).
+  void fadeVolume(double factor) {
+    if (_remote != null) return;
+    engine.playerSetVolume(volume: _gain(state.volume) * factor.clamp(0.0, 1.0));
+  }
+
   /// Curva perceptual: o slider linear vira ganho ~cúbico.
   static double _gain(double v) => v * v * v;
 
@@ -722,8 +737,11 @@ class PlayerController extends Notifier<PlayerState> {
     final raw = offline || ref.read(offlineProvider.notifier).songIds.contains(song.id);
     // Formato que o motor não decodifica (Opus etc.): o servidor converte, até no download.
     final convert = _undecodable.contains(song.suffix?.toLowerCase());
-    final format = convert ? (s.transcodeFormat ?? 'mp3') : (raw ? null : s.transcodeFormat);
-    final bitrate = raw && !convert ? null : (s.maxBitRate > 0 ? s.maxBitRate : null);
+    // Nos dados móveis, a qualidade escolhida para eles. Conversão sempre para
+    // MP3: é o que o motor decodifica (Opus, por exemplo, não).
+    final rate = streamBitRate(s, metered: ref.read(meteredProvider));
+    final format = convert || (!raw && rate > 0) ? 'mp3' : null;
+    final bitrate = raw && !convert ? null : (rate > 0 ? rate : null);
     final (g, peak) = gain ?? (0.0, null);
     // Análise pronta no servidor de análise: só se o arquivo tocado é o mesmo
     // que ele analisou (o original, ou o MP3 que o servidor converte dos

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
+import '../../data/network.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
 
@@ -38,14 +39,16 @@ class DownloadParallelStepper extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            visualDensity: VisualDensity.compact,
+            // Área de toque de 48 dp (acessibilidade), mesmo com o ícone pequeno.
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             tooltip: context.l10n.dlFewer,
             icon: const Icon(Icons.remove, size: 18),
             onPressed: n > 1 ? () => set((s) => s.copyWith(downloadParallel: n - 1)) : null,
           ),
           SizedBox(width: 20, child: Text('$n', textAlign: TextAlign.center, style: theme.textTheme.titleMedium)),
           IconButton(
-            visualDensity: VisualDensity.compact,
+            // Área de toque de 48 dp (acessibilidade), mesmo com o ícone pequeno.
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             tooltip: context.l10n.dlMore,
             icon: const Icon(Icons.add, size: 18),
             onPressed: n < 8 ? () => set((s) => s.copyWith(downloadParallel: n + 1)) : null,
@@ -104,6 +107,7 @@ class _DownloadManagerCardState extends ConsumerState<DownloadManagerCard> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final finished = st.queued + st.active == 0;
+    final gate = ref.watch(offlineGateProvider);
     final bytesTotal = st.bytesTotal;
     final fraction = bytesTotal > 0 ? st.bytesDone / bytesTotal : st.done / st.total;
     final info = <String>[
@@ -124,7 +128,11 @@ class _DownloadManagerCardState extends ConsumerState<DownloadManagerCard> {
             Row(
               children: [
                 Icon(
-                  finished ? Icons.download_done : (st.paused ? Icons.pause_circle_outline : Icons.downloading),
+                  finished
+                      ? Icons.download_done
+                      : gate.waitingWifi && !gate.userPaused
+                          ? Icons.wifi_off
+                          : (st.paused ? Icons.pause_circle_outline : Icons.downloading),
                   color: st.paused ? scheme.onSurfaceVariant : scheme.primary,
                 ),
                 const SizedBox(width: 12),
@@ -133,7 +141,11 @@ class _DownloadManagerCardState extends ConsumerState<DownloadManagerCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        finished ? l10n.dlAllDone(st.done) : (st.paused ? l10n.dlPaused : l10n.dlManagerTitle),
+                        finished
+                            ? l10n.dlAllDone(st.done)
+                            : gate.waitingWifi && !gate.userPaused
+                                ? l10n.dlWaitingWifi
+                                : (st.paused ? l10n.dlPaused : l10n.dlManagerTitle),
                         style: theme.textTheme.titleMedium,
                       ),
                       Text(l10n.dlProgress(st.done, st.total), style: theme.textTheme.bodySmall),
@@ -142,9 +154,9 @@ class _DownloadManagerCardState extends ConsumerState<DownloadManagerCard> {
                 ),
                 if (!finished)
                   FilledButton.tonalIcon(
-                    icon: Icon(st.paused ? Icons.play_arrow : Icons.pause, size: 18),
-                    label: Text(st.paused ? l10n.dlResume : l10n.dlPause),
-                    onPressed: () => _run(() => engine.playerOfflineSetPaused(paused: !st.paused)),
+                    icon: Icon(gate.userPaused ? Icons.play_arrow : Icons.pause, size: 18),
+                    label: Text(gate.userPaused ? l10n.dlResume : l10n.dlPause),
+                    onPressed: () => _run(() async => ref.read(offlineGateProvider.notifier).setUserPaused(!gate.userPaused)),
                   ),
               ],
             ),

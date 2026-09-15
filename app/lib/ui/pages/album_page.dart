@@ -101,6 +101,12 @@ class _AlbumView extends ConsumerWidget {
                       icon: const Icon(Icons.playlist_add),
                       onPressed: () => LibraryActions.addToPlaylist(context, ref, songs),
                     ),
+                    if (!(ref.watch(sessionProvider).value?.isLocal ?? true))
+                      IconButton.outlined(
+                        tooltip: l10n.shareLink,
+                        icon: const Icon(Icons.share_outlined),
+                        onPressed: () => LibraryActions.share(context, ref, [album.id], description: album.name),
+                      ),
                     OfflineButton(
                       type: 'album',
                       id: album.id,

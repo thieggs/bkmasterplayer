@@ -69,7 +69,7 @@ void main() {
     expect(p.colors, {'text': 0xFFFFFFFF});
     expect(p.sidebarTabs, ['home']);
     expect(p.mobileTabs, hasLength(UiPrefs.maxMobileTabs));
-    expect(p.playerButtons, ['queue']);
+    expect(p.playerButtons, ['queue', 'sleep'], reason: 'lista da versão 2 ganha o botão novo (timer)');
   });
 
   test('ida e volta do JSON sem perda', () {

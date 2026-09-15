@@ -21,11 +21,17 @@ import '../../widgets/bk_logo.dart';
 import '../../widgets/download_manager.dart';
 import '../automix_settings.dart';
 import 'common.dart';
+import 'diagnostics_page.dart';
 
 final outputDevicesProvider = FutureProvider.autoDispose<List<engine.OutputDevice>>((ref) => engine.playerOutputDevices());
 final cacheSizeProvider = FutureProvider.autoDispose<int>((ref) => engine.playerCacheSize());
 
 bool get _isDesktop => Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+
+/// Qualidades do streaming (kbps, MP3; 0 = original). Só MP3: é o que o motor
+/// decodifica (Opus, por exemplo, não).
+const _qualities = [0, 320, 256, 192, 128];
+const _mobileQualities = [0, 256, 192, 128, 96];
 
 /// Tela de uma categoria dos ajustes (`/settings/<id>`).
 Widget settingsSectionPage(String id) => switch (id) {
@@ -37,6 +43,7 @@ Widget settingsSectionPage(String id) => switch (id) {
       'devices' => const DevicesSettingsPage(),
       'behavior' => const BehaviorSettingsPage(),
       'desktop' => const DesktopSettingsPage(),
+      'diagnostics' => const DiagnosticsPage(),
       _ => const AboutSettingsPage(),
     };
 
@@ -288,23 +295,30 @@ class PlaybackSettingsPage extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.high_quality_outlined),
             title: Text(l10n.streamQuality),
-            trailing: DropdownButton<String>(
-              value: '${s.transcodeFormat ?? 'raw'}:${s.maxBitRate}',
+            trailing: DropdownButton<int>(
+              value: _qualities.contains(s.maxBitRate) ? s.maxBitRate : 0,
               underline: const SizedBox(),
               items: [
-                DropdownMenuItem(value: 'raw:0', child: Text(l10n.qualityOriginal)),
-                const DropdownMenuItem(value: 'opus:192', child: Text('Opus 192 kbps')),
-                const DropdownMenuItem(value: 'opus:128', child: Text('Opus 128 kbps')),
-                const DropdownMenuItem(value: 'mp3:320', child: Text('MP3 320 kbps')),
-                const DropdownMenuItem(value: 'mp3:192', child: Text('MP3 192 kbps')),
+                for (final q in _qualities) DropdownMenuItem(value: q, child: Text(q == 0 ? l10n.qualityOriginal : 'MP3 $q kbps')),
               ],
               onChanged: (v) {
                 if (v == null) return;
-                final [fmt, br] = v.split(':');
-                set((x) => fmt == 'raw'
-                    ? x.copyWith(clearTranscode: true, maxBitRate: 0)
-                    : x.copyWith(transcodeFormat: fmt, maxBitRate: int.parse(br)));
+                set((x) => v == 0 ? x.copyWith(clearTranscode: true, maxBitRate: 0) : x.copyWith(transcodeFormat: 'mp3', maxBitRate: v));
               },
+            ),
+          ),
+        if (!local && !_isDesktop)
+          ListTile(
+            leading: const Icon(Icons.signal_cellular_alt),
+            title: Text(l10n.mobileQuality),
+            subtitle: Text(l10n.mobileQualityHint),
+            trailing: DropdownButton<int>(
+              value: _mobileQualities.contains(s.mobileMaxBitRate) ? s.mobileMaxBitRate : 0,
+              underline: const SizedBox(),
+              items: [
+                for (final q in _mobileQualities) DropdownMenuItem(value: q, child: Text(q == 0 ? l10n.sameAsWifi : 'MP3 $q kbps')),
+              ],
+              onChanged: (v) => v == null ? null : set((x) => x.copyWith(mobileMaxBitRate: v)),
             ),
           ),
       ],
@@ -353,6 +367,17 @@ class StorageSettingsPage extends ConsumerWidget {
             subtitle: Text(l10n.dlParallelHint),
             trailing: const DownloadParallelStepper(),
           ),
+        if (!local && !_isDesktop)
+          Consumer(builder: (context, ref, _) {
+            final on = ref.watch(settingsProvider.select((s) => s.downloadWifiOnly));
+            return SwitchListTile(
+              secondary: const Icon(Icons.wifi),
+              title: Text(l10n.dlWifiOnly),
+              subtitle: Text(l10n.dlWifiOnlyHint),
+              value: on,
+              onChanged: (v) => ref.read(settingsProvider.notifier).update((x) => x.copyWith(downloadWifiOnly: v)),
+            );
+          }),
         ListTile(
           leading: const Icon(Icons.storage_outlined),
           title: Text(l10n.cache),
@@ -666,19 +691,27 @@ class DesktopSettingsPage extends ConsumerWidget {
 
 // ---- Sobre ----
 
-class AboutSettingsPage extends StatelessWidget {
+class AboutSettingsPage extends ConsumerWidget {
   const AboutSettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final version = ref.watch(appVersionProvider).value;
     return SettingsScaffold(
       title: l10n.about,
       children: [
         ListTile(
           leading: const BkLogo(size: 40),
           title: Text(l10n.appTitle),
-          subtitle: Text(l10n.aboutText),
+          subtitle: Text([if (version != null) l10n.appVersion(version), l10n.aboutText].join('\n')),
+        ),
+        ListTile(
+          leading: const Icon(Icons.bug_report_outlined),
+          title: Text(l10n.diagnostics),
+          subtitle: Text(l10n.diagnosticsSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/settings/diagnostics'),
         ),
         ListTile(
           leading: const Icon(Icons.font_download_outlined),

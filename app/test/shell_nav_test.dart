@@ -31,6 +31,7 @@ void main() {
     expect(backTargetFor('/album/42', original), '/library');
     expect(backTargetFor('/settings/look/colors', original), '/settings/look');
     expect(backTargetFor('/settings/playback', original), '/settings');
+    expect(backTargetFor('/settings/diagnostics', original), '/settings/about');
     expect(backTargetFor('/equalizer', original), '/settings');
     expect(backTargetFor('/album/42', const ['home', 'albums']), '/albums');
     expect(backTargetFor('/artist/3', const ['home', 'albums']), '/');

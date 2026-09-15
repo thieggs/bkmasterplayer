@@ -22,9 +22,15 @@ seguir.
 - **AudioMuse-AI (via Navidrome):** Mix instantâneo, rádio sônica, caminho sônico entre duas músicas e rádio infinita.
 - **Modo DJ:** a partir de uma música, o AudioMuse e o AutoMix escolhem cada próxima pelo melhor encaixe (parecença, BPM e tom).
 - **Sem servidor:** toca as músicas do aparelho (pastas escolhidas); o Last.fm dá as parecidas quando não há AudioMuse.
-- **Festa:** quem está perto entra na sua música, adiciona (da sua biblioteca ou das dele) e controla. Pela rede local ou, no Android, por Bluetooth/Wi-Fi Direct; cada pessoa só entra com a sua aprovação (ou se estiver na lista de aceitos).
+- **Festa:** quem está perto entra na sua música, adiciona (da sua biblioteca ou das dele) e controla. Pela rede local ou, no Android, por Bluetooth/Wi-Fi Direct; cada pessoa só entra com a sua aprovação (ou com o passe que ganhou ao ser posta em "aceitar sempre").
 - **Fila:** salva no disco e sincronizada com o servidor (continuar em outro aparelho).
-- **Connect:** escolher em qual aparelho tocar e controlá-lo (PC, notebook, celular da mesma conta).
+- **Connect:** escolher em qual aparelho tocar e controlá-lo (PC, notebook, celular da mesma conta). Protegido por desafio e resposta com uma chave que vem da senha: o token do servidor nunca vai para outro aparelho.
+- **Timer para dormir:** 15 a 90 minutos ou no fim da música, com o volume descendo aos poucos antes de pausar.
+- **Dados móveis:** qualidade própria para quando não há Wi-Fi e downloads que esperam o Wi-Fi.
+- **Compartilhar link** de música ou álbum (Navidrome com compartilhamento ligado), já com o endereço de fora mesmo criado em casa.
+- **Buscas recentes** (só no aparelho).
+- **Diagnóstico** (Ajustes → Sobre): o app registra os erros e gera um relatório para mandar junto com um problema, sem senha, tokens, endereço do servidor nem usuário.
+- **Acessibilidade:** botões com nome para o leitor de tela, área de toque de 48 dp e contraste conferidos por testes.
 - **Endereço de casa:** usa o endereço da rede local quando ele responde (mais rápido) e o principal fora de casa.
 - **Letras e capas que faltam:** LRCLIB e Musixmatch (com a sua chave), com a fonte mostrada; capas do Cover Art Archive (MusicBrainz) e do Deezer.
 - **Desktop:**
@@ -95,8 +101,18 @@ analisa como antes.
 ```bash
 cd app/rust && cargo test --release   # streaming, gapless bit-exato, mixer, análise, AutoMix, EQ
 cd app/rust && cargo test --release --test engine_automix -- --ignored   # orquestração (usa a placa de som, volume 0)
-cd app && flutter test                 # app
+cd app && flutter test                 # app (inclui segurança e acessibilidade)
 ```
+
+## Segurança
+
+`./dev/auditoria.sh` roda o checkup inteiro: dependências com vulnerabilidade
+conhecida (cargo-audit, osv-scanner), licenças (cargo-deny), segredos no
+histórico (gitleaks), análise estática (clippy, flutter analyze, semgrep),
+testes, fuzzing do decodificador de áudio e checagens do Android. Com
+`--rapido`, pula o fuzzing e os testes longos. O que foi achado e corrigido
+na auditoria de 15/09/2026, e os riscos que ficam, estão em
+[`docs/SEGURANCA.md`](docs/SEGURANCA.md).
 
 ## Créditos
 

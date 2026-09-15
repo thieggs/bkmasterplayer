@@ -28,6 +28,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get addToPlaylist => 'Adicionar à playlist';
 
   @override
+  String get shareLink => 'Compartilhar link';
+
+  @override
+  String shareLinkCopied(String link) {
+    return 'Link copiado: $link';
+  }
+
+  @override
+  String get shareUnavailable =>
+      'Não deu para criar o link. No Navidrome, o compartilhamento precisa estar ligado (ND_ENABLESHARING=true).';
+
+  @override
   String get addToQueue => 'Adicionar à fila';
 
   @override
@@ -260,6 +272,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get searchEmptyHint => 'Busque por artistas, álbuns e músicas';
 
   @override
+  String get recentSearches => 'Buscas recentes';
+
+  @override
+  String get clearRecentSearches => 'Limpar';
+
+  @override
+  String get removeRecentSearch => 'Tirar das recentes';
+
+  @override
   String get searchHint => 'Buscar…';
 
   @override
@@ -312,6 +333,15 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get streamQuality => 'Qualidade do streaming';
+
+  @override
+  String get mobileQuality => 'Qualidade nos dados móveis';
+
+  @override
+  String get mobileQualityHint => 'Economiza o plano quando não há Wi-Fi';
+
+  @override
+  String get sameAsWifi => 'A mesma do Wi-Fi';
 
   @override
   String get systemDefault => 'Padrão do sistema';
@@ -609,6 +639,15 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get dlParallelHint =>
       'Quantas músicas baixam juntas para ouvir offline. Mais é mais rápido numa conexão boa; menos deixa a rede livre para tocar.';
+
+  @override
+  String get dlWifiOnly => 'Baixar só no Wi-Fi';
+
+  @override
+  String get dlWifiOnlyHint => 'Nos dados móveis, os downloads esperam o Wi-Fi';
+
+  @override
+  String get dlWaitingWifi => 'Esperando o Wi-Fi';
 
   @override
   String analysisServerOk(String done, String total, int workers) {
@@ -994,6 +1033,38 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get deviceIdle => 'Parado';
+
+  @override
+  String get sleepTimer => 'Timer para dormir';
+
+  @override
+  String get sleepTimerHint =>
+      'A música para sozinha; o volume abaixa aos poucos antes.';
+
+  @override
+  String sleepTimerActive(String time) {
+    return 'Para em $time';
+  }
+
+  @override
+  String get sleepTimerEndOfTrackActive => 'Para no fim desta música';
+
+  @override
+  String get sleepTimerEndOfTrack => 'No fim desta música';
+
+  @override
+  String sleepTimerMinutes(int minutes) {
+    return '$minutes minutos';
+  }
+
+  @override
+  String get sleepTimerAdd10 => 'Mais 10 minutos';
+
+  @override
+  String get sleepTimerOff => 'Desligar o timer';
+
+  @override
+  String get sleepTimerDone => 'Timer para dormir: música pausada';
 
   @override
   String get deviceOffline => 'Fora de alcance';
@@ -1400,6 +1471,52 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get licenses => 'Licenças de código aberto';
+
+  @override
+  String appVersion(String version) {
+    return 'Versão $version';
+  }
+
+  @override
+  String get diagnostics => 'Diagnóstico';
+
+  @override
+  String get diagnosticsSubtitle =>
+      'Erros registrados e o relatório para mandar junto com um problema';
+
+  @override
+  String get diagnosticsHint =>
+      'O app registra os erros que acontecem. Ao pedir ajuda com um problema, mande o relatório: ele não leva sua senha, tokens, o endereço do servidor nem o seu usuário.';
+
+  @override
+  String diagnosticsErrors(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count erros nesta sessão',
+      one: '1 erro nesta sessão',
+      zero: 'Nenhum erro nesta sessão',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get diagnosticsCopy => 'Copiar relatório';
+
+  @override
+  String get diagnosticsSave => 'Salvar relatório';
+
+  @override
+  String get diagnosticsClear => 'Limpar registro';
+
+  @override
+  String get diagnosticsCopied => 'Relatório copiado';
+
+  @override
+  String get diagnosticsCleared => 'Registro limpo';
+
+  @override
+  String get diagnosticsEmpty => 'Nada registrado ainda.';
 
   @override
   String get fontCredits =>

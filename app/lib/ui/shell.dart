@@ -10,6 +10,7 @@ import '../desktop/desktop_integration.dart';
 import '../jam/jam_page.dart';
 import '../l10n/l10n.dart';
 import '../player/player_controller.dart';
+import '../player/sleep_timer.dart';
 import 'actions.dart';
 import 'player/player_bar.dart';
 import 'player/queue_panel.dart';
@@ -71,6 +72,8 @@ int mobileSelectedTab(String loc, List<String> ids) {
 @visibleForTesting
 String? backTargetFor(String loc, List<String> ids) {
   if (loc == '/') return null;
+  // Diagnóstico fica dentro de Sobre.
+  if (loc == '/settings/diagnostics') return '/settings/about';
   // Ajustes em telas: sobe um nível (/settings/look/cores → /settings/look).
   if (loc.startsWith('/settings/')) return loc.substring(0, loc.lastIndexOf('/'));
   if (loc != '/settings' && _settingsPaths.any(loc.startsWith)) return '/settings';
@@ -130,6 +133,11 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // Pedidos para entrar na Jam deste aparelho.
     listenJamRequests(ref, context);
+
+    // Timer para dormir pausou a música.
+    ref.listen(sleepTimerProvider.select((s) => s.finished), (prev, n) {
+      if (n > (prev ?? 0)) showSnack(context, context.l10n.sleepTimerDone);
+    });
 
     // Mensagens do player (erro ao tocar etc.)
     ref.listen(playerProvider.select((s) => s.message), (_, msg) {

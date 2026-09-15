@@ -175,6 +175,25 @@ Pedido do usuário: *"um gerenciador de downloads que presta, com configuração
   - O teste `resume_after_idle_close` (`tests/engine_automix.rs`, `--ignored`) falha no código antigo e passa no novo: a música volta a tocar em 150 ms.
 - **Fila salva:** um salvamento por vez (dois ao mesmo tempo disputavam o `queue.json.tmp`).
 
+### Auditoria de segurança e funções de app profissional (15/09)
+- **Auditoria completa:** métodos, achados e riscos aceitos em [`docs/SEGURANCA.md`](SEGURANCA.md); `./dev/auditoria.sh` roda tudo de novo (dependências, licenças, segredos, clippy, semgrep, testes, fuzzing, Android).
+- **Brechas corrigidas:**
+  - Festa: leitura de arquivo do dono pela capa (crítica); passe para "aceitar sempre"; upload só com oferta e cota.
+  - Connect: agora é desafio e resposta com uma chave que vem da senha. O token não sai mais do aparelho. Conta que entrou antes dessa versão ativa tocando no aviso da lista de aparelhos, com a senha, uma vez.
+  - Coordenador: limite de login de player, uma gravação por vez, teto de pedidos, análise validada.
+  - Motor: análise de fora validada; pânico não cala o deck nem para as análises.
+  - Android: backup sem as credenciais.
+  - `rustls` e outras dependências atualizadas.
+- **Bug achado no caminho:** a qualidade "Opus" do streaming quebrava a reprodução (o motor não decodifica Opus). Agora só MP3, e a escolha antiga é migrada.
+- **Funções novas:**
+  - **Timer para dormir** (tocando agora e barra do player): 15 a 90 min ou no fim da música; o volume desce nos últimos 20 s (8 s no fim da música) e volta ao normal depois.
+  - **Diagnóstico** (Ajustes → Sobre): registro de erros do Flutter, das tarefas e dos avisos do app em `<suporte>/logs/app.log`, com senhas, tokens, chaves e usuário apagados; relatório para copiar ou salvar. A tela Sobre mostra a versão.
+  - **Dados móveis:** qualidade própria (MP3 256 a 96 kbps, nunca acima da do Wi-Fi) e "Baixar só no Wi-Fi" (o gerenciador mostra "Esperando o Wi-Fi").
+  - **Compartilhar link** de música (menu) e de álbum: link público do Navidrome, copiado; criado em casa, sai com o endereço de fora.
+  - **Buscas recentes** na tela de busca.
+  - **Acessibilidade:** testes com as diretrizes do Flutter (nome para o leitor de tela, 48 dp, contraste) nos Ajustes e no player, claro e escuro; o que falhava foi corrigido. A barra do player não corta mais os controles no tablet.
+- **Testes:** 97 no Flutter (eram 57), incluindo segurança, acessibilidade, timer, rede, diagnóstico e o aperto de mão do Connect de ponta a ponta; no Rust, validação das análises e um fuzz do planejador.
+
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.

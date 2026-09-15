@@ -52,6 +52,10 @@ abstract class MusicProvider {
   Future<List<Playlist>> playlists();
   Future<Playlist> playlist(String id);
   Future<Playlist> createPlaylist(String name, {List<String> songIds = const []});
+
+  /// Link público para ouvir [ids] (músicas, álbum ou playlist) sem conta.
+  /// Lança [UnsupportedError] se a fonte não compartilha (músicas do aparelho).
+  Future<Uri> createShare(List<String> ids, {String? description});
   Future<void> addToPlaylist(String playlistId, List<String> songIds);
   Future<void> removeFromPlaylist(String playlistId, List<int> indexes);
   Future<void> renamePlaylist(String playlistId, String name);

@@ -6,6 +6,16 @@
  "accentColor": "Cor de destaque",
  "addedToPlaylist": "Adicionado à playlist",
  "addToPlaylist": "Adicionar à playlist",
+ "shareLink": "Compartilhar link",
+ "shareLinkCopied": "Link copiado: {link}",
+ "@shareLinkCopied": {
+  "placeholders": {
+   "link": {
+    "type": "String"
+   }
+  }
+ },
+ "shareUnavailable": "Não deu para criar o link. No Navidrome, o compartilhamento precisa estar ligado (ND_ENABLESHARING=true).",
  "addToQueue": "Adicionar à fila",
  "album": "Álbum",
  "albums": "Álbuns",
@@ -82,6 +92,9 @@
  "rgTrack": "Por faixa",
  "search": "Buscar",
  "searchEmptyHint": "Busque por artistas, álbuns e músicas",
+ "recentSearches": "Buscas recentes",
+ "clearRecentSearches": "Limpar",
+ "removeRecentSearch": "Tirar das recentes",
  "searchHint": "Buscar…",
  "seeAll": "Ver tudo",
  "server": "Servidor",
@@ -100,6 +113,9 @@
  "sortByYear": "Ano",
  "streaming": "Streaming",
  "streamQuality": "Qualidade do streaming",
+ "mobileQuality": "Qualidade nos dados móveis",
+ "mobileQualityHint": "Economiza o plano quando não há Wi-Fi",
+ "sameAsWifi": "A mesma do Wi-Fi",
  "systemDefault": "Padrão do sistema",
  "theme": "Tema",
  "themeDark": "Escuro",
@@ -239,6 +255,9 @@
  "dlQueued": "na fila",
  "dlParallelSetting": "Downloads ao mesmo tempo",
  "dlParallelHint": "Quantas músicas baixam juntas para ouvir offline. Mais é mais rápido numa conexão boa; menos deixa a rede livre para tocar.",
+ "dlWifiOnly": "Baixar só no Wi-Fi",
+ "dlWifiOnlyHint": "Nos dados móveis, os downloads esperam o Wi-Fi",
+ "dlWaitingWifi": "Esperando o Wi-Fi",
  "analysisServerOk": "Conectado · {done} de {total} músicas analisadas · trabalhadores ligados: {workers}",
  "@analysisServerOk": {"placeholders": {"done": {"type": "String"}, "total": {"type": "String"}, "workers": {"type": "int"}}},
  "analysisServerLoginFail": "O servidor de análise não aceitou o login desta conta (ele usa outro Navidrome?)",
@@ -398,6 +417,29 @@
   }
  },
  "deviceIdle": "Parado",
+ "sleepTimer": "Timer para dormir",
+ "sleepTimerHint": "A música para sozinha; o volume abaixa aos poucos antes.",
+ "sleepTimerActive": "Para em {time}",
+ "@sleepTimerActive": {
+  "placeholders": {
+   "time": {
+    "type": "String"
+   }
+  }
+ },
+ "sleepTimerEndOfTrackActive": "Para no fim desta música",
+ "sleepTimerEndOfTrack": "No fim desta música",
+ "sleepTimerMinutes": "{minutes} minutos",
+ "@sleepTimerMinutes": {
+  "placeholders": {
+   "minutes": {
+    "type": "int"
+   }
+  }
+ },
+ "sleepTimerAdd10": "Mais 10 minutos",
+ "sleepTimerOff": "Desligar o timer",
+ "sleepTimerDone": "Timer para dormir: música pausada",
  "deviceOffline": "Fora de alcance",
  "deviceControlling": "Controlando daqui",
  "playingOn": "Tocando em {device}",
@@ -631,6 +673,31 @@
  "language": "Idioma",
  "languageSystem": "Do sistema",
  "licenses": "Licenças de código aberto",
+ "appVersion": "Versão {version}",
+ "@appVersion": {
+  "placeholders": {
+   "version": {
+    "type": "String"
+   }
+  }
+ },
+ "diagnostics": "Diagnóstico",
+ "diagnosticsSubtitle": "Erros registrados e o relatório para mandar junto com um problema",
+ "diagnosticsHint": "O app registra os erros que acontecem. Ao pedir ajuda com um problema, mande o relatório: ele não leva sua senha, tokens, o endereço do servidor nem o seu usuário.",
+ "diagnosticsErrors": "{count, plural, =0{Nenhum erro nesta sessão} =1{1 erro nesta sessão} other{{count} erros nesta sessão}}",
+ "@diagnosticsErrors": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "diagnosticsCopy": "Copiar relatório",
+ "diagnosticsSave": "Salvar relatório",
+ "diagnosticsClear": "Limpar registro",
+ "diagnosticsCopied": "Relatório copiado",
+ "diagnosticsCleared": "Registro limpo",
+ "diagnosticsEmpty": "Nada registrado ainda.",
  "fontCredits": "Fontes dos temas: Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (SIL Open Font License).",
  "openDownloads": "Abrir os downloads",
  "openDownloadsHint": "Álbuns, playlists e a biblioteca inteira para ouvir sem internet",

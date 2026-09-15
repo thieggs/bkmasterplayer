@@ -6,6 +6,16 @@
  "accentColor": "Accent color",
  "addedToPlaylist": "Added to playlist",
  "addToPlaylist": "Add to playlist",
+ "shareLink": "Share link",
+ "shareLinkCopied": "Link copied: {link}",
+ "@shareLinkCopied": {
+  "placeholders": {
+   "link": {
+    "type": "String"
+   }
+  }
+ },
+ "shareUnavailable": "Couldn't create the link. On Navidrome, sharing has to be on (ND_ENABLESHARING=true).",
  "addToQueue": "Add to queue",
  "album": "Album",
  "albums": "Albums",
@@ -82,6 +92,9 @@
  "rgTrack": "Track",
  "search": "Search",
  "searchEmptyHint": "Search for artists, albums and songs",
+ "recentSearches": "Recent searches",
+ "clearRecentSearches": "Clear",
+ "removeRecentSearch": "Remove from recent",
  "searchHint": "Search…",
  "seeAll": "See all",
  "server": "Server",
@@ -100,6 +113,9 @@
  "sortByYear": "Year",
  "streaming": "Streaming",
  "streamQuality": "Streaming quality",
+ "mobileQuality": "Quality on mobile data",
+ "mobileQualityHint": "Saves your data plan when there is no Wi-Fi",
+ "sameAsWifi": "Same as Wi-Fi",
  "systemDefault": "System default",
  "theme": "Theme",
  "themeDark": "Dark",
@@ -177,6 +193,9 @@
  "dlQueued": "queued",
  "dlParallelSetting": "Simultaneous downloads",
  "dlParallelHint": "How many songs download together for offline listening. More is faster on a good connection; fewer leaves bandwidth for playback.",
+ "dlWifiOnly": "Download on Wi-Fi only",
+ "dlWifiOnlyHint": "On mobile data, downloads wait for Wi-Fi",
+ "dlWaitingWifi": "Waiting for Wi-Fi",
  "analysisServerOk": "Connected · {done} of {total} songs analyzed · workers online: {workers}",
  "analysisServerLoginFail": "The analysis server rejected this account's login (does it use another Navidrome?)",
  "analysisServerUnreachable": "No answer from the analysis server",
@@ -309,6 +328,29 @@
   }
  },
  "deviceIdle": "Idle",
+ "sleepTimer": "Sleep timer",
+ "sleepTimerHint": "Music stops on its own; the volume fades out first.",
+ "sleepTimerActive": "Stops in {time}",
+ "@sleepTimerActive": {
+  "placeholders": {
+   "time": {
+    "type": "String"
+   }
+  }
+ },
+ "sleepTimerEndOfTrackActive": "Stops at the end of this song",
+ "sleepTimerEndOfTrack": "At the end of this song",
+ "sleepTimerMinutes": "{minutes} minutes",
+ "@sleepTimerMinutes": {
+  "placeholders": {
+   "minutes": {
+    "type": "int"
+   }
+  }
+ },
+ "sleepTimerAdd10": "10 more minutes",
+ "sleepTimerOff": "Turn off the timer",
+ "sleepTimerDone": "Sleep timer: music paused",
  "deviceOffline": "Out of reach",
  "deviceControlling": "Controlling from here",
  "playingOn": "Playing on {device}",
@@ -542,6 +584,31 @@
  "language": "Language",
  "languageSystem": "System",
  "licenses": "Open source licenses",
+ "appVersion": "Version {version}",
+ "@appVersion": {
+  "placeholders": {
+   "version": {
+    "type": "String"
+   }
+  }
+ },
+ "diagnostics": "Diagnostics",
+ "diagnosticsSubtitle": "Logged errors and the report to send along with a problem",
+ "diagnosticsHint": "The app logs the errors that happen. When asking for help with a problem, send the report: it doesn't include your password, tokens, the server address or your username.",
+ "diagnosticsErrors": "{count, plural, =0{No errors this session} =1{1 error this session} other{{count} errors this session}}",
+ "@diagnosticsErrors": {
+  "placeholders": {
+   "count": {
+    "type": "int"
+   }
+  }
+ },
+ "diagnosticsCopy": "Copy report",
+ "diagnosticsSave": "Save report",
+ "diagnosticsClear": "Clear log",
+ "diagnosticsCopied": "Report copied",
+ "diagnosticsCleared": "Log cleared",
+ "diagnosticsEmpty": "Nothing logged yet.",
  "fontCredits": "Theme fonts: Nunito, Space Grotesk, JetBrains Mono, Playfair Display and Bebas Neue (SIL Open Font License).",
  "openDownloads": "Open downloads",
  "openDownloadsHint": "Albums, playlists and the whole library to listen offline",

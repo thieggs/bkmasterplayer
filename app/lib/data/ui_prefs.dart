@@ -164,7 +164,7 @@ class UiPrefs {
   /// Tema da galeria aplicado por último (null = nenhum).
   final String? themeId;
 
-  static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'devices', 'mini', 'volume'];
+  static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'sleep', 'devices', 'mini', 'volume'];
   static const allHomeSections = ['newest', 'recent', 'frequent', 'random', 'starred', 'highest'];
   static const allTabs = ['home', 'search', 'library', 'albums', 'songs', 'artists', 'playlists', 'genres', 'favorites', 'downloads'];
   static const defaultSidebarTabs = ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'favorites', 'downloads'];
@@ -309,7 +309,7 @@ class UiPrefs {
         'navLabels': navLabels,
         'playerStyle': playerStyle,
         'playerButtons': playerButtons,
-        'playerButtonsVersion': 2,
+        'playerButtonsVersion': 3,
         'homeSections': homeSections,
         'transitions': transitions,
         'animations': animations,
@@ -406,12 +406,17 @@ class UiPrefs {
   /// Botões que surgiram depois de a lista ter sido salva entram no lugar
   /// padrão (quem tirou um botão depois disso não o vê voltar).
   static List<String> _withNewButtons(List<String> buttons, Map<String, dynamic> j) {
-    if ((j['playerButtonsVersion'] as int? ?? 1) >= 2 || j['playerButtons'] is! List || buttons.contains('devices')) {
-      return buttons;
-    }
+    final version = j['playerButtonsVersion'] as int? ?? 1;
+    if (j['playerButtons'] is! List) return buttons;
     final out = List.of(buttons);
-    final at = out.indexOf('mini');
-    out.insert(at >= 0 ? at : (out.contains('volume') ? out.indexOf('volume') : out.length), 'devices');
+    void add(String b, String before) {
+      if (out.contains(b)) return;
+      final at = out.indexOf(before);
+      out.insert(at >= 0 ? at : (out.contains('volume') ? out.indexOf('volume') : out.length), b);
+    }
+
+    if (version < 2) add('devices', 'mini');
+    if (version < 3) add('sleep', 'devices');
     return out;
   }
 

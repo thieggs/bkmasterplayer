@@ -586,6 +586,7 @@ class _StructurePage extends StatelessWidget {
               'eq': l10n.equalizer,
               'lyrics': l10n.lyrics,
               'queue': l10n.queue,
+              'sleep': l10n.sleepTimer,
               'devices': l10n.devices,
               'mini': l10n.miniPlayer,
               'volume': l10n.volume,

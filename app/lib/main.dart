@@ -11,7 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
+import 'core/diagnostics.dart';
 import 'core/providers.dart';
+import 'data/network.dart';
 import 'data/settings.dart';
 import 'desktop/desktop_integration.dart';
 import 'jam/jam_core.dart';
@@ -26,6 +28,8 @@ const appName = 'BKmasterplayer 🎵';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Registro para o relatório de diagnóstico (Ajustes → Sobre), desde já.
+  AppLog.instance.installHandlers();
   // Licenças das fontes dos temas (aparecem em Ajustes → Sobre → Licenças).
   LicenseRegistry.addLicense(() async* {
     for (final (name, file) in const [
@@ -65,6 +69,8 @@ Future<void> main() async {
   final settings = AppSettings.load(prefs);
   final cacheDir = await getApplicationCacheDirectory();
   final supportDir = await getApplicationSupportDirectory();
+  await AppLog.instance.init(supportDir);
+  AppLog.instance.add('info', 'início: ${Platform.operatingSystem} ${Platform.operatingSystemVersion}');
   await Directory('${cacheDir.path}/ui_covers').create(recursive: true);
   // Músicas recebidas numa Festa que já acabou (o app foi fechado): apaga.
   unawaited(clearJamFiles(cacheDir.path));
@@ -101,6 +107,8 @@ Future<void> main() async {
     cacheDirProvider.overrideWithValue(cacheDir),
     supportDirProvider.overrideWithValue(supportDir),
   ]);
+  // Downloads: pausa da pessoa e "só no Wi-Fi" valem desde a abertura.
+  container.read(offlineGateProvider);
   if (isDesktop) {
     // Bandeja e fechar janela (fechar encerra na hora ou esconde na bandeja;
     // o desligamento padrão do Flutter no Linux às vezes aborta no OpenGL).

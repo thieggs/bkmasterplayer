@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
+import '../../data/recent_searches.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
 import '../widgets/album_card.dart';
@@ -28,6 +29,44 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     super.dispose();
   }
 
+  /// A busca vale a pena guardar: Enter ou mexeu nos resultados.
+  void _remember() => ref.read(recentSearchesProvider.notifier).add(_query);
+
+  void _use(String q) {
+    _controller.text = q;
+    setState(() => _query = q);
+  }
+
+  Widget _recent(BuildContext context) {
+    final l10n = context.l10n;
+    final recent = ref.watch(recentSearchesProvider);
+    if (recent.isEmpty) return Center(child: Text(l10n.searchEmptyHint));
+    final list = ref.read(recentSearchesProvider.notifier);
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        Row(
+          children: [
+            Expanded(child: SectionHeader(l10n.recentSearches)),
+            TextButton(onPressed: list.clear, child: Text(l10n.clearRecentSearches)),
+            const SizedBox(width: 8),
+          ],
+        ),
+        for (final q in recent)
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: Text(q, maxLines: 1, overflow: TextOverflow.ellipsis),
+            trailing: IconButton(
+              tooltip: l10n.removeRecentSearch,
+              icon: const Icon(Icons.close),
+              onPressed: () => list.remove(q),
+            ),
+            onTap: () => _use(q),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -48,6 +87,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               suffixIcon: _query.isEmpty
                   ? null
                   : IconButton(
+                      tooltip: MaterialLocalizations.of(context).clearButtonTooltip,
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _controller.clear();
@@ -56,16 +96,20 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     ),
             ),
             onChanged: (v) => setState(() => _query = v),
+            onSubmitted: (_) => _remember(),
           ),
         ),
         Expanded(
           child: _query.trim().isEmpty
-              ? Center(child: Text(l10n.searchEmptyHint))
+              ? _recent(context)
               : AsyncView(
                   value: results,
                   builder: (r) {
                     if (r.isEmpty) return Center(child: Text(l10n.noResults));
-                    return ListView(
+                    // Tocou num resultado (ou rolou a lista): a busca entra nas recentes.
+                    return Listener(
+                      onPointerUp: (_) => _remember(),
+                      child: ListView(
                       padding: const EdgeInsets.only(bottom: 24),
                       children: [
                         if (r.artists.isNotEmpty) ...[
@@ -110,6 +154,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             SongTile(song: r.songs[i], showAlbum: true, onTap: () => player.playFrom(r.songs, i)),
                         ],
                       ],
+                    ),
                     );
                   },
                 ),

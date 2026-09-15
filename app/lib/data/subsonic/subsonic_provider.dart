@@ -3,6 +3,24 @@ import '../../domain/music_provider.dart';
 import 'subsonic_client.dart';
 import 'subsonic_parse.dart';
 
+/// O servidor monta o link com o endereço por onde o app entrou: em casa, o
+/// IP local, que não abre fora dela. Nesse caso, troca pelo endereço principal
+/// da conta (o de fora).
+Uri shareLinkForOutside(Uri link, {required String current, required String main}) {
+  final cur = Uri.parse(current), out = Uri.parse(main);
+  if (current == main || link.host != cur.host || link.port != cur.port) return link;
+  final base = out.path.endsWith('/') ? out.path.substring(0, out.path.length - 1) : out.path;
+  final rest = link.path.startsWith(cur.path) ? link.path.substring(cur.path.length) : link.path;
+  // Uri novo (replace com port: null manteria a porta de casa).
+  return Uri(
+    scheme: out.scheme,
+    host: out.host,
+    port: out.hasPort ? out.port : null,
+    path: '$base$rest',
+    query: link.hasQuery ? link.query : null,
+  );
+}
+
 class SubsonicProvider implements MusicProvider {
   SubsonicProvider({required this.accountId, required this.client});
 
@@ -174,6 +192,15 @@ class SubsonicProvider implements MusicProvider {
   Future<Playlist> playlist(String id) async {
     final body = await client.get('getPlaylist', {'id': id});
     return parsePlaylist(Map<String, dynamic>.from(body['playlist'] as Map));
+  }
+
+  @override
+  Future<Uri> createShare(List<String> ids, {String? description}) async {
+    final body = await client.get('createShare', {'id': ids, 'description': ?description});
+    final share = (body['shares']?['share'] as List?)?.firstOrNull;
+    final url = share is Map ? share['url'] as String? : null;
+    if (url == null) throw SubsonicException('o servidor não devolveu o link');
+    return shareLinkForOutside(Uri.parse(url), current: client.baseUrl, main: client.remoteUrl);
   }
 
   @override

@@ -25,6 +25,8 @@ class AppSettings {
     this.downloadParallel = 3,
     this.transcodeFormat,
     this.maxBitRate = 0,
+    this.mobileMaxBitRate = 0,
+    this.downloadWifiOnly = false,
     this.volume = 1.0,
     this.locale,
     this.automixEnabled = true,
@@ -68,6 +70,12 @@ class AppSettings {
   /// Músicas baixadas ao mesmo tempo para ouvir offline (1 a 8).
   final int downloadParallel;
   final String? transcodeFormat;
+
+  /// Qualidade nos dados móveis (kbps, MP3); 0 = a mesma do Wi-Fi.
+  final int mobileMaxBitRate;
+
+  /// Downloads offline esperam o Wi-Fi (não gastam o plano de dados).
+  final bool downloadWifiOnly;
   final int maxBitRate;
   final double volume;
   final String? locale;
@@ -143,6 +151,8 @@ class AppSettings {
     String? transcodeFormat,
     bool clearTranscode = false,
     int? maxBitRate,
+    int? mobileMaxBitRate,
+    bool? downloadWifiOnly,
     double? volume,
     String? locale,
     bool clearLocale = false,
@@ -190,6 +200,8 @@ class AppSettings {
         downloadParallel: (downloadParallel ?? this.downloadParallel).clamp(1, 8),
         transcodeFormat: clearTranscode ? null : (transcodeFormat ?? this.transcodeFormat),
         maxBitRate: maxBitRate ?? this.maxBitRate,
+        mobileMaxBitRate: mobileMaxBitRate ?? this.mobileMaxBitRate,
+        downloadWifiOnly: downloadWifiOnly ?? this.downloadWifiOnly,
         volume: volume ?? this.volume,
         locale: clearLocale ? null : (locale ?? this.locale),
         automixEnabled: automixEnabled ?? this.automixEnabled,
@@ -233,6 +245,8 @@ class AppSettings {
         'downloadParallel': downloadParallel,
         'transcodeFormat': transcodeFormat,
         'maxBitRate': maxBitRate,
+        'mobileMaxBitRate': mobileMaxBitRate,
+        'downloadWifiOnly': downloadWifiOnly,
         'volume': volume,
         'locale': locale,
         'automixEnabled': automixEnabled,
@@ -277,8 +291,11 @@ class AppSettings {
       outputDeviceId: j['outputDeviceId'] as String?,
       cacheLimitMb: pick('cacheLimitMb', d.cacheLimitMb),
       downloadParallel: pick('downloadParallel', d.downloadParallel).clamp(1, 8),
-      transcodeFormat: j['transcodeFormat'] as String?,
+      // Só MP3: o motor não decodifica Opus (versões antigas ofereciam Opus).
+      transcodeFormat: j['transcodeFormat'] is String ? 'mp3' : null,
       maxBitRate: pick('maxBitRate', d.maxBitRate),
+      mobileMaxBitRate: pick('mobileMaxBitRate', d.mobileMaxBitRate),
+      downloadWifiOnly: pick('downloadWifiOnly', d.downloadWifiOnly),
       volume: (j['volume'] as num?)?.toDouble() ?? d.volume,
       locale: j['locale'] as String?,
       automixEnabled: pick('automixEnabled', d.automixEnabled),

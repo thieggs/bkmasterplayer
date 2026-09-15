@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -100,6 +101,20 @@ class LibraryActions {
       _player(ref).playSongs(path.map((m) => m.song).toList());
     } on SubsonicException catch (e) {
       if (context.mounted) showSnack(context, e.message);
+    }
+  }
+
+  /// Cria um link público no servidor (Navidrome: compartilhamento ligado) e
+  /// copia para a área de transferência.
+  static Future<void> share(BuildContext context, WidgetRef ref, List<String> ids, {String? description}) async {
+    final l10n = context.l10n;
+    final p = ref.read(musicProvider);
+    try {
+      final link = await p.createShare(ids, description: description);
+      await Clipboard.setData(ClipboardData(text: link.toString()));
+      if (context.mounted) showSnack(context, l10n.shareLinkCopied(link.toString()));
+    } catch (e) {
+      if (context.mounted) showSnack(context, l10n.shareUnavailable);
     }
   }
 
@@ -238,6 +253,8 @@ Future<void> showSongMenu(BuildContext context, WidgetRef ref, Song song, {Offse
     (starred ? Icons.favorite : Icons.favorite_border, starred ? l10n.unfavorite : l10n.favorite,
         () => LibraryActions.toggleStar(context, ref, song)),
     (Icons.playlist_add, l10n.addToPlaylist, () => LibraryActions.addToPlaylist(context, ref, [song])),
+    if (!(ref.read(sessionProvider).value?.isLocal ?? true))
+      (Icons.share_outlined, l10n.shareLink, () => LibraryActions.share(context, ref, [song.id], description: song.title)),
     if (song.albumId != null) (Icons.album, l10n.goToAlbum, () => context.push('/album/${song.albumId}')),
     if (song.artistId != null) (Icons.person, l10n.goToArtist, () => context.push('/artist/${song.artistId}')),
   ];
