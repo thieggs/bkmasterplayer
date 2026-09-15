@@ -81,6 +81,12 @@ header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-
 .worker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 14px; border-radius: 12px; background: var(--raised); }
 .worker .name { font-weight: 600; }
 .worker .meta { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.wctl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 6px; font-size: 13px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.stepper button { border: 0; background: transparent; padding: 2px 12px; font-size: 16px; line-height: 1.4; }
+.stepper button:disabled { opacity: .35; }
+.stepper b { min-width: 2ch; text-align: center; font-weight: 600; }
+.paused-note { color: var(--partial); font-weight: 600; }
 .pill { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 10px; align-self: start; white-space: nowrap; }
 .pill.run { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
 .pill.idle { background: var(--line); color: var(--muted); }
@@ -176,6 +182,7 @@ footer { margin-top: 18px; color: var(--muted); font-size: 12px; display: flex; 
       <div class="headline">
         <div class="big num" id="done-line">—</div>
         <div class="pace" id="pace"></div>
+        <button id="btn-pause" hidden>Pausar análise</button>
       </div>
       <div class="bar" id="bar" role="img" aria-label="Biblioteca por resultado"></div>
       <div class="legend" id="legend"></div>
@@ -247,6 +254,12 @@ async function api(path, body) {
   return j;
 }
 
+/// Só troca o HTML se mudou (os botões não somem no meio de um clique).
+function setHtml(sel, html) {
+  const el = $(sel);
+  if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }
+}
+
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg; t.hidden = false;
@@ -311,6 +324,15 @@ $('#btn-logout').addEventListener('click', async () => {
   showLogin();
 });
 
+$('#btn-pause').addEventListener('click', async () => {
+  const paused = !(state && state.paused);
+  try {
+    await api('/api/pause', { paused });
+    toast(paused ? 'Análise pausada: os trabalhadores terminam a música do momento e param.' : 'Análise retomada.');
+    refresh();
+  } catch (e) { toast(e.message); }
+});
+
 $('#btn-sync').addEventListener('click', async () => {
   try { await api('/api/sync', {}); toast('Sincronizando a biblioteca…'); } catch (e) { toast(e.message); }
 });
@@ -332,7 +354,13 @@ function renderState(s) {
   if (c.pending && e) pace.push(`termina em <b>${e}</b>`);
   else if (c.pending && !s.workers.some((w) => w.online)) pace.push('nenhum trabalhador ligado');
   if (s.urgent) pace.push(`${fmt(s.urgent)} pedidas pelos players`);
+  if (s.paused) pace.unshift('<span class="paused-note">Análise pausada</span>');
   $('#pace').innerHTML = pace.join(' · ');
+  const bp = $('#btn-pause');
+  bp.hidden = !total;
+  bp.textContent = s.paused ? '▶ Continuar' : '⏸ Pausar análise';
+  bp.className = s.paused ? 'primary' : '';
+  bp.title = s.paused ? 'Os trabalhadores voltam a pegar músicas' : 'Os trabalhadores terminam a música do momento e param';
   const order = ['ok', 'bars', 'partial', 'nobeat', 'failed'];
   $('#bar').innerHTML = order.map((k) => `<i style="width:${total ? (c[k] / total) * 100 : 0}%;background:${CATS[k].color}" title="${CATS[k].label}: ${fmt(c[k])}"></i>`).join('');
   $('#bar').setAttribute('aria-label', order.map((k) => `${CATS[k].label}: ${c[k]}`).join(', ') + `, na fila: ${c.pending}`);
@@ -347,27 +375,33 @@ function renderState(s) {
   $('#sync').innerHTML = syncParts.join(' · ');
 
   const ws = [...s.workers].sort((a, b) => b.online - a.online || a.name.localeCompare(b.name));
-  $('#workers').innerHTML = ws.length ? ws.map((w) => {
+  setHtml('#workers', ws.length ? ws.map((w) => {
     let pill;
     if (!w.online) pill = `<span class="pill off">desligado</span>`;
     else if (w.paused) pill = `<span class="pill pause">pausado: ${esc(w.paused)}</span>`;
+    else if (s.paused || w.user_paused) pill = `<span class="pill pause">${w.busy ? `terminando ${w.busy}` : 'pausado'}</span>`;
     else if (w.busy) pill = `<span class="pill run">analisando ${w.busy}/${w.jobs}</span>`;
     else pill = `<span class="pill idle">esperando</span>`;
     const avg = w.avg_secs ? `${w.avg_secs.toFixed(1).replace('.', ',')} s por música` : '';
     const model = w.model === 'full' ? 'modelo completo' : w.model === 'small' ? 'modelo pequeno' : esc(w.model);
     const seen = w.online ? '' : ` · visto ${ago(w.last_seen)}`;
-    return `<div class="worker"><div class="name">${esc(w.name)}</div>${pill}
-      <div class="meta">${esc(w.cpu)} · ${model} · ${fmt(w.done)} ${w.done === 1 ? 'feita' : 'feitas'}${w.failed ? `, ${fmt(w.failed)} com erro` : ''}${avg ? ' · ' + avg : ''}${seen}</div></div>`;
-  }).join('') : `<div class="empty">Nenhum trabalhador ainda. Veja “Ligar um trabalhador” no fim da página.</div>`;
+    const slots = Math.max(w.slots || 1, w.jobs);
+    const n = esc(w.name);
+    return `<div class="worker"><div class="name">${n}</div>${pill}
+      <div class="meta">${esc(w.cpu)} · ${model} · ${fmt(w.done)} ${w.done === 1 ? 'feita' : 'feitas'}${w.failed ? `, ${fmt(w.failed)} com erro` : ''}${avg ? ' · ' + avg : ''}${seen}</div>
+      <div class="wctl"><span class="muted">Músicas ao mesmo tempo</span>
+        <span class="stepper"><button data-wjobs="${n}" data-to="${w.jobs - 1}" ${w.jobs <= 1 ? 'disabled' : ''} aria-label="Menos">−</button><b class="num">${w.jobs}</b><button data-wjobs="${n}" data-to="${w.jobs + 1}" ${w.jobs >= slots ? 'disabled' : ''} aria-label="Mais">+</button></span>
+        <button class="ghost" data-wpause="${n}" data-to="${!w.user_paused}">${w.user_paused ? '▶ Continuar este' : '⏸ Pausar este'}</button></div></div>`;
+  }).join('') : `<div class="empty">Nenhum trabalhador ainda. Veja “Ligar um trabalhador” no fim da página.</div>`);
 
-  $('#working').innerHTML = s.working.length ? s.working.sort((a, b) => b.secs - a.secs).map((j) =>
+  setHtml('#working', s.working.length ? s.working.sort((a, b) => b.secs - a.secs).map((j) =>
     `<div class="item"><span class="mark muted">↻</span><span class="t">${esc(j.artist)} — ${esc(j.title)}</span><span class="muted num">${esc(j.worker)} · ${j.secs} s</span></div>`).join('')
-    : `<div class="empty">${c.pending ? 'Nada no momento.' : 'Tudo analisado.'}</div>`;
+    : `<div class="empty">${c.pending ? (s.paused ? 'Pausado.' : 'Nada no momento.') : 'Tudo analisado.'}</div>`);
 
-  $('#recent').innerHTML = s.recent.length ? s.recent.slice(0, 14).map((r) => {
+  setHtml('#recent', s.recent.length ? s.recent.slice(0, 14).map((r) => {
     const k = CATS[r.category] || CATS.pending;
     return `<div class="item"><span class="mark" style="color:${k.color}">${k.mark}</span><span class="t">${esc(r.artist)} — ${esc(r.title)}</span><span class="muted num">${r.secs.toFixed(0)} s · ${ago(r.at)}</span>${r.problem ? `<span class="why">${esc(r.problem)}</span>` : ''}</div>`;
-  }).join('') : `<div class="empty">Ainda nada.</div>`;
+  }).join('') : `<div class="empty">Ainda nada.</div>`);
 
   $('#tabs').innerHTML = TABS.map(([id, label]) => {
     const n = id === 'problems' ? c.failed + c.nobeat : id === 'all' ? total : (c[id] ?? 0);
@@ -377,7 +411,18 @@ function renderState(s) {
   $('#worker-cmd').textContent = `BK_ANALYZER_TOKEN=…  bk-analyzer worker --server ${location.origin} --jobs 2`;
 }
 
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
+  const wj = e.target.closest('[data-wjobs]');
+  if (wj) {
+    try { await api('/api/worker-prefs', { name: wj.dataset.wjobs, jobs: Number(wj.dataset.to) }); toast(`${wj.dataset.wjobs}: ${wj.dataset.to} ao mesmo tempo`); refresh(); } catch (err) { toast(err.message); }
+    return;
+  }
+  const wp = e.target.closest('[data-wpause]');
+  if (wp) {
+    const paused = wp.dataset.to === 'true';
+    try { await api('/api/worker-prefs', { name: wp.dataset.wpause, paused }); toast(paused ? 'Pausado: termina a música do momento e para.' : 'Continuando.'); refresh(); } catch (err) { toast(err.message); }
+    return;
+  }
   const t = e.target.closest('[data-tab]');
   if (t) { setTab(t.dataset.tab); return; }
   const rowBtn = e.target.closest('[data-retry]');

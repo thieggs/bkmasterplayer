@@ -222,6 +222,22 @@ impl App {
                 self.store.request_sync();
                 json_resp(200, &json!({}))
             }
+            (Method::Post, "/api/pause") => {
+                let Ok(body) = body_json(req) else { return err(400, "pedido inválido") };
+                match self.store.set_paused(body["paused"].as_bool().unwrap_or(true)) {
+                    Ok(()) => json_resp(200, &json!({})),
+                    Err(e) => err(500, &format!("{e:#}")),
+                }
+            }
+            (Method::Post, "/api/worker-prefs") => {
+                let Ok(body) = body_json(req) else { return err(400, "pedido inválido") };
+                let Some(name) = body["name"].as_str() else { return err(400, "falta o nome do trabalhador") };
+                let jobs = body.get("jobs").map(|j| j.as_u64().map(|n| n as u32));
+                match self.store.set_worker(name, jobs, body["paused"].as_bool()) {
+                    Ok(()) => json_resp(200, &json!({})),
+                    Err(e) => err(500, &format!("{e:#}")),
+                }
+            }
             (Method::Get, "/api/worker-setup") => json_resp(200, &json!({"token": self.store.worker_token()})),
             _ => err(404, "não existe"),
         }
@@ -304,18 +320,21 @@ impl App {
                     model: b["model"].as_str().unwrap_or("").chars().take(20).collect(),
                     cpu: b["cpu"].as_str().unwrap_or("").chars().take(80).collect(),
                     jobs: b["jobs"].as_u64().unwrap_or(1) as u32,
+                    slots: b["slots"].as_u64().unwrap_or(0) as u32,
                     last_seen: 0,
                     done: 0,
                     failed: 0,
                     secs_total: 0.0,
                     paused: b["paused"].as_str().map(|s| s.chars().take(60).collect()),
+                    session: b["session"].as_str().unwrap_or("").chars().take(40).collect(),
                 };
                 match self.store.claim(&name, info) {
-                    Some(s) => json_resp(
+                    Ok(s) => json_resp(
                         200,
                         &json!({"id": s.id, "suffix": s.stream_format().unwrap_or(&s.suffix), "size": s.size, "title": s.title, "artist": s.artist, "duration": s.duration}),
                     ),
-                    None => bytes(204, "text/plain", Vec::new()),
+                    // Nada agora: diz quando perguntar de novo.
+                    Err(wait) => bytes(204, "text/plain", Vec::new()).with_header(hdr("Retry-After", &wait.to_string())),
                 }
             }
             (Method::Get, "audio") => {

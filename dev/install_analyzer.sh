@@ -7,7 +7,8 @@
 #
 #   ./dev/install_analyzer.sh worker <ssh-destino> <endereço do coordenador> [jobs]
 #       trabalhador em outra máquina, por SSH, ex.:
-#       ./dev/install_analyzer.sh worker thieggs@192.168.1.67 http://thieggs-pc.local:4540 2
+#       ./dev/install_analyzer.sh worker thieggs@192.168.1.67 http://thieggs-pc.local:4540
+#       (sem jobs: 1 análise a cada 3 threads da CPU, até 4)
 #       O token vem do coordenador desta máquina e fica num arquivo 0600 lá.
 #       SSH_OPTS="-i ~/.ssh/chave" para escolher a chave.
 #
@@ -41,7 +42,7 @@ EOF
   echo "coordenador no ar: http://$(hostname).local:4540 (entre com a conta do Navidrome)"
   ;;
 worker)
-  DEST="$2"; SERVER="$3"; JOBS="${4:-2}"
+  DEST="$2"; SERVER="$3"; JOBS="${4:-}"
   TOKEN="$(~/.local/bin/bk-analyzer token 2>/dev/null || "$BIN" token)"
   # shellcheck disable=SC2086
   scp ${SSH_OPTS:-} -q "$BIN" "$DEST:/tmp/bk-analyzer.new"
@@ -59,7 +60,7 @@ After=network-online.target
 
 [Service]
 EnvironmentFile=%h/.config/bk-analyzer/worker.env
-ExecStart=%h/.local/bin/bk-analyzer worker --jobs \$2
+ExecStart=%h/.local/bin/bk-analyzer worker \${2:+--jobs \$2}
 Restart=always
 RestartSec=30
 Nice=15

@@ -84,7 +84,8 @@ SSH_OPTS="-i ~/.ssh/chave" ./dev/install_analyzer.sh worker usuario@notebook htt
 
 No painel, entre com a conta do Navidrome (fica guardado só o token, nunca a
 senha): ele mostra o andamento, os trabalhadores e a lista das músicas que não
-sincronizam, com o motivo. No app: Ajustes → AutoMix → Servidor de análise.
+sincronizam, com o motivo. Dá para pausar a análise e escolher quantas músicas
+cada trabalhador analisa ao mesmo tempo. No app: Ajustes → AutoMix → Servidor de análise.
 A análise do servidor só é usada quando o app toca o mesmo arquivo analisado
 (o original, sem limite de qualidade); fora de casa, sem o servidor, o aparelho
 analisa como antes.

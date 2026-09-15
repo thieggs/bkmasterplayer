@@ -16,7 +16,9 @@ use serde_json::json;
 pub struct Args {
     pub server: String,
     pub token: String,
+    /// Músicas ao mesmo tempo sugeridas (o painel pode mudar, até `slots`).
     pub jobs: usize,
+    pub slots: usize,
     pub models: PathBuf,
     pub model: BeatModel,
     pub name: String,
@@ -36,6 +38,11 @@ struct Ctx {
     args: Args,
     cpu: String,
     agent: ureq::Agent,
+    /// Muda a cada início: o coordenador devolve à fila na hora o que a
+    /// execução anterior deixou no meio.
+    session: String,
+    /// Quanto esperar (s) quando o coordenador não tem música para dar.
+    wait: std::sync::atomic::AtomicU64,
 }
 
 pub fn run(args: Args) -> Result<()> {
@@ -43,16 +50,24 @@ pub fn run(args: Args) -> Result<()> {
     unsafe {
         libc::setpriority(libc::PRIO_PROCESS, 0, args.nice);
     }
+    // A rede (rten) usa um só grupo de threads para todas as análises, do
+    // tamanho dos núcleos físicos (10 num i7-1355U de 12 threads): com todas,
+    // a CPU inteira trabalha.
+    if std::env::var_os("RTEN_NUM_THREADS").is_none() {
+        let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+        std::env::set_var("RTEN_NUM_THREADS", threads.to_string());
+    }
     let probe = Analyzer::new(&args.models, std::env::temp_dir().join("bk-analyzer-probe"));
     if !probe.model_available(args.model) {
         bail!("modelo {} não encontrado em {} (precisa de {} e mel_spectrogram.onnx)", args.model.name(), args.models.display(), args.model.file_name());
     }
     let cpu = cpu_name();
     eprintln!(
-        "trabalhador {} → {} ({} ao mesmo tempo, modelo {}, {cpu})",
+        "trabalhador {} → {} ({} ao mesmo tempo, até {} pelo painel; modelo {}, {cpu})",
         args.name,
         args.server,
         args.jobs,
+        args.slots,
         args.model.name()
     );
     let agent = ureq::Agent::config_builder()
@@ -62,8 +77,8 @@ pub fn run(args: Args) -> Result<()> {
         .user_agent(concat!("bk-analyzer-worker/", env!("CARGO_PKG_VERSION")))
         .build()
         .into();
-    let ctx = Arc::new(Ctx { args, cpu, agent });
-    let handles: Vec<_> = (0..ctx.args.jobs)
+    let ctx = Arc::new(Ctx { args, cpu, agent, session: crate::navidrome::random_hex(8), wait: std::sync::atomic::AtomicU64::new(5) });
+    let handles: Vec<_> = (0..ctx.args.slots.max(ctx.args.jobs))
         .map(|slot| {
             let ctx = ctx.clone();
             std::thread::Builder::new().name(format!("job{slot}")).spawn(move || ctx.job_loop(slot)).expect("thread")
@@ -105,8 +120,10 @@ impl Ctx {
                     warned = false;
                     self.process(&analyzer, job);
                 }
-                // Fila vazia: pergunta de novo logo (o player pode pedir uma música a qualquer hora).
-                Ok(None) => std::thread::sleep(Duration::from_secs(if paused.is_some() { 60 } else { 5 } + slot as u64 * 2)),
+                // Nada agora (fila vazia, pausa ou limite do painel): espera o
+                // que o coordenador disse. Fila vazia é pouco: o player pode
+                // pedir uma música a qualquer hora.
+                Ok(None) => std::thread::sleep(Duration::from_secs(self.wait.load(Ordering::Relaxed).clamp(1, 120) + (slot % 3) as u64)),
                 Err(e) => {
                     if !warned || slot == 0 {
                         eprintln!("coordenador: {e:#}");
@@ -120,13 +137,17 @@ impl Ctx {
 
     fn claim(&self, paused: Option<&str>) -> Result<Option<Job>> {
         let body = json!({
-            "name": self.args.name, "model": self.args.model.name(), "cpu": self.cpu, "jobs": self.args.jobs,
-            "paused": paused, "analysis_version": ANALYSIS_VERSION,
+            "name": self.args.name, "model": self.args.model.name(), "cpu": self.cpu, "jobs": self.args.jobs, "slots": self.args.slots,
+            "paused": paused, "analysis_version": ANALYSIS_VERSION, "session": self.session,
         });
         let mut resp = self.post("claim", &body)?;
         match resp.status().as_u16() {
             200 => Ok(Some(serde_json::from_slice(&resp.body_mut().read_to_vec()?)?)),
-            204 => Ok(None),
+            204 => {
+                let wait = resp.headers().get("retry-after").and_then(|v| v.to_str().ok()).and_then(|v| v.parse().ok()).unwrap_or(5);
+                self.wait.store(wait, Ordering::Relaxed);
+                Ok(None)
+            }
             code => {
                 let msg = resp.body_mut().read_to_string().unwrap_or_default();
                 let msg = serde_json::from_str::<serde_json::Value>(&msg).ok().and_then(|v| v["error"].as_str().map(String::from)).unwrap_or(msg);

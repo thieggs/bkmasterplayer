@@ -6,7 +6,7 @@
 //! não deram certo.
 //!
 //!   bk-analyzer serve  [--data <pasta>] [--listen 0.0.0.0:4540]
-//!   bk-analyzer worker --server http://pc:4540 [--jobs N] [--models <pasta>]
+//!   bk-analyzer worker --server http://pc:4540 [--jobs N] [--slots N] [--models <pasta>]
 //!                      [--model full|small] [--name <nome>] [--on-battery] [--nice N]
 //!                      (token em BK_ANALYZER_TOKEN ou --token)
 //!   bk-analyzer token  [--data <pasta>]
@@ -27,7 +27,7 @@ const USAGE: &str = "BK Analyzer — análise do AutoMix no servidor
   bk-analyzer serve  [--data <pasta>] [--listen 0.0.0.0:4540]
       coordenador: painel em http://<máquina>:4540, fila e análises prontas
 
-  bk-analyzer worker --server http://<coordenador>:4540 [--jobs N]
+  bk-analyzer worker --server http://<coordenador>:4540 [--jobs N] [--slots N]
                      [--models <pasta>] [--model full|small] [--name <nome>]
                      [--on-battery] [--nice 0-19]
       trabalhador (token em BK_ANALYZER_TOKEN ou --token)
@@ -99,10 +99,15 @@ fn worker_args(o: &HashMap<String, String>) -> Result<worker::Args> {
     let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
     let jobs = match o.get("jobs") {
         Some(j) => j.parse().map_err(|_| anyhow!("--jobs precisa ser um número"))?,
-        // A rede usa todos os núcleos numa análise, mas decodificar e o resto
-        // usam um só: duas ao mesmo tempo aproveitam os intervalos. Três no
-        // i7-1355U rendem o mesmo que duas (memória e cache disputados).
-        None => if cores >= 8 { 2 } else { 1 },
+        // A rede usa todos os núcleos numa análise, mas decodificar, o tom e
+        // a estrutura usam um só: várias ao mesmo tempo enchem a CPU nesses
+        // trechos (4 num i7 de 12 threads, como os 4 do AudioMuse).
+        None => (cores / 3).clamp(1, 4),
+    };
+    // Quantas o painel pode ligar ao mesmo tempo (cada uma carrega a rede).
+    let slots = match o.get("slots") {
+        Some(s) => s.parse().map_err(|_| anyhow!("--slots precisa ser um número"))?,
+        None => jobs.max((cores * 2 / 3).clamp(1, 8)),
     };
     let models = o.get("models").map(PathBuf::from).unwrap_or_else(|| home().join(".local/share/io.github.playermusica.player_musica/models"));
     let model = match o.get("model").map(String::as_str) {
@@ -117,6 +122,7 @@ fn worker_args(o: &HashMap<String, String>) -> Result<worker::Args> {
         server: navidrome::normalize_url(&server),
         token,
         jobs: jobs.max(1),
+        slots: slots.max(1),
         models,
         model,
         name,

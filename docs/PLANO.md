@@ -123,7 +123,9 @@ Pedido do usuário: *"igual a análise sônica fica salva no server e o celular 
 - **Painel** (`dashboard.html`, `http://<pc>:4540`):
   - login com a conta do Navidrome (a primeira configuração só pela rede de casa);
   - barra da biblioteca por resultado, ritmo e previsão de término, trabalhadores, o que está sendo analisado e as últimas analisadas;
-  - lista por categoria com o motivo e as grades, busca e "tentar de novo".
+  - lista por categoria com o motivo e as grades, busca e "tentar de novo";
+  - "Pausar análise" (a música do momento termina) e, por trabalhador, pausar e "músicas ao mesmo tempo" (até o máximo que ele anunciou, 8 no i7). Vale na hora: é o coordenador que limita, pelo `Retry-After` da fila;
+  - trabalhador reiniciado (sessão nova) devolve na hora à fila o que deixou no meio, sem contar tentativa.
 - **App:**
   - `TrackSource.analysisUrl` com o login da conta, só quando o arquivo tocado é o mesmo analisado (original, ou o MP3 que o servidor converte);
   - o motor pergunta ao servidor antes de analisar, guarda num cache à parte (`<chave>|server`) e prefere essa análise à local;
@@ -141,7 +143,11 @@ Pedido do usuário: *"igual a análise sônica fica salva no server e o celular 
   - 6 ficam na transição simples (Dream Theater ao vivo, com fórmula de compasso mudando, intro sem batida, sax solo).
   - As mixagens sincronizadas continuam precisas: mediana de 6 ms (`eval_mix --cache`).
 - **Ferramentas:** `examples/tune.rs` roda a rede uma vez por faixa e refaz o resto a cada mudança (~20 s para 100 faixas); `eval_mix --cache` mixa com essas batidas.
-- **Ritmo no i7-1355U** (perfil "Economia de energia", ~1,6 GHz): ~16 s de áudio analisados por segundo, igual com 2 ou 3 análises ao mesmo tempo. Padrão de 2, que usa menos memória: ~280 músicas/h, a biblioteca de 5.363 em ~19 h.
+- **Ritmo no i7-1355U:**
+  - No perfil "Economia de energia" (~1,6 GHz): ~280 músicas/h, igual com 2 ou 3 análises ao mesmo tempo.
+  - No perfil "Desempenho", com 4 ao mesmo tempo: ~480 músicas/h, a biblioteca de 5.363 em ~11 h.
+  - Com 6 ao mesmo tempo, ou com a rede nas 12 threads (`RTEN_NUM_THREADS`; o padrão do rten é o número de núcleos físicos), o ritmo fica igual: o limite de energia do chip (15 W) é o teto, não a CPU parada.
+  - O trabalhador usa 1 análise a cada 3 threads (até 4) e a rede em todas as threads.
 
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).

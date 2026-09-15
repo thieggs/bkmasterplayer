@@ -178,6 +178,21 @@ pub struct Config {
     pub navidrome: Option<Login>,
     #[serde(default)]
     pub worker_token: String,
+    /// Análise pausada no painel (nenhum trabalhador pega música nova).
+    #[serde(default)]
+    pub paused: bool,
+    /// Ajustes de cada trabalhador feitos no painel.
+    #[serde(default)]
+    pub workers: HashMap<String, WorkerPrefs>,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
+pub struct WorkerPrefs {
+    /// Músicas ao mesmo tempo (None = o que o trabalhador sugere).
+    #[serde(default)]
+    pub jobs: Option<u32>,
+    #[serde(default)]
+    pub paused: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -197,12 +212,16 @@ pub struct WorkerInfo {
     pub name: String,
     pub model: String,
     pub cpu: String,
+    /// Músicas ao mesmo tempo que o trabalhador sugere, e o máximo que ele aguenta.
     pub jobs: u32,
+    pub slots: u32,
     pub last_seen: u64,
     pub done: u32,
     pub failed: u32,
     pub secs_total: f64,
     pub paused: Option<String>,
+    #[serde(skip)]
+    pub session: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -367,7 +386,7 @@ impl Store {
             let _ = std::fs::create_dir_all(self.dir.join("analyses"));
         }
         g.sync_requested = true;
-        write_atomic(&self.dir.join("config.json"), &serde_json::to_vec_pretty(&g.config)?, true)
+        self.save_config(&g)
     }
 
     pub fn worker_token(&self) -> String {
@@ -456,14 +475,33 @@ impl Store {
 
     // ---------- fila ----------
 
-    /// Próxima música para o trabalhador `worker` (e registra que ele está vivo).
-    pub fn claim(&self, worker: &str, info: WorkerInfo) -> Option<Song> {
+    /// Próxima música para o trabalhador `worker` (e registra que ele está
+    /// vivo). Sem música: quantos segundos ele espera para perguntar de novo.
+    pub fn claim(&self, worker: &str, info: WorkerInfo) -> Result<Song, u64> {
         let mut g = self.inner.lock();
         g.expire_leases();
-        let seen = g.workers.entry(worker.into()).or_insert_with(|| info.clone());
-        (seen.model, seen.cpu, seen.jobs, seen.paused, seen.last_seen) = (info.model, info.cpu, info.jobs, info.paused, now());
-        if seen.paused.is_some() {
-            return None;
+        let (restarted, paused, suggested) = {
+            let seen = g.workers.entry(worker.into()).or_insert_with(|| info.clone());
+            let restarted = seen.session != info.session;
+            (seen.model, seen.cpu, seen.jobs, seen.slots, seen.paused, seen.last_seen, seen.session) =
+                (info.model, info.cpu, info.jobs, info.slots, info.paused, now(), info.session);
+            (restarted, seen.paused.is_some(), seen.jobs)
+        };
+        if restarted {
+            // O trabalhador reiniciou: o que ele deixou no meio volta para a fila já.
+            g.leases.retain(|_, l| l.worker != worker);
+        }
+        if paused {
+            return Err(60);
+        }
+        // Pausa e quantidade ao mesmo tempo, do painel.
+        let prefs = g.config.workers.get(worker).cloned().unwrap_or_default();
+        if g.config.paused || prefs.paused {
+            return Err(15);
+        }
+        let limit = prefs.jobs.unwrap_or(suggested).max(1) as usize;
+        if g.leases.values().filter(|l| l.worker == worker).count() >= limit {
+            return Err(15);
         }
         let free = |g: &Inner, id: &String| g.songs.get(id).is_some_and(|s| s.state == State::Pending) && !g.leases.contains_key(id);
         let id = loop {
@@ -473,10 +511,35 @@ impl Store {
                 None => break None,
             }
         };
-        let id = id.or_else(|| g.order.iter().find(|id| free(&g, id)).cloned())?;
+        let Some(id) = id.or_else(|| g.order.iter().find(|id| free(&g, id)).cloned()) else { return Err(5) };
         let t = Instant::now();
         g.leases.insert(id.clone(), Lease { worker: worker.into(), since: t, beat: t });
-        g.songs.get(&id).cloned()
+        g.songs.get(&id).cloned().ok_or(5)
+    }
+
+    fn save_config(&self, g: &Inner) -> Result<()> {
+        write_atomic(&self.dir.join("config.json"), &serde_json::to_vec_pretty(&g.config)?, true)
+    }
+
+    /// Pausa (ou retoma) a análise toda.
+    pub fn set_paused(&self, paused: bool) -> Result<()> {
+        let mut g = self.inner.lock();
+        g.config.paused = paused;
+        self.save_config(&g)
+    }
+
+    /// Ajustes de um trabalhador: músicas ao mesmo tempo e pausa.
+    pub fn set_worker(&self, name: &str, jobs: Option<Option<u32>>, paused: Option<bool>) -> Result<()> {
+        let mut g = self.inner.lock();
+        let slots = g.workers.get(name).map(|w| w.slots.max(w.jobs)).unwrap_or(16).max(1);
+        let prefs = g.config.workers.entry(name.into()).or_default();
+        if let Some(j) = jobs {
+            prefs.jobs = j.map(|n| n.clamp(1, slots));
+        }
+        if let Some(p) = paused {
+            prefs.paused = p;
+        }
+        self.save_config(&g)
     }
 
     /// Sinal de vida durante uma análise longa. false = a música não é mais dele.
@@ -648,8 +711,10 @@ impl Store {
             .values()
             .map(|w| {
                 let busy = g.leases.values().filter(|l| l.worker == w.name).count();
+                let prefs = g.config.workers.get(&w.name).cloned().unwrap_or_default();
                 serde_json::json!({
-                    "name": w.name, "model": w.model, "cpu": w.cpu, "jobs": w.jobs, "busy": busy,
+                    "name": w.name, "model": w.model, "cpu": w.cpu, "jobs": prefs.jobs.unwrap_or(w.jobs), "busy": busy,
+                    "slots": w.slots.max(w.jobs), "user_paused": prefs.paused,
                     "online": t.saturating_sub(w.last_seen) <= ONLINE, "last_seen": w.last_seen,
                     "done": w.done, "failed": w.failed, "paused": w.paused,
                     "avg_secs": if w.done > 0 { w.secs_total / w.done as f64 } else { 0.0 },
@@ -659,6 +724,7 @@ impl Store {
         let login = g.config.navidrome.as_ref();
         serde_json::json!({
             "configured": login.is_some(),
+            "paused": g.config.paused,
             "navidrome": login.map(|l| l.url.clone()),
             "library_user": login.map(|l| l.username.clone()),
             "version": ANALYSIS_VERSION,
