@@ -120,9 +120,26 @@ class AppLog {
     final platform = PlatformDispatcher.instance.onError;
     PlatformDispatcher.instance.onError = (error, stack) {
       add('erro', '$error\n${shortStack(stack)}');
+      // Continua aparecendo no console/logcat (sem passar pelo registro de novo).
+      original('Erro não tratado: $error\n${shortStack(stack)}');
       return platform?.call(error, stack) ?? true;
     };
   }
+}
+
+/// Linhas do registro agrupadas por registro (a linha com hora e as de
+/// continuação, recuadas), para mostrar o mais novo primeiro sem virar a pilha
+/// de cabeça para baixo.
+List<List<String>> logEntries(List<String> lines) {
+  final out = <List<String>>[];
+  for (final l in lines) {
+    if (l.startsWith('    ') && out.isNotEmpty) {
+      out.last.add(l);
+    } else {
+      out.add([l]);
+    }
+  }
+  return out;
 }
 
 /// As primeiras linhas da pilha (o bastante para achar o problema).

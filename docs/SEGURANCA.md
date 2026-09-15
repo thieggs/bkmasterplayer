@@ -51,6 +51,8 @@ fuzzing para o que lê arquivo de fora.
 | Média | Motor | Pânico ao decodificar calava o deck para sempre; na análise, parava as análises da sessão inteira | Pânico vira erro daquela música (o player pula; a análise segue); planejador protegido |
 | Média | Dependências | `rustls` 0.23.44 com a RUSTSEC-2026-0285 (publicada em 14/09); `tokio`, `anyhow` com avisos de "unsound"; `futures-util` retirado | Atualizados |
 | Média | Qualidade do streaming | O menu oferecia Opus, que o motor não decodifica: escolher Opus quebrava a reprodução | Só MP3; quem tinha Opus salvo foi migrado para MP3 no mesmo bitrate |
+| Média | APK | O APK "só arm64" levava bibliotecas de plugins em x86_64 e armv7 (o plugin do Flutter põe as 3 ABIs em cada tipo de build e o Android junta com as nossas): um aparelho x86_64 (Chromebook, tablet Intel) escolhia x86_64, não achava o motor e fechava ao abrir | Filtro de ABI nos tipos de build; o APK tem só `arm64-v8a` |
+| Média | Abertura | Qualquer falha ao iniciar o motor (visto: pânico da JNI dentro do cpal sob tradução ARM) deixava o app parado na tela de abertura, sem aviso; a captura de erros nova ainda escondia a mensagem do logcat | Chamadas ao cpal protegidas (pânico vira erro e a taxa cai no padrão); se o motor não iniciar, tela com o motivo e o relatório; erro não tratado volta a sair no logcat |
 | Baixa | Coordenador | Uma thread por pedido, sem teto | 256 pedidos ao mesmo tempo; acima disso, 503 |
 | Baixa | Android | O backup do Google levava as credenciais cifradas; restauradas noutro aparelho (sem a chave do Keystore), davam erro | Ficam fora do backup |
 | Baixa | Tema importado | Nome de imagem aceitava `..` e arquivo oculto | Só nome simples, sem ponto no começo, até 80 caracteres |
@@ -86,10 +88,15 @@ real.
 - cargo-audit e osv-scanner: nenhuma vulnerabilidade (3 avisos de manutenção em dependências indiretas);
 - cargo-deny: licenças dentro da política; gitleaks: nenhum segredo;
 - clippy: zero avisos; `flutter analyze`: nenhum problema; Semgrep: só os 7 achados já revisados;
-- 40 testes Rust e 97 Flutter passando (eram 57 no Flutter antes da auditoria);
+- 40 testes Rust e 98 Flutter passando (eram 57 no Flutter antes da auditoria);
 - fuzzing: 439 mil arquivos de áudio corrompidos em 3 min, sem pânico nem travamento;
 - as 5.448 análises reais da biblioteca aceitas pela validação;
 - Android: sem `debuggable`, backup sem as credenciais.
+
+Depois, o APK novo foi aberto no emulador (Android 15): timer, Connect
+protegido (aviso, senha, ativação), buscas e diagnóstico conferidos na tela. Foi
+aí que apareceram os dois últimos achados da tabela (ABIs do APK e a abertura
+parada); o próprio registro de diagnóstico mostrou o erro na primeira tentativa.
 
 ## Riscos que ficam (aceitos)
 

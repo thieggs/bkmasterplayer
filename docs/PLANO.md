@@ -192,7 +192,8 @@ Pedido do usuário: *"um gerenciador de downloads que presta, com configuração
   - **Compartilhar link** de música (menu) e de álbum: link público do Navidrome, copiado; criado em casa, sai com o endereço de fora.
   - **Buscas recentes** na tela de busca.
   - **Acessibilidade:** testes com as diretrizes do Flutter (nome para o leitor de tela, 48 dp, contraste) nos Ajustes e no player, claro e escuro; o que falhava foi corrigido. A barra do player não corta mais os controles no tablet.
-- **Testes:** 97 no Flutter (eram 57), incluindo segurança, acessibilidade, timer, rede, diagnóstico e o aperto de mão do Connect de ponta a ponta; no Rust, validação das análises e um fuzz do planejador.
+- **Achados no emulador:** o APK "só arm64" levava bibliotecas x86_64/armv7 de plugins (aparelho x86_64 fechava ao abrir; agora só `arm64-v8a`); falha ao iniciar o motor deixava a abertura parada para sempre (agora cpal protegido e tela com o motivo e o relatório).
+- **Testes:** 98 no Flutter (eram 57), incluindo segurança, acessibilidade, timer, rede, diagnóstico e o aperto de mão do Connect de ponta a ponta; no Rust, validação das análises e um fuzz do planejador.
 
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).

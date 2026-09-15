@@ -5,7 +5,7 @@ import 'package:player_musica/core/diagnostics.dart';
 
 void main() {
   test('registro nunca guarda senha, token, salt, chave nem usuário', () {
-    const token = '0123456789abcdef0123456789abcdef';
+    const token = '0123456789abcdef0123456789abcdef'; // gitleaks:allow (token falso do teste)
     final samples = {
       'DioException: http://192.168.1.10:4533/rest/stream?u=thiago&t=$token&s=a1b2c3&v=1.16.1&id=Song42': ['thiago', token, 'a1b2c3'],
       '{"username":"thiago","token":"$token","salt":"x9y8","connectKey":"${'ab' * 32}"}': ['thiago', token, 'x9y8', 'ab' * 32],
@@ -46,6 +46,10 @@ void main() {
       log.add('info', 'linha $i');
     }
     expect(log.lines.length, AppLog.maxLines);
+    expect(logEntries(['a [erro] x', '    #0 f', '    #1 g', 'b [info] y']), [
+      ['a [erro] x', '    #0 f', '    #1 g'],
+      ['b [info] y'],
+    ]);
     final report = diagnosticReport(info: {'Conta': 'Navidrome 0.58', 'Teste': 'u=thiago&t=abc'});
     expect(report, contains('Conta: Navidrome 0.58'));
     expect(report, isNot(contains('thiago')));

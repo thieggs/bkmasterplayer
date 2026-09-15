@@ -1521,6 +1521,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get diagnosticsEmpty => 'Nothing logged yet.';
 
   @override
+  String get startupFailed => 'The audio engine didn\'t start';
+
+  @override
+  String get startupFailedHint =>
+      'Close and reopen the app. If it keeps happening, copy the report below and send it along with the problem.';
+
+  @override
   String get fontCredits =>
       'Theme fonts: Nunito, Space Grotesk, JetBrains Mono, Playfair Display and Bebas Neue (SIL Open Font License).';
 

@@ -95,7 +95,17 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final log = AppLog.instance.lines.reversed.take(200).toList();
+    // Mais novo primeiro, cada registro inteiro (a pilha continua embaixo da
+    // mensagem); a sessão anterior vem depois, com o rótulo em cima dela.
+    final all = AppLog.instance.lines;
+    final cut = all.indexOf('— sessão atual —');
+    final previous = cut < 0 ? const <String>[] : all.sublist(1, cut);
+    final current = cut < 0 ? all : all.sublist(cut + 1);
+    List<String> newestFirst(List<String> l) => [for (final e in logEntries(l).reversed) ...e];
+    final log = [
+      ...newestFirst(current),
+      if (previous.isNotEmpty) ...['— sessão anterior —', ...newestFirst(previous)],
+    ].take(200).toList();
     return SettingsScaffold(
       title: l10n.diagnostics,
       back: '/settings/about',

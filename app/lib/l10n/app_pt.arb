@@ -698,6 +698,8 @@
  "diagnosticsCopied": "Relatório copiado",
  "diagnosticsCleared": "Registro limpo",
  "diagnosticsEmpty": "Nada registrado ainda.",
+ "startupFailed": "O motor de áudio não iniciou",
+ "startupFailedHint": "Feche e abra o app de novo. Se continuar, copie o relatório abaixo e mande junto com o problema.",
  "fontCredits": "Fontes dos temas: Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (SIL Open Font License).",
  "openDownloads": "Abrir os downloads",
  "openDownloadsHint": "Álbuns, playlists e a biblioteca inteira para ouvir sem internet",

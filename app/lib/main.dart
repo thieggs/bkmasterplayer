@@ -22,6 +22,7 @@ import 'mobile/media_session.dart';
 import 'player/automix.dart';
 import 'src/rust/api/engine.dart' as engine;
 import 'src/rust/frb_generated.dart';
+import 'ui/startup_error.dart';
 
 const appId = 'player_musica';
 const appName = 'BKmasterplayer 🎵';
@@ -85,22 +86,30 @@ Future<void> main() async {
   // dados do app: a pasta de cache o sistema esvazia quando falta espaço.
   final audioCacheDir = Platform.isAndroid ? '${supportDir.path}/audio_cache' : cacheDir.path;
 
-  await engine.playerInit(
-    config: engine.PlayerConfig(
-      cacheDir: audioCacheDir,
-      cacheLimitMb: settings.cacheLimitMb,
-      deviceId: settings.outputDeviceId,
-      appId: appId,
-      appName: appName,
-      mediaControls: isDesktop,
-      modelDir: modelDir?.path,
-      analysisModel: 'small',
-    ),
-  );
-  await applyAutomix(settings);
-  applyEq(settings);
-  await engine.playerOfflineSetParallel(parallel: settings.downloadParallel);
-  engine.playerSetNotifications(enabled: settings.notifications && isDesktop);
+  try {
+    await engine.playerInit(
+      config: engine.PlayerConfig(
+        cacheDir: audioCacheDir,
+        cacheLimitMb: settings.cacheLimitMb,
+        deviceId: settings.outputDeviceId,
+        appId: appId,
+        appName: appName,
+        mediaControls: isDesktop,
+        modelDir: modelDir?.path,
+        analysisModel: 'small',
+      ),
+    );
+    await applyAutomix(settings);
+    applyEq(settings);
+    await engine.playerOfflineSetParallel(parallel: settings.downloadParallel);
+    engine.playerSetNotifications(enabled: settings.notifications && isDesktop);
+  } catch (e, st) {
+    // Sem motor não há o que tocar: mostra o motivo (e o relatório) em vez de
+    // deixar a abertura parada para sempre.
+    AppLog.instance.add('erro', 'motor de áudio não iniciou: $e\n${shortStack(st)}');
+    runApp(StartupErrorApp(error: e));
+    return;
+  }
 
   final container = ProviderContainer(overrides: [
     prefsProvider.overrideWithValue(prefs),

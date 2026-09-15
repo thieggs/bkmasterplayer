@@ -1519,6 +1519,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get diagnosticsEmpty => 'Nada registrado ainda.';
 
   @override
+  String get startupFailed => 'O motor de áudio não iniciou';
+
+  @override
+  String get startupFailedHint =>
+      'Feche e abra o app de novo. Se continuar, copie o relatório abaixo e mande junto com o problema.';
+
+  @override
   String get fontCredits =>
       'Fontes dos temas: Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (SIL Open Font License).';
 

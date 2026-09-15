@@ -65,6 +65,16 @@ android {
         release {
             signingConfig = signingConfigs.getByName(if (keyProps.isEmpty) "debug" else "release")
         }
+        // O plugin do Flutter põe as 3 ABIs padrão em cada buildType, e o
+        // Android junta com as do defaultConfig: sem trocar aqui, as bibliotecas
+        // de plugins em x86_64/armv7 entravam no APK "só arm64" e um aparelho
+        // x86_64 escolhia essa ABI, sem o motor, e fechava na abertura.
+        configureEach {
+            ndk {
+                abiFilters.clear()
+                abiFilters += targetPlatforms.map { abiTriples.getValue(it).first }
+            }
+        }
     }
 
     sourceSets["main"].jniLibs.srcDir(layout.buildDirectory.dir("cxx-shared"))

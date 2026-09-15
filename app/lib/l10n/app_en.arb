@@ -609,6 +609,8 @@
  "diagnosticsCopied": "Report copied",
  "diagnosticsCleared": "Log cleared",
  "diagnosticsEmpty": "Nothing logged yet.",
+ "startupFailed": "The audio engine didn't start",
+ "startupFailedHint": "Close and reopen the app. If it keeps happening, copy the report below and send it along with the problem.",
  "fontCredits": "Theme fonts: Nunito, Space Grotesk, JetBrains Mono, Playfair Display and Bebas Neue (SIL Open Font License).",
  "openDownloads": "Open downloads",
  "openDownloadsHint": "Albums, playlists and the whole library to listen offline",

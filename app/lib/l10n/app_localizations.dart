@@ -2731,6 +2731,18 @@ abstract class AppLocalizations {
   /// **'Nada registrado ainda.'**
   String get diagnosticsEmpty;
 
+  /// No description provided for @startupFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'O motor de áudio não iniciou'**
+  String get startupFailed;
+
+  /// No description provided for @startupFailedHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Feche e abra o app de novo. Se continuar, copie o relatório abaixo e mande junto com o problema.'**
+  String get startupFailedHint;
+
   /// No description provided for @fontCredits.
   ///
   /// In pt, this message translates to:

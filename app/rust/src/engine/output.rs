@@ -38,6 +38,14 @@ pub struct DeviceInfo {
 /// Fica em cache (cada host PulseAudio é uma conexão com o servidor de som).
 static HOST: Mutex<Option<cpal::Host>> = Mutex::new(None);
 
+/// Chamada ao cpal protegida: no Android ele consulta o sistema pela JNI, e
+/// uma resposta inconsistente (visto no emulador com tradução ARM) vira pânico
+/// dentro da biblioteca jni. Aqui vira erro: o motor segue (taxa padrão, saída
+/// aberta de novo depois) em vez de a abertura do app morrer.
+fn guarded<R>(what: &str, f: impl FnOnce() -> Result<R>) -> Result<R> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or_else(|_| Err(anyhow!("{what}: o driver de áudio falhou")))
+}
+
 fn with_host<R>(f: impl FnOnce(&cpal::Host) -> R) -> R {
     let mut guard = HOST.lock();
     let host = guard.get_or_insert_with(make_host);
@@ -70,6 +78,10 @@ fn id_of(d: &cpal::Device) -> Option<String> {
 }
 
 pub fn list_devices() -> Result<Vec<DeviceInfo>> {
+    guarded("listar as saídas de áudio", list_devices_unguarded)
+}
+
+fn list_devices_unguarded() -> Result<Vec<DeviceInfo>> {
     let (default_id, devices) = with_host(|h| -> Result<_> {
         Ok((h.default_output_device().and_then(|d| id_of(&d)), h.output_devices()?.collect::<Vec<_>>()))
     })?;
@@ -87,13 +99,15 @@ pub fn list_devices() -> Result<Vec<DeviceInfo>> {
 
 /// Id da saída padrão atual do sistema.
 pub fn default_device_id() -> Option<String> {
-    with_host(|h| h.default_output_device()).and_then(|d| id_of(&d))
+    guarded("saída padrão", || Ok(with_host(|h| h.default_output_device()).and_then(|d| id_of(&d)))).ok().flatten()
 }
 
 /// Taxa padrão do dispositivo (para montar o mixer antes de abrir o stream).
 pub fn device_rate(device_id: Option<&str>) -> Result<u32> {
-    let device = find_device(device_id)?;
-    Ok(device.default_output_config()?.sample_rate())
+    guarded("taxa da saída de áudio", || {
+        let device = find_device(device_id)?;
+        Ok(device.default_output_config()?.sample_rate())
+    })
 }
 
 fn find_device(device_id: Option<&str>) -> Result<cpal::Device> {
@@ -105,6 +119,10 @@ fn find_device(device_id: Option<&str>) -> Result<cpal::Device> {
 }
 
 pub fn open(device_id: Option<&str>, mixer: Arc<Mutex<Mixer>>, failed: Arc<AtomicBool>) -> Result<Output> {
+    guarded("abrir a saída de áudio", || open_unguarded(device_id, mixer, failed))
+}
+
+fn open_unguarded(device_id: Option<&str>, mixer: Arc<Mutex<Mixer>>, failed: Arc<AtomicBool>) -> Result<Output> {
     let device = find_device(device_id)?;
     let default = device.default_output_config()?;
     // Prefere float 32 (o servidor de som converte com mais qualidade que truncar aqui).
