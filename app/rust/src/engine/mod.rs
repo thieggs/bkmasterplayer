@@ -415,8 +415,10 @@ impl Inner {
         };
 
         let start_native = (plan.from_start * rate as f64).round() as u64;
-        // Precisa de folga para B ser preparado (decodificar/baixar o começo).
-        if start_native <= a_deck.native_position() + rate as u64 * 2 {
+        // Folga para B ser preparada: baixar o trecho, buscar o ponto de
+        // entrada e decodificar. Com pouco tempo, fica a transição de reserva
+        // (a reserva já vem baixando desde o começo da faixa).
+        if start_native <= a_deck.native_position() + rate as u64 * MIX_LEAD_SECS {
             return;
         }
         let len = ((plan.duration * rate as f64).round() as u64).max(rate as u64 / 100);
@@ -433,6 +435,7 @@ impl Inner {
             swap_at: (plan.swap_at * len as f64) as u64,
             beat: (plan.beat * rate as f64) as u64,
             echo_buf: vec![0.0; rate as usize * 2 * 2],
+            echo_pos: 0,
             mute_from: false,
         };
         if let Some(cur) = self.current_deck() {
@@ -827,6 +830,9 @@ impl Drop for Engine {
 // ---- Thread de eventos ----
 
 /// Parado por esse tempo, a saída fecha. No celular é menor (bateria).
+/// Antecedência mínima para preparar a próxima faixa de uma transição do DJ.
+const MIX_LEAD_SECS: u64 = 5;
+
 #[cfg(any(target_os = "android", target_os = "ios"))]
 const IDLE_CLOSE: Duration = Duration::from_secs(30);
 #[cfg(not(any(target_os = "android", target_os = "ios")))]

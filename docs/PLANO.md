@@ -195,6 +195,11 @@ Pedido do usuário: *"um gerenciador de downloads que presta, com configuração
 - **Achados no emulador:** o APK "só arm64" levava bibliotecas x86_64/armv7 de plugins (aparelho x86_64 fechava ao abrir; agora só `arm64-v8a`); falha ao iniciar o motor deixava a abertura parada para sempre (agora cpal protegido e tela com o motivo e o relatório).
 - **Testes:** 98 no Flutter (eram 57), incluindo segurança, acessibilidade, timer, rede, diagnóstico e o aperto de mão do Connect de ponta a ponta; no Rust, validação das análises e um fuzz do planejador.
 
+### Eco do AutoMix: travadinha e corte cedo (15/09, achado pelo usuário)
+- **Travadinha só no modo eco:** a linha de atraso começava vazia no corte, então a primeira repetição só chegaria uma batida depois e sobrava um buraco (com a próxima ainda subindo ao longo de 1 batida). Agora o mixer vai gravando a faixa atual na linha do eco **antes** da transição começar (`prime_echo`), e no corte a repetição entra no lugar da música. Medido no teste `echo_repeats_the_last_beat_without_a_hole`: a batida depois do corte tinha 26% do volume da anterior e agora tem 93% (a seguinte cai para 44%, sumindo como deve).
+- **A música saía cedo demais:** a saída ia para o começo da outro se ela estivesse nos últimos 16 compassos. Nas 4.644 faixas da biblioteca com saída no compasso, isso cortava 8,8 s antes do fim na mediana, 17 s nos 10% piores e até 47 s. Agora sai no máximo ~8 s antes do fim musical (guardando 2 compassos para a cauda do eco): mediana 7,4 s, 90% até 8,9 s, máximo 21 s.
+- **De quebra:** o mixer só começa uma transição com a próxima tendo pelo menos 0,5 s decodificados (antes bastavam 250 ms), e o planejador exige 5 s de antecedência para preparar a próxima (antes 2 s), para a transição não começar com a faixa seca.
+
 ### Limitações conhecidas
 - **Opus:** o symphonia não decodifica. Do servidor, o app pede a conversão para MP3 sozinho; arquivos Opus do aparelho (modo sem servidor) ainda não tocam (há decodificadores Opus em Rust puro para avaliar).
 - **AAC (m4a):** o silêncio de "priming" (~23 ms) não é cortado. O AutoMix mede no áudio decodificado, então as batidas continuam alinhadas.

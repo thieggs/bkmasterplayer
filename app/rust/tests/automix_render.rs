@@ -101,6 +101,7 @@ fn check_pair(a_path: PathBuf, b_path: PathBuf, bpm_a: f64, bpm_b: f64) {
         swap_at: (p.swap_at * len as f64) as u64,
         beat: (p.beat * rf) as u64,
         echo_buf: vec![0.0; rate as usize * 4],
+        echo_pos: 0,
         mute_from: true,
     };
     let _ = cmd_tx.push(MixerCmd::SetNext(
@@ -152,4 +153,72 @@ fn check_pair(a_path: PathBuf, b_path: PathBuf, bpm_a: f64, bpm_b: f64) {
     assert!(spread < 4.0, "batidas de B derivam em relação às de A");
     // Alinhamento absoluto (inclui o viés da detecção): dentro de 10 ms.
     assert!(worst < 10.0, "batidas de B desalinhadas");
+}
+
+/// Transição por eco (BPMs longe demais para casar): ao cortar A, a linha do
+/// eco tem que repetir a última batida dela no lugar da música. A linha
+/// começava vazia, então a primeira repetição só vinha uma batida depois e
+/// ficava um buraco — a "travadinha" que só aparecia no modo eco.
+#[test]
+fn echo_repeats_the_last_beat_without_a_hole() {
+    let a_path = root().join("../../dev/music/Sintético Beats/Pista Um/01 - Abertura.flac");
+    if !a_path.exists() {
+        eprintln!("sem dev/music — pulando");
+        return;
+    }
+    let rate = 48000u32;
+    let rf = rate as f64;
+    let (beat, bar) = (0.5, 2.0); // A: 120 BPM, 4/4
+    let cut = 4.0;
+    // B em silêncio: o que sair depois do corte é só o eco de A.
+    let silence = std::env::temp_dir().join(format!("bk-echo-silence-{}.wav", std::process::id()));
+    {
+        let spec = hound::WavSpec { channels: 2, sample_rate: rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
+        let mut w = hound::WavWriter::create(&silence, spec).unwrap();
+        for _ in 0..(rate as usize * 10 * 2) {
+            w.write_sample(0i16).unwrap();
+        }
+        w.finalize().unwrap();
+    }
+    let (cmd_tx, cmd_rx) = rtrb::RingBuffer::new(64);
+    let (ev_tx, _ev_rx) = rtrb::RingBuffer::new(1024);
+    let mut mixer = Mixer::new(rate, cmd_rx, ev_tx);
+    let mut cmd_tx = cmd_tx;
+    let _ = cmd_tx.push(MixerCmd::Play(deck(1, a_path, rate, 0, None)));
+    let exec = AutomixExec {
+        style: player_engine::engine::automix::MixStyle::Echo,
+        start_native: (cut * rf) as u64,
+        len: (2.0 * bar * rf) as u64,
+        swap_at: 0,
+        beat: (beat * rf) as u64,
+        echo_buf: vec![0.0; rate as usize * 4],
+        echo_pos: 0,
+        mute_from: false,
+    };
+    let _ = cmd_tx.push(MixerCmd::SetNext(Some(deck(2, silence.clone(), rate, 0, None)), Transition::Automix(Box::new(exec))));
+    std::thread::sleep(Duration::from_millis(500));
+
+    let total = ((cut + 2.0 * bar) * rf) as usize;
+    let mut out = Vec::with_capacity(total * 2);
+    let mut block = vec![0.0f32; 1024];
+    while out.len() < total * 2 {
+        mixer.render(&mut block);
+        out.extend_from_slice(&block);
+        std::thread::sleep(Duration::from_secs_f64(512.0 / rf / 8.0));
+    }
+    let _ = std::fs::remove_file(&silence);
+    let mono: Vec<f32> = out.chunks(2).map(|f| (f[0] + f[1]) * 0.5).collect();
+    let energy = |from: f64, to: f64| -> f32 {
+        let (a, b) = ((from * rf) as usize, ((to * rf) as usize).min(mono.len()));
+        (mono[a..b].iter().map(|x| x * x).sum::<f32>() / (b - a).max(1) as f32).sqrt()
+    };
+    // Última batida de A antes do corte e as duas repetições do eco.
+    let ultima = energy(cut - beat, cut);
+    let eco1 = energy(cut, cut + beat);
+    let eco2 = energy(cut + beat, cut + 2.0 * beat);
+    eprintln!("última batida {ultima:.4} → eco {eco1:.4} → {eco2:.4}");
+    assert!(ultima > 0.01, "A não estava tocando antes do corte");
+    assert!(eco1 > ultima * 0.4, "sem eco na primeira batida depois do corte ({eco1:.4} vs {ultima:.4}): buraco");
+    assert!(eco2 > ultima * 0.1, "o eco não continuou na segunda batida ({eco2:.4})");
+    assert!(eco2 < eco1, "o eco tem que ir sumindo ({eco1:.4} → {eco2:.4})");
 }

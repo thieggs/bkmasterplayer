@@ -43,8 +43,13 @@ pub struct AutomixExec {
     pub swap_at: u64,
     /// Duração de uma batida (frames): rampa da troca de grave e tempo do eco.
     pub beat: u64,
-    /// Linha de atraso pré-alocada para o eco (estéreo intercalado).
+    /// Linha de atraso pré-alocada para o eco (estéreo intercalado). O mixer
+    /// já vai gravando a faixa atual nela antes da transição começar, para a
+    /// primeira repetição sair no lugar da música, sem buraco.
     pub echo_buf: Vec<f32>,
+    /// Posição de escrita na linha de atraso.
+    #[doc(hidden)]
+    pub echo_pos: usize,
     /// Só para testes: silencia A para medir o alinhamento de B.
     pub mute_from: bool,
 }
@@ -303,8 +308,6 @@ struct ActiveTransition {
     kind: Transition,
     pos: u64,
     len: u64,
-    /// Eco: posição de escrita na linha de atraso.
-    echo_pos: usize,
 }
 
 pub struct Mixer {
@@ -323,6 +326,10 @@ pub struct Mixer {
     scratch: Vec<f32>,
     eq: Equalizer,
 }
+
+/// Áudio já decodificado que a próxima precisa ter para a transição começar
+/// sem engasgo (a rede pode oscilar no meio da mixagem).
+const CUSHION_SECS: f32 = 0.5;
 
 impl Mixer {
     pub fn new(rate: u32, cmd_rx: rtrb::Consumer<MixerCmd>, ev_tx: rtrb::Producer<MixerEvent>) -> Self {
@@ -455,11 +462,22 @@ impl Mixer {
         }
     }
 
+    /// A próxima já tem áudio decodificado para aguentar o começo da
+    /// transição? (ou terminou de decodificar: faixa curta)
+    fn next_has_cushion(&self) -> bool {
+        let Some((next, _)) = self.next.as_ref() else { return false };
+        next.src.shared.eof.load(Ordering::Acquire) || next.src.ring.slots() >= (self.rate as f32 * CUSHION_SECS) as usize * 2
+    }
+
     /// Duração da sobreposição para a transição pendente, se já dá pra decidir.
     fn pending_overlap(&self) -> Option<u64> {
         let cur = self.current.as_ref()?;
         let (next, kind) = self.next.as_ref()?;
         if !next.src.shared.ready.load(Ordering::Acquire) || next.src.shared.failed.load(Ordering::Acquire) {
+            return None;
+        }
+        // Mixar com a próxima quase vazia engasga no meio: espera o fôlego.
+        if matches!(kind, Transition::Automix(_) | Transition::Crossfade { .. }) && !self.next_has_cushion() {
             return None;
         }
         match kind {
@@ -516,7 +534,7 @@ impl Mixer {
         next.fx = SlotFx::default();
         let token = next.token();
         self.current = Some(next);
-        self.transition = Some(ActiveTransition { from, kind, pos: 0, len, echo_pos: 0 });
+        self.transition = Some(ActiveTransition { from, kind, pos: 0, len });
         self.shared.current.store(token, Ordering::Relaxed);
         self.shared.transitioning.store(true, Ordering::Relaxed);
         self.emit(MixerEvent::Started(token));
@@ -588,6 +606,12 @@ impl Mixer {
                     }
                 }
                 _ => {
+                    // Transição de eco esperando: a linha de atraso já vai
+                    // guardando a música, para a primeira repetição sair no
+                    // lugar dela quando a troca chegar (senão fica um buraco).
+                    if let Some((_, Transition::Automix(exec))) = self.next.as_mut() {
+                        prime_echo(exec, &scratch[..n * 2]);
+                    }
                     for i in 0..n {
                         let g = gain * cur.fade.tick();
                         block[i * 2] += scratch[i * 2] * g;
@@ -603,7 +627,7 @@ impl Mixer {
             match &mut tr.kind {
                 Transition::Automix(exec) => {
                     let (pos, len) = (tr.pos, tr.len);
-                    automix_outgoing(&mut tr.from, exec, pos, len, &mut tr.echo_pos, &mut scratch[..n * 2], rate);
+                    automix_outgoing(&mut tr.from, exec, pos, len, &mut scratch[..n * 2], rate);
                     for i in 0..n {
                         let g = gain * tr.from.fade.tick();
                         block[i * 2] += scratch[i * 2] * g;
@@ -780,12 +804,25 @@ fn automix_incoming(slot: &mut Slot, e: &AutomixExec, pos: u64, len: u64, buf: &
 }
 
 /// Faixa que sai (A): volume, grave cortado depois da troca, passa-altas, eco.
+/// Guarda a música na linha de atraso do eco antes da transição começar.
+fn prime_echo(e: &mut AutomixExec, buf: &[f32]) {
+    if e.style != MixStyle::Echo || e.echo_buf.is_empty() {
+        return;
+    }
+    let frames = e.echo_buf.len() / 2;
+    for i in 0..buf.len() / 2 {
+        let w = e.echo_pos % frames;
+        e.echo_buf[w * 2] = buf[i * 2];
+        e.echo_buf[w * 2 + 1] = buf[i * 2 + 1];
+        e.echo_pos = w + 1;
+    }
+}
+
 fn automix_outgoing(
     slot: &mut Slot,
     e: &mut AutomixExec,
     pos: u64,
     len: u64,
-    echo_pos: &mut usize,
     buf: &mut [f32],
     rate: u32,
 ) {
@@ -822,18 +859,26 @@ fn automix_outgoing(
                 r2 = slot.fx.sweep.run(r, 1).1;
             }
             MixStyle::Echo => {
-                // Seco até o ponto do eco; depois só a cauda do eco (1 batida, realimentação 0,55).
-                let dry = if t < s { 1.0 } else { (1.0 - (t - s) / (0.02 * rate as f32 / len_f)).clamp(0.0, 1.0) };
-                let feed = if t >= s && t < s + b { 1.0 } else { 0.0 };
+                // Antes do corte (t < s): a música toca normal e vai enchendo a
+                // linha de atraso. No corte: some em 20 ms e o que continua é a
+                // linha, repetindo a última batida e sumindo (0,55 por
+                // repetição). Sem esse "pré-rolo", a primeira repetição só
+                // viria uma batida depois e ficava um buraco no meio da troca.
+                let fade = (0.02 * rate as f32 / len_f).max(1e-6);
+                let dry = if t < s { 1.0 } else { (1.0 - (t - s) / fade).clamp(0.0, 1.0) };
+                let echoing = t >= s;
                 if !e.echo_buf.is_empty() {
-                    let w = *echo_pos % echo_frames;
+                    let w = e.echo_pos % echo_frames;
                     let rd = (w + echo_frames - delay) % echo_frames;
                     let (dl, dr) = (e.echo_buf[rd * 2], e.echo_buf[rd * 2 + 1]);
-                    e.echo_buf[w * 2] = l * feed + dl * 0.55;
-                    e.echo_buf[w * 2 + 1] = r * feed + dr * 0.55;
-                    *echo_pos = w + 1;
-                    l2 = l * dry + dl * 0.8;
-                    r2 = r * dry + dr * 0.8;
+                    // Grava a música antes do corte; depois, só a realimentação.
+                    let (wl, wr) = if echoing { (dl * 0.55, dr * 0.55) } else { (l, r) };
+                    e.echo_buf[w * 2] = wl;
+                    e.echo_buf[w * 2 + 1] = wr;
+                    e.echo_pos = w + 1;
+                    let wet = if echoing { 0.8 } else { 0.0 };
+                    l2 = l * dry + dl * wet;
+                    r2 = r * dry + dr * wet;
                 } else {
                     l2 = l * dry;
                     r2 = r * dry;

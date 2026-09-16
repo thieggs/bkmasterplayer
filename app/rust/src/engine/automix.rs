@@ -160,14 +160,13 @@ fn tempo_jump_plan(a: &TrackAnalysis, b: &TrackAnalysis, ga: &BeatGrid, gb: &Bea
     let a_end = if s.trim_silence { a.last_sound } else { a.duration };
     let bar_a = ga.bar_seconds();
     let a_stop = ga.nearest_bar(a_end).min(a.duration);
-    // Onde sair: começo da outro, se estiver nos últimos 16 compassos (a outro
-    // de A não casa com B mesmo), senão 4 compassos antes do fim musical.
-    let mut at = match a.outro_start {
-        Some(o) if a_stop - o <= 16.0 * bar_a => ga.nearest_bar(o),
-        _ => a_stop - 4.0 * bar_a,
-    };
+    // Onde sair: 4 compassos antes do fim musical (ou depois disso, se a outro
+    // começar mais tarde ainda). Sair no começo de uma outro longa cortava a
+    // música cedo demais.
+    let mut at = exit_bar(a.outro_start.map(|o| ga.nearest_bar(o)), a_stop, bar_a);
     at = at.max(ga.bar_at_or_after(a_now + 4.0));
     // O eco repete a batida de A por 2 compassos, sumindo (0,55 por repetição).
+    // A linha do eco é enchida antes, com a música ainda tocando (ver mixer).
     let duration = if style == MixStyle::Cut { ga.period } else { 2.0 * bar_a };
     if at + duration > a.duration {
         return unclear_plan(a, b, s, a_now, "BPM muito diferente");
@@ -182,7 +181,7 @@ fn tempo_jump_plan(a: &TrackAnalysis, b: &TrackAnalysis, ga: &BeatGrid, gb: &Bea
         duration,
         speed: 1.0,
         ramp: 0.0,
-        // Eco já no primeiro tempo: A para e ecoa, B entra ao longo de 1 batida.
+        // Corta no primeiro tempo do compasso e ecoa; B entra ao longo de 1 batida.
         swap_at: 0.0,
         beat: ga.period,
         beatmatched: false,
@@ -235,19 +234,30 @@ pub fn bar_entry(b: &TrackAnalysis) -> Option<f64> {
     })
 }
 
-/// Onde A sai numa transição no compasso: começo da outro (nos últimos 16
-/// compassos) ou 4 compassos antes do fim musical, num compasso da grade
+/// Onde A sai numa transição no compasso: 4 compassos antes do fim musical
+/// (ou mais tarde, se a outro começar depois disso), num compasso da grade
 /// estável ou num downbeat regular da rede, no futuro e com espaço para o
 /// eco. (instante, compasso, batida), em s.
+/// Ponto de saída: 4 compassos antes do fim musical, e nunca mais de ~8 s
+/// antes (em música lenta, 4 compassos são meia dúzia de segundos a mais). O
+/// eco precisa de 2 compassos, então esse é o limite do outro lado. Se a outro
+/// começar depois disso, respeita a outro (final curto). Antes, uma outro
+/// longa fazia a música sair até 47 s antes do fim.
+fn exit_bar(outro: Option<f64>, stop: f64, bar: f64) -> f64 {
+    let early = (4.0 * bar).min(8.0f64.max(2.0 * bar));
+    let late = stop - early;
+    match outro {
+        Some(o) if o > late => o.min(stop - 2.0 * bar),
+        _ => late,
+    }
+}
+
 pub fn bar_exit(a: &TrackAnalysis, s: &AutomixSettings, a_now: f64) -> Option<(f64, f64, f64)> {
     let a_end = if s.trim_silence { a.last_sound } else { a.duration };
     if let Some(g) = steady_grid(a, a_end - 20.0) {
         let bar = g.bar_seconds();
         let stop = g.nearest_bar(a_end).min(a.duration);
-        let at = match a.outro_start {
-            Some(o) if stop - o <= 16.0 * bar => g.nearest_bar(o),
-            _ => stop - 4.0 * bar,
-        };
+        let at = exit_bar(a.outro_start.map(|o| g.nearest_bar(o)), stop, bar);
         let at = at.max(g.bar_at_or_after(a_now + 4.0));
         let off = g.offset_near(at, at + bar).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
         return (at + 2.0 * bar <= a.duration).then_some((at + off, bar, g.period));
@@ -262,10 +272,7 @@ pub fn bar_exit(a: &TrackAnalysis, s: &AutomixSettings, a_now: f64) -> Option<(f
     }
     iv.sort_by(|x, y| x.partial_cmp(y).unwrap());
     let bar0 = iv[iv.len() / 2];
-    let want = match a.outro_start {
-        Some(o) if a_end - o <= 16.0 * bar0 => o,
-        _ => a_end - 4.0 * bar0,
-    };
+    let want = exit_bar(a.outro_start, a_end, bar0);
     // O downbeat regular (no compasso típico) mais perto do alvo.
     let (at, bar) = downs
         .iter()
@@ -293,14 +300,15 @@ fn bar_plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now: f6
     };
     let (at, bar, beat) = bar_exit(a, s, a_now)?;
     let b_in = bar_entry(b)?;
+    let duration = if style == MixStyle::Cut { beat } else { 2.0 * bar };
     Some(MixPlan {
         style,
         from_start: at,
         to_start: b_in,
-        duration: if style == MixStyle::Cut { beat } else { 2.0 * bar },
+        duration,
         speed: 1.0,
         ramp: 0.0,
-        // Eco já no primeiro tempo: A para e ecoa, B entra ao longo de 1 batida.
+        // Corta no primeiro tempo do compasso e ecoa; B entra ao longo de 1 batida.
         swap_at: 0.0,
         beat,
         beatmatched: false,
@@ -735,6 +743,22 @@ mod tests {
             assert!((m.output_at(i) - out).abs() < 1e-3, "{out}");
         }
         assert!((m.speed_at(48000.0 * 40.0) - 0.98).abs() < 1e-9);
+    }
+
+    #[test]
+    fn echo_exit_stays_close_to_the_end() {
+        // Outro longa (12 compassos antes do fim): antes a saída ia para o
+        // começo dela e cortava a música ~32 s cedo; agora sai perto do fim.
+        let a = fake(90.0, 240.0, 16.0, 12.0, "8A");
+        let b = fake(128.0, 240.0, 16.0, 16.0, "8A");
+        let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        assert_eq!(p.style, MixStyle::Echo, "{p:?}");
+        let bar = 4.0 * 60.0 / 90.0;
+        let antes_do_fim = a.last_sound - p.from_start;
+        assert!(antes_do_fim <= 9.0, "saiu {antes_do_fim:.1}s antes do fim");
+        assert!(antes_do_fim >= 2.0 * bar - 0.01, "sem espaço para a cauda do eco ({antes_do_fim:.1}s)");
+        // A cauda do eco cabe no que resta da faixa.
+        assert!(p.from_start + p.duration <= a.duration + 1e-6, "{p:?}");
     }
 
     #[test]

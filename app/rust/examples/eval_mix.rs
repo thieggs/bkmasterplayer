@@ -209,6 +209,7 @@ fn main() -> anyhow::Result<()> {
             swap_at: (p.swap_at * len as f64) as u64,
             beat: (p.beat * rf) as u64,
             echo_buf: vec![0.0; rate as usize * 4],
+            echo_pos: 0,
             mute_from: true,
         };
         let _ = cmd_tx.push(MixerCmd::SetNext(
