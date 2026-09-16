@@ -70,6 +70,35 @@ cd app && flutter run -d <aparelho>   # desenvolvimento (celular ou emulador)
 
 A assinatura de release vem de `app/android/key.properties` (fora do git); sem ele o APK sai com a chave de debug.
 
+## Windows
+
+O Flutter só compila app de Windows em host Windows
+([flutter#110585](https://github.com/flutter/flutter/issues/110585)), então o
+build é nativo. O que precisa estar instalado, com as pegadinhas que custaram
+tempo:
+
+| | por quê |
+|---|---|
+| **VS Build Tools 2022** com a carga C++ **e o componente ATL** | o ATL não vem na carga padrão, e o `flutter_secure_storage` usa `atlstr.h` |
+| **LLVM** (`LIBCLANG_PATH` apontando para o `bin`) | o `signalsmith-stretch` usa bindgen, que precisa da `libclang.dll`; no Linux ela vem com o sistema |
+| **Flutter na mesma versão do `pubspec.yaml`** | uma versão antiga traz um Dart velho demais e o `pub get` recusa |
+| **Rust** (toolchain MSVC) e **Inno Setup 6** | o motor e o instalador |
+
+```powershell
+winget install Microsoft.VisualStudio.2022.BuildTools --override `
+  "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --includeRecommended"
+winget install Rustlang.Rustup ; winget install LLVM.LLVM ; winget install JRSoftware.InnoSetup
+cd app ; flutter build windows --release
+cd .. ; iscc /DVersao=1.0.0 dev\windows\bkmasterplayer.iss   # sai em dist\
+```
+
+Duas coisas que só mordem quem automatiza por SSH: **não redirecione a saída do
+`flutter.bat` para arquivo** (`>>` ou `Tee-Object`) — ele usa um handle de
+arquivo para travar o cache e entra em laço de "Building flutter tool..."; deixe
+a saída no console e guarde o log do outro lado. E **não baixe nada com
+`Invoke-WebRequest`**: medi 0,85 Mbps contra 237 Mbps do `curl.exe`, que já vem
+no Windows.
+
 ## Análise no servidor (BK Analyzer)
 
 O AutoMix precisa de uma análise de cada música (batidas, compassos, tom). O
