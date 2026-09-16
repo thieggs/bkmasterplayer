@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "io.github.playermusica" "\0"
-            VALUE "FileDescription", "player_musica" "\0"
+            VALUE "CompanyName", "thieggs" "\0"
+            VALUE "FileDescription", "BKmasterplayer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "player_musica" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 io.github.playermusica. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 thieggs. Licenca MIT." "\0"
             VALUE "OriginalFilename", "player_musica.exe" "\0"
-            VALUE "ProductName", "player_musica" "\0"
+            VALUE "ProductName", "BKmasterplayer" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
