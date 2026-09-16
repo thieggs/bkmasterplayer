@@ -14,6 +14,7 @@ import '../data/accounts.dart';
 import '../data/lastfm.dart';
 import '../data/local/local_provider.dart';
 import '../data/online_meta.dart';
+import '../data/portal.dart';
 import '../data/settings.dart';
 import '../data/theme_library.dart';
 import '../data/ui_prefs.dart';
@@ -197,10 +198,9 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     }
     final auth = await store.auth(account.id);
     if (auth == null) return null;
-    final provider = SubsonicProvider(
-      accountId: account.id,
-      client: SubsonicClient(baseUrl: account.baseUrl, localUrl: account.localUrl, auth: auth),
-    );
+    final client = SubsonicClient(baseUrl: account.baseUrl, localUrl: account.localUrl, auth: auth);
+    _wirePortal(client, account);
+    final provider = SubsonicProvider(accountId: account.id, client: client);
     try {
       // Em casa, já começa pelo endereço local (teste de ~1,5 s no máximo).
       if (provider.hasLocalAddress) await provider.checkLocalAddress();
@@ -209,6 +209,41 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     } on SubsonicException catch (e) {
       if (e.isAuthError) return null;
       return Session(account: account, provider: provider, offlineReason: e.message);
+    }
+  }
+
+  /// Liga o cliente ao portal da conta, se ela tiver um.
+  ///
+  /// Quando o endereço principal para de responder, o cliente chama isto; o
+  /// portal diz onde o servidor está agora e a conta é atualizada, para o
+  /// app já abrir no lugar certo da próxima vez.
+  void _wirePortal(SubsonicClient client, ServerAccount account) {
+    final portal = account.portalUrl;
+    if (portal == null) return;
+    client.onPortalLookup = () async {
+      final notice = await Portal.fetch(portal, pinnedKey: account.portalKey);
+      final store = ref.read(accountStoreProvider);
+      final saved = store.list().where((x) => x.id == account.id).firstOrNull ?? account;
+      if (notice.music != saved.baseUrl) {
+        await store.update(saved.copyWith(baseUrl: notice.music));
+      }
+      _adoptAnalysisServer(notice, previous: saved.baseUrl);
+      return notice.music;
+    };
+  }
+
+  /// Aponta a análise do AutoMix para o portal também.
+  ///
+  /// Só mexe se a pessoa não tiver escolhido outro servidor à mão, ou se o
+  /// que está lá é o endereço antigo do próprio portal.
+  void _adoptAnalysisServer(PortalNotice notice, {String? previous}) {
+    final analysis = notice.analysis;
+    if (analysis == null) return;
+    final settings = ref.read(settingsProvider.notifier);
+    final current = ref.read(settingsProvider).analysisServer;
+    final stale = previous != null && current != null && current.startsWith(previous);
+    if (current == null || stale) {
+      settings.update((s) => s.copyWith(analysisServer: analysis));
     }
   }
 
@@ -225,7 +260,16 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     final connectKey = await compute(deriveConnectKeyInIsolate, [username, password]);
     final auth = SubsonicAuth.fromPassword(username, password, connectKey: connectKey);
     final raw = url.trim();
-    final candidates = raw.contains('://') ? [raw] : ['https://$raw', 'http://$raw'];
+    // O endereço colado pode ser um portal (um link fixo que diz onde o
+    // servidor está hoje) em vez do servidor em si. Se for, é dele que sai
+    // o endereço de verdade — e a chave que o app fixa para não aceitar,
+    // depois, um anúncio de outra pessoa.
+    final notice = await Portal.probe(raw);
+    final candidates = notice != null
+        ? [notice.music]
+        : raw.contains('://')
+            ? [raw]
+            : ['https://$raw', 'http://$raw'];
     SubsonicException? error;
     for (final candidate in candidates) {
       final client = SubsonicClient(baseUrl: candidate, localUrl: localUrl, auth: auth);
@@ -242,12 +286,20 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       }
       final account = ServerAccount(
         id: id,
-        name: (name == null || name.trim().isEmpty) ? '${info.type} — ${Uri.parse(client.baseUrl).host}' : name.trim(),
+        name: (name == null || name.trim().isEmpty)
+            ? (notice?.name.isNotEmpty ?? false ? notice!.name : '${info.type} — ${Uri.parse(client.baseUrl).host}')
+            : name.trim(),
         baseUrl: client.remoteUrl,
         username: username,
         localUrl: client.localUrl,
+        portalUrl: notice != null ? Portal.normalize(raw) : null,
+        portalKey: notice?.key,
       );
       await ref.read(accountStoreProvider).save(account, auth);
+      if (notice != null) {
+        _wirePortal(client, account);
+        _adoptAnalysisServer(notice);
+      }
       if (provider.hasLocalAddress) unawaited(provider.checkLocalAddress());
       state = AsyncData(Session(account: account, provider: provider));
       return;

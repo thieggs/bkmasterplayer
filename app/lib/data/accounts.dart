@@ -15,6 +15,8 @@ class ServerAccount {
     required this.baseUrl,
     required this.username,
     this.localUrl,
+    this.portalUrl,
+    this.portalKey,
   });
 
   final String id;
@@ -26,8 +28,33 @@ class ServerAccount {
   /// responde, por ser mais rápido.
   final String? localUrl;
 
-  ServerAccount withLocalUrl(String? url) =>
-      ServerAccount(id: id, name: name, baseUrl: baseUrl, username: username, localUrl: url);
+  /// Endereço fixo do portal (opcional). Quando [baseUrl] para de responder,
+  /// é a ele que o app pergunta o endereço novo. Ver [Portal].
+  final String? portalUrl;
+
+  /// Chave pública que assinou o primeiro anúncio deste portal. A partir da
+  /// segunda vez, anúncio que não venha dela é recusado.
+  final String? portalKey;
+
+  ServerAccount copyWith({String? baseUrl, String? localUrl, String? portalUrl, String? portalKey}) => ServerAccount(
+        id: id,
+        name: name,
+        baseUrl: baseUrl ?? this.baseUrl,
+        username: username,
+        localUrl: localUrl ?? this.localUrl,
+        portalUrl: portalUrl ?? this.portalUrl,
+        portalKey: portalKey ?? this.portalKey,
+      );
+
+  ServerAccount withLocalUrl(String? url) => ServerAccount(
+        id: id,
+        name: name,
+        baseUrl: baseUrl,
+        username: username,
+        localUrl: url,
+        portalUrl: portalUrl,
+        portalKey: portalKey,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -35,6 +62,8 @@ class ServerAccount {
         'baseUrl': baseUrl,
         'username': username,
         if (localUrl != null) 'localUrl': localUrl,
+        if (portalUrl != null) 'portalUrl': portalUrl,
+        if (portalKey != null) 'portalKey': portalKey,
       };
 
   factory ServerAccount.fromJson(Map<String, dynamic> j) => ServerAccount(
@@ -43,6 +72,11 @@ class ServerAccount {
         baseUrl: j['baseUrl'] as String,
         username: j['username'] as String? ?? '',
         localUrl: j['localUrl'] as String?,
+        portalUrl: j['portalUrl'] as String?,
+        // Só aceita o formato certo: 64 dígitos hexadecimais.
+        portalKey: (j['portalKey'] is String && RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(j['portalKey'] as String))
+            ? (j['portalKey'] as String).toLowerCase()
+            : null,
       );
 }
 

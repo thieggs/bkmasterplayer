@@ -69,7 +69,7 @@ class SubsonicAuth {
 
 class SubsonicClient {
   SubsonicClient({required String baseUrl, String? localUrl, required this.auth, this.clientName = 'BKmasterplayer'})
-      : remoteUrl = normalizeBaseUrl(baseUrl),
+      : _remoteUrl = normalizeBaseUrl(baseUrl),
         _localUrl = _normalizeOptional(localUrl),
         _dio = Dio(BaseOptions(
           connectTimeout: _remoteConnectTimeout,
@@ -83,13 +83,29 @@ class SubsonicClient {
   static const _localConnectTimeout = Duration(seconds: 3);
 
   /// Endereço principal (funciona de qualquer lugar).
-  final String remoteUrl;
+  ///
+  /// Deixa de ser fixo quando a conta tem portal: um servidor atrás de túnel
+  /// grátis troca de nome a cada reinício, e é [onPortalLookup] que traz o
+  /// endereço novo sem a pessoa precisar reconfigurar nada.
+  String _remoteUrl;
+  String get remoteUrl => _remoteUrl;
   String? _localUrl;
   bool _onLocal = false;
   final SubsonicAuth auth;
   final String clientName;
   final Dio _dio;
   final _endpointChanges = StreamController<bool>.broadcast();
+
+  /// Pergunta ao portal qual é o endereço de agora (`null` = não tem portal,
+  /// ou não deu). Quem liga isso é o provider, que também grava a mudança na
+  /// conta. Ver `lib/data/portal.dart`.
+  Future<String?> Function()? onPortalLookup;
+
+  /// Espera mínima entre duas perguntas ao portal: sem isso, uma rajada de
+  /// pedidos falhando viraria uma rajada de perguntas.
+  static const _minBetweenLookups = Duration(seconds: 20);
+  DateTime _lastLookup = DateTime.fromMillisecondsSinceEpoch(0);
+  Future<bool>? _lookupInFlight;
 
   /// Endereço em uso: o da rede de casa quando responde, senão o principal.
   String get baseUrl => _onLocal ? _localUrl! : remoteUrl;
@@ -139,6 +155,38 @@ class SubsonicClient {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Pergunta ao portal o endereço de agora. Devolve se ele mudou.
+  ///
+  /// Uma pergunta por vez e no máximo uma a cada [_minBetweenLookups]: quem
+  /// chama é o caminho de erro, que pode disparar muitas vezes seguidas.
+  Future<bool> _askPortal() {
+    final ask = onPortalLookup;
+    if (ask == null) return Future.value(false);
+    final flying = _lookupInFlight;
+    if (flying != null) return flying;
+    if (DateTime.now().difference(_lastLookup) < _minBetweenLookups) return Future.value(false);
+    _lastLookup = DateTime.now();
+    final f = () async {
+      try {
+        final fresh = await ask();
+        if (fresh == null || fresh.trim().isEmpty) return false;
+        final next = normalizeBaseUrl(fresh);
+        if (next == _remoteUrl) return false;
+        _remoteUrl = next;
+        // Quem estava no endereço de casa continua nele; o que mudou foi o
+        // de fora.
+        if (!_onLocal) _endpointChanges.add(false);
+        return true;
+      } catch (_) {
+        // Portal fora do ar ou anúncio recusado: segue com o que tem.
+        return false;
+      }
+    }();
+    _lookupInFlight = f;
+    f.whenComplete(() => _lookupInFlight = null);
+    return f;
   }
 
   static bool _isUnreachable(DioException e) => switch (e.type) {
@@ -196,6 +244,11 @@ class SubsonicClient {
       // Saiu de casa: o endereço local sumiu; tenta de novo pelo principal.
       if (_onLocal && _isUnreachable(e)) {
         _setLocal(false);
+        return get(endpoint, params);
+      }
+      // O principal também não responde: o túnel pode ter trocado de nome.
+      // Pergunta ao portal e, se o endereço mudou mesmo, tenta uma vez.
+      if (_isUnreachable(e) && await _askPortal()) {
         return get(endpoint, params);
       }
       throw SubsonicException(_networkMessage(e));

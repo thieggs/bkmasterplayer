@@ -15,8 +15,16 @@ name = "bk-analyzer"
 path = "src/bin/bk_analyzer/main.rs"
 required-features = ["analyzer-server"]
 
+[[bin]]
+name = "bk-portal"
+path = "src/bin/bk_portal/main.rs"
+required-features = ["portal-server"]
+
 [features]
 analyzer-server = ["dep:tiny_http", "dep:md-5", "dep:flate2"]
+# Portal: um endereço só para o Navidrome e a análise, fora do app.
+# cargo build --release --features portal-server --bin bk-portal
+portal-server = ["dep:tiny_http"]
 
 [dependencies]
 flutter_rust_bridge = "=2.13.0"
@@ -40,6 +48,8 @@ signalsmith-stretch = "0.1.3"
 ebur128 = "0.1.10"
 rustfft = "6.4"
 sha2 = "0.10"
+# Assina o anúncio do portal (o app só confere; a chave fica no servidor).
+ed25519-dalek = "3.0"
 rayon = "1.10"
 tiny_http = { version = "0.12", optional = true }
 md-5 = { version = "0.10", optional = true }
