@@ -94,7 +94,7 @@ void main() {
 
   group('conta com portal', () {
     test('guarda e relê o endereço do portal e a chave fixada', () {
-      const key = 'ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef561234';
+      const key = 'ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef561234'; // gitleaks:allow (chave pública falsa do teste)
       const a = ServerAccount(
         id: '1',
         name: 'Casa',
