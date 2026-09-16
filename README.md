@@ -96,6 +96,40 @@ A análise do servidor só é usada quando o app toca o mesmo arquivo analisado
 (o original, sem limite de qualidade); fora de casa, sem o servidor, o aparelho
 analisa como antes.
 
+## Um endereço só, de qualquer lugar (BK Portal)
+
+Servidor de casa exposto por túnel grátis (Cloudflare) ganha um endereço novo a
+cada reinício, e o endereço guardado no aparelho para de valer. O **BK Portal**
+resolve separando as duas coisas:
+
+- um endereço **fixo e lento** (o Funnel do Tailscale) que só serve um anúncio
+  assinado dizendo onde o servidor está agora;
+- um endereço **que muda e é rápido** (o túnel), por onde passa a música.
+
+O portal ainda põe o Navidrome e o BK Analyzer atrás do mesmo link: o Navidrome
+na raiz (a interface web dele usa caminhos absolutos) e a análise em
+`/bk/analise`. Quem recebe o link cola na tela de entrar e o app se configura
+sozinho; quando o túnel troca de nome, o app pergunta ao portal e segue.
+
+```bash
+cd app/rust && cargo build --release --features portal-server --bin bk-portal
+bk-portal serve --navidrome http://127.0.0.1:4533 --analyzer http://127.0.0.1:4540 \
+                --cloudflared ~/cloudflared/cloudflared --nome "Servidor do Fulano"
+sudo tailscale funnel --bg 4530      # o endereço fixo passa a ser o portal
+bk-portal link                       # o link para mandar, e a impressão digital da chave
+```
+
+O anúncio é assinado com Ed25519 e a chave particular não sai da máquina de
+casa. O app fixa a chave pública na primeira vez, como o SSH faz, e depois
+recusa anúncio de outra — sem isso, quem escrevesse no anúncio mandaria o app,
+e a senha de quem o usa, para o servidor que quisesse. Confira a impressão
+digital com quem passou o link: ela aparece no app em Ajustes → Conta e
+servidor e no `bk-portal link`.
+
+Do BK Analyzer só saem para a internet `/api/hello`, `/api/summary` e
+`/api/analysis/`; o painel e a API dos trabalhadores ficam para quem entra pela
+rede de casa.
+
 ## Testes
 
 ```bash

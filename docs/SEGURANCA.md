@@ -36,6 +36,9 @@ fuzzing para o que lê arquivo de fora.
   da Festa), análises do servidor, temas importados.
 - **Android:** componentes exportados (tela, serviço de mídia, botão de mídia,
   capas do Android Auto), backup.
+- **BK Portal** (16/09/2026): porta 4530 só no localhost, mas exposta à
+  internet inteira pelo túnel da Cloudflare e pelo Funnel do Tailscale. É a
+  primeira superfície do projeto aberta para fora da rede de casa.
 
 ## Achados e correções
 
@@ -98,6 +101,35 @@ protegido (aviso, senha, ativação), buscas e diagnóstico conferidos na tela. 
 aí que apareceram os dois últimos achados da tabela (ABIs do APK e a abertura
 parada); o próprio registro de diagnóstico mostrou o erro na primeira tentativa.
 
+## BK Portal: decisões de segurança (16/09/2026)
+
+O portal publica um anúncio dizendo onde o servidor está agora. Sem cuidado
+isso é um redirecionamento cego — quem escrevesse no anúncio mandaria o app, e
+a senha de quem o usa, para o servidor que quisesse. O que foi feito:
+
+- **Anúncio assinado (Ed25519).** A chave particular fica só na máquina de
+  casa, em arquivo modo 600. O app confere a assinatura no Rust
+  (`crate::portal`), nunca no Dart.
+- **Chave fixada na primeira vez** (como o SSH). Anúncio bem assinado mas por
+  outra chave é recusado, não seguido; o app nunca decide isso sozinho. A
+  impressão digital aparece nos Ajustes e no `bk-portal link`, no mesmo
+  formato, para conferir de viva voz.
+- **Anúncio vence em 12 h.** Endereço sorteado pelo túnel grátis pode ser
+  reciclado para outra pessoa; um anúncio velho deixa de servir de desvio.
+- **Só `https`.** `http` só é aceito para endereço de casa (IP privado,
+  `localhost`, `.local`, faixa da Tailscale). Senão um anúncio poderia rebaixar
+  a conexão e a senha sairia em texto puro.
+- **Superfície do analyzer cortada.** Pela internet só passam `/api/hello`,
+  `/api/summary` e `/api/analysis/`. O painel e a API dos trabalhadores — que
+  baixa áudio com o login do dono — ficam para quem entra pela rede de casa.
+- **Cabeçalhos de identidade apagados na entrada.** `Remote-User`,
+  `Remote-Email`, `Remote-Name`, `X-Forwarded-User` e `X-Authenticated-User`
+  são removidos: o Navidrome pode ser configurado para confiar neles, e vindos
+  de fora só podem ser tentativa de entrar como outra pessoa.
+- **Sem seguir redirecionamento** e sem compressão entre o portal e a máquina
+  de casa (o cabeçalho repassado passaria a mentir).
+- **Limites:** anúncio de no máximo 8 KB, endereço de 512, nome de 80.
+
 ## Riscos que ficam (aceitos)
 
 - **Rede local sem criptografia.** Connect e Festa falam HTTP e WebSocket
@@ -118,6 +150,18 @@ parada); o próprio registro de diagnóstico mostrou o erro na primeira tentativ
 - **Avisos de manutenção** em dependências indiretas (`adler`, `derivative`,
   `instant`, via flutter_rust_bridge e souvlaki): não são vulnerabilidades;
   saem quando essas bibliotecas atualizarem.
+- **Navidrome exposto à internet pelo portal.** Quem tiver o link chega na
+  tela de entrada do Navidrome; o que segura é a senha dele. É a troca
+  consciente por poder compartilhar com amigos. O Navidrome tem limite de
+  tentativas próprio, e o túnel fica atrás da Cloudflare.
+- **Endereço do túnel é público por desenho.** O anúncio fica num endereço
+  fixo e sem senha: quem souber o link do portal descobre o túnel de hoje. A
+  proteção não é o segredo do endereço, é a senha do Navidrome.
+- **Primeira conexão é confiança cega** (como o SSH na primeira vez): se
+  alguém trocasse o anúncio *antes* de o app fixar a chave, passaria. Daí a
+  impressão digital para conferir de viva voz.
+- **Túnel grátis não tem garantia.** É produto de teste da Cloudflare, sem
+  SLA; se cair, o Funnel continua servindo a música, devagar.
 - **Painel do coordenador sem checagem de `Host`** (DNS rebinding): o cookie é
   preso ao endereço e `SameSite=Strict`, então um site de fora não usa a sua
   sessão; só a primeira configuração (antes de qualquer login) ficaria exposta.
