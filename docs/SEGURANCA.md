@@ -129,6 +129,24 @@ a senha de quem o usa, para o servidor que quisesse. O que foi feito:
 - **Sem seguir redirecionamento** e sem compressão entre o portal e a máquina
   de casa (o cabeçalho repassado passaria a mentir).
 - **Limites:** anúncio de no máximo 8 KB, endereço de 512, nome de 80.
+- **Caminho com `..` é recusado na análise** (achado na revisão do próprio
+  portal). A lista do que sai é por prefixo, e o proxy repassava o caminho
+  como veio: `/api/analysis/../../api/worker/audio` passava pela lista e
+  chegava inteiro ao coordenador. Não era explorável — o coordenador não
+  normaliza e trata o resto como id de análise, que precisa estar no mapa de
+  músicas conhecidas antes de tocar no disco —, mas a barreira dependia de um
+  detalhe de quem está atrás dela. Agora trecho `.` ou `..`, inclusive
+  escapado (`%2e%2e`, `..%2f`), ou contrabarra derrubam o pedido. Recusar em
+  vez de normalizar, para não sobrar dúvida sobre o que o outro lado entende.
+  Armadilha do teste: o `curl` normaliza o `..` antes de enviar; só com
+  `--path-as-is` o vetor aparece.
+
+**Checkup depois do portal** (`./dev/auditoria.sh`, 16/09/2026): nenhuma
+vulnerabilidade em dependências (cargo-audit, osv-scanner), licenças dentro da
+política, zero avisos do clippy e do flutter analyze, 49 testes Rust e 106
+Flutter passando, 45.991 arquivos de áudio corrompidos no fuzzing sem pânico
+nem travamento, e as 5.464 análises reais aceitas pela validação. O gitleaks
+acusou a chave pública falsa do teste do portal — falso positivo, marcado.
 
 ## Riscos que ficam (aceitos)
 
