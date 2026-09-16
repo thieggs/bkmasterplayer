@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../connect/connect_service.dart';
 import '../../../connect/devices_sheet.dart';
+import '../../../src/rust/api/portal.dart' as rust;
 import '../../../core/providers.dart';
 import '../../../data/lastfm.dart';
 import '../../../data/local/local_provider.dart';
@@ -129,6 +130,25 @@ class AccountSettingsPage extends ConsumerWidget {
               onTap: () => _editLocalAddress(context, ref, home),
             );
           }),
+          if (session.account.portalUrl != null) ...[
+            ListTile(
+              leading: const Icon(Icons.travel_explore_outlined),
+              title: Text(l10n.portal),
+              subtitle: Text('${session.account.portalUrl} • ${l10n.portalHint}'),
+            ),
+            if (session.account.portalKey != null)
+              ListTile(
+                leading: const SizedBox(),
+                title: Text(l10n.portalFingerprint),
+                subtitle: Text(l10n.portalFingerprintHint),
+                trailing: SelectableText(
+                  // Mesmo cálculo do `bk-portal link`, para os dois textos
+                  // baterem quando a pessoa confere de viva voz.
+                  rust.portalFingerprint(key: session.account.portalKey!),
+                  style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                ),
+              ),
+          ],
           if (info != null)
             ListTile(
               leading: Icon(Icons.graphic_eq, color: info.sonicSimilarity ? theme.colorScheme.primary : null),

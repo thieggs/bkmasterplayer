@@ -1002,6 +1002,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localAddressAway => 'out of reach now (using the main address)';
 
   @override
+  String get portal => 'Portal';
+
+  @override
+  String get portalHint =>
+      'A fixed address that says where the server is right now. When the server\'s address changes, the app finds the new one by itself.';
+
+  @override
+  String get portalNone => 'no portal: the server address is fixed';
+
+  @override
+  String get portalFingerprint => 'Fingerprint';
+
+  @override
+  String get portalFingerprintHint =>
+      'Check it with whoever gave you the link. It is what proves the server is theirs and nobody else\'s.';
+
+  @override
   String get localAddressOk => 'The home address responded and is now in use';
 
   @override

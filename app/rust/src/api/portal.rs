@@ -44,6 +44,15 @@ pub fn portal_read(raw: Vec<u8>, pinned_key: String) -> Result<PortalNotice, Str
     }
 }
 
+/// Impressão digital de uma chave já fixada, para mostrar nos Ajustes.
+///
+/// Mesmo cálculo do `bk-portal link`, para os dois textos baterem quando a
+/// pessoa confere de viva voz.
+#[frb(sync)]
+pub fn portal_fingerprint(key: String) -> String {
+    portal::fingerprint(key.trim())
+}
+
 /// Caminho onde o anúncio fica dentro de um portal.
 #[frb(sync)]
 pub fn portal_notice_path() -> String {

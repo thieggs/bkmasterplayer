@@ -1891,6 +1891,36 @@ abstract class AppLocalizations {
   /// **'fora de alcance agora (usando o principal)'**
   String get localAddressAway;
 
+  /// No description provided for @portal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Portal'**
+  String get portal;
+
+  /// No description provided for @portalHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Um endereço fixo que diz onde o servidor está agora. Quando o endereço do servidor muda, o app descobre o novo sozinho.'**
+  String get portalHint;
+
+  /// No description provided for @portalNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'sem portal: o endereço do servidor é fixo'**
+  String get portalNone;
+
+  /// No description provided for @portalFingerprint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Impressão digital'**
+  String get portalFingerprint;
+
+  /// No description provided for @portalFingerprintHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confira com quem te passou o link. É o que garante que o servidor é o dele, e não o de outra pessoa.'**
+  String get portalFingerprintHint;
+
   /// No description provided for @localAddressOk.
   ///
   /// In pt, this message translates to:

@@ -17,6 +17,13 @@ PortalNotice portalRead({required List<int> raw, required String pinnedKey}) =>
       pinnedKey: pinnedKey,
     );
 
+/// Impressão digital de uma chave já fixada, para mostrar nos Ajustes.
+///
+/// Mesmo cálculo do `bk-portal link`, para os dois textos baterem quando a
+/// pessoa confere de viva voz.
+String portalFingerprint({required String key}) =>
+    RustLib.instance.api.crateApiPortalPortalFingerprint(key: key);
+
 /// Caminho onde o anúncio fica dentro de um portal.
 String portalNoticePath() =>
     RustLib.instance.api.crateApiPortalPortalNoticePath();

@@ -1003,6 +1003,23 @@ class AppLocalizationsPt extends AppLocalizations {
   String get localAddressAway => 'fora de alcance agora (usando o principal)';
 
   @override
+  String get portal => 'Portal';
+
+  @override
+  String get portalHint =>
+      'Um endereço fixo que diz onde o servidor está agora. Quando o endereço do servidor muda, o app descobre o novo sozinho.';
+
+  @override
+  String get portalNone => 'sem portal: o endereço do servidor é fixo';
+
+  @override
+  String get portalFingerprint => 'Impressão digital';
+
+  @override
+  String get portalFingerprintHint =>
+      'Confira com quem te passou o link. É o que garante que o servidor é o dele, e não o de outra pessoa.';
+
+  @override
   String get localAddressOk => 'O endereço de casa respondeu e já está em uso';
 
   @override

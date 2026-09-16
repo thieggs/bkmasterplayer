@@ -145,8 +145,8 @@ fn link(o: HashMap<String, String>) -> Result<()> {
         }
     }
     println!("\nQuem receber o link vê essa mesma impressão digital no app,");
-    println!("em Ajustes → Aparelhos. Confira por voz na primeira vez: é o que");
-    println!("garante que o servidor é o seu, e não o de outra pessoa.");
+    println!("em Ajustes → Conta e servidor. Confira por voz na primeira vez: é o");
+    println!("que garante que o servidor é o seu, e não o de outra pessoa.");
     Ok(())
 }
 

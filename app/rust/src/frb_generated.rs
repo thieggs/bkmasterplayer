@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -11519161;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1894564572;
 
 // Section: executor
 
@@ -1368,6 +1368,36 @@ fn wire__crate__api__engine__player_toggle_impl(
         },
     )
 }
+fn wire__crate__api__portal__portal_fingerprint_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "portal_fingerprint",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_key = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::portal::portal_fingerprint(api_key))?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__portal__portal_max_bytes_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2350,9 +2380,10 @@ fn pde_ffi_dispatcher_sync_impl(
         37 => wire__crate__api__engine__player_set_volume_impl(ptr, rust_vec_len, data_len),
         38 => wire__crate__api__engine__player_stop_impl(ptr, rust_vec_len, data_len),
         39 => wire__crate__api__engine__player_toggle_impl(ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__portal__portal_max_bytes_impl(ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__portal__portal_notice_path_impl(ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__portal__portal_read_impl(ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__portal__portal_fingerprint_impl(ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__portal__portal_max_bytes_impl(ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__portal__portal_notice_path_impl(ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__portal__portal_read_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
