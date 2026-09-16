@@ -142,7 +142,7 @@ impl App {
         let target = match path.strip_prefix(ANALYSIS_PREFIX) {
             Some(rest) => {
                 let rest = if rest.is_empty() { "/" } else { rest };
-                match (&self.cfg.analyzer, ANALYSIS_PUBLIC.iter().any(|p| rest.starts_with(p))) {
+                match (&self.cfg.analyzer, plain_path(rest) && ANALYSIS_PUBLIC.iter().any(|p| rest.starts_with(p))) {
                     (Some(base), true) => format!("{base}{}", with_query(&raw, rest)),
                     (Some(_), false) => {
                         let _ = req.respond(text(404, "essa parte da análise não sai de casa"));
@@ -211,6 +211,42 @@ impl App {
     }
 }
 
+/// Caminho sem truque: nenhum trecho `.` ou `..`, nem contrabandeados em
+/// `%2e%2e%2f`.
+///
+/// A lista do que pode sair da análise é por prefixo. Se um `..` chegasse
+/// inteiro do outro lado e alguém o normalizasse,
+/// `/api/analysis/../../api/worker/audio` viraria `/api/worker/audio` — e a
+/// API dos trabalhadores, que baixa áudio com o login do dono, estaria na
+/// internet. O coordenador de hoje não normaliza, mas a barreira não pode
+/// depender disso.
+fn plain_path(path: &str) -> bool {
+    if path.contains('\\') {
+        return false;
+    }
+    let decoded = unescape(path);
+    !decoded.split('/').any(|seg| seg == "." || seg == "..")
+}
+
+/// Desfaz os `%XX` uma vez, para enxergar o caminho como o outro lado veria.
+fn unescape(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = String::with_capacity(s.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() {
+            if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
+                out.push(v as char);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(b[i] as char);
+        i += 1;
+    }
+    out
+}
+
 /// Junta o que veio depois do `?` ao caminho já sem o prefixo.
 fn with_query(full: &str, path: &str) -> String {
     match full.split_once('?') {
@@ -248,6 +284,37 @@ mod tests {
             ("/", false),
         ] {
             assert_eq!(ANALYSIS_PUBLIC.iter().any(|p| path.starts_with(p)), public, "{path}");
+        }
+    }
+
+    #[test]
+    fn a_dot_dot_never_slips_past_the_list() {
+        // Sem isto, quem normalizasse o caminho do outro lado chegaria na API
+        // dos trabalhadores, que baixa áudio com o login do dono.
+        for truque in [
+            "/api/analysis/../../api/worker/audio",
+            "/api/analysis/..%2f..%2fapi%2fworker%2faudio",
+            "/api/analysis/%2e%2e/%2e%2e/api/worker/audio",
+            "/api/analysis/x/../../api/worker-setup",
+            "/api/hello/../worker/audio",
+            "/api/analysis/./../api/state",
+            "/api/analysis/..\\..\\api",
+        ] {
+            assert!(!plain_path(truque), "deixou passar: {truque}");
+        }
+    }
+
+    #[test]
+    fn ordinary_addresses_still_pass() {
+        for ok in [
+            "/api/hello",
+            "/api/summary",
+            "/api/analysis/KO2M9cOeJh2EO3NDPn13T7",
+            // Id com caractere escapado é normal; só `.` e `..` incomodam.
+            "/api/analysis/a%20b",
+            "/api/analysis/musica.mp3",
+        ] {
+            assert!(plain_path(ok), "barrou à toa: {ok}");
         }
     }
 
