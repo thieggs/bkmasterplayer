@@ -29,7 +29,13 @@ portal-server = ["dep:tiny_http"]
 [dependencies]
 flutter_rust_bridge = "=2.13.0"
 anyhow = "1.0"
-log = "0.4"
+# Trace e debug somem do build de release, em todas as bibliotecas (o Cargo
+# unifica as features do `log`). O flutter_rust_bridge liga o logger do
+# Android em Trace por padrão, e nesse nível o ureq despeja cada byte de cada
+# resposta HTTP em hexadecimal no logcat: tocar música consumia 4 a 6 núcleos
+# do celular só formatando e escrevendo log. Cortar na compilação zera até o
+# custo de formatar.
+log = { version = "0.4", features = ["release_max_level_info"] }
 parking_lot = "0.12"
 rtrb = "0.4"
 serde = { version = "1.0", features = ["derive"] }
