@@ -11,26 +11,101 @@ use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, M
 
 use super::{EngineEvent, EventCallback, MediaAction};
 
+/// Acha a janela do próprio app, que o Windows exige para os controles de
+/// mídia.
+///
+/// O SMTC é preso a uma janela, e o souvlaki entra em **pânico** se receber
+/// `hwnd: None` — no Linux o MPRIS não precisa de nada disso, então passar
+/// `None` funcionava. Procura entre as janelas de topo a que pertence a este
+/// processo.
+#[cfg(target_os = "windows")]
+mod own_window {
+    use std::sync::atomic::{AtomicIsize, Ordering};
+
+    #[link(name = "user32")]
+    extern "system" {
+        fn EnumWindows(cb: unsafe extern "system" fn(isize, isize) -> i32, lparam: isize) -> i32;
+        fn GetWindowThreadProcessId(hwnd: isize, pid: *mut u32) -> u32;
+        fn IsWindowVisible(hwnd: isize) -> i32;
+        fn GetWindow(hwnd: isize, cmd: u32) -> isize;
+    }
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetCurrentProcessId() -> u32;
+    }
+
+    /// GW_OWNER: quem tem dono é caixa de diálogo, não a janela principal.
+    const GW_OWNER: u32 = 4;
+    static FOUND: AtomicIsize = AtomicIsize::new(0);
+
+    unsafe extern "system" fn visit(hwnd: isize, wanted_pid: isize) -> i32 {
+        let mut pid = 0u32;
+        GetWindowThreadProcessId(hwnd, &mut pid);
+        if pid as isize == wanted_pid && IsWindowVisible(hwnd) != 0 && GetWindow(hwnd, GW_OWNER) == 0 {
+            FOUND.store(hwnd, Ordering::SeqCst);
+            return 0; // achou: para de enumerar
+        }
+        1
+    }
+
+    pub fn find() -> Option<*mut std::ffi::c_void> {
+        FOUND.store(0, Ordering::SeqCst);
+        // SAFETY: EnumWindows só chama `visit`, que lê propriedades da janela
+        // e grava num atômico.
+        unsafe {
+            let me = GetCurrentProcessId() as isize;
+            EnumWindows(visit, me);
+        }
+        match FOUND.load(Ordering::SeqCst) {
+            0 => None,
+            h => Some(h as *mut std::ffi::c_void),
+        }
+    }
+}
+
 pub struct NotifyMsg {
     pub title: String,
     pub body: String,
     pub image: Option<PathBuf>,
 }
 
+/// Quantas vezes tentar achar a janela antes de desistir dos controles.
+#[cfg(target_os = "windows")]
+const RETRIES: u8 = 10;
+
 pub struct Desktop {
     controls: Option<MediaControls>,
     notifier: mpsc::Sender<NotifyMsg>,
+    /// No Windows os controles só nascem depois da janela; o que falta para
+    /// tentar de novo fica guardado aqui (`None` = já deu certo ou desistiu).
+    #[cfg(target_os = "windows")]
+    later: Option<(String, String, EventCallback, u8)>,
     /// Player registrado no BlueZ (botões de caixa/fone/carro).
     #[cfg(target_os = "linux")]
     bluetooth: Option<super::bluetooth::Bluetooth>,
 }
 
-impl Desktop {
-    pub fn new(app_id: &str, app_name: &str, callback: EventCallback) -> Self {
-        let controls = match MediaControls::new(PlatformConfig {
+/// Monta os controles de mídia do sistema, ou `None` se não der.
+///
+/// No Windows precisa da janela do app; se ela ainda não existe (o motor
+/// inicia junto com a interface), devolve `None` e quem chamou tenta de novo
+/// depois. Nunca passa `hwnd: None` adiante: o souvlaki entra em pânico.
+fn make_controls(app_id: &str, app_name: &str, callback: &EventCallback) -> Option<MediaControls> {
+    #[cfg(target_os = "windows")]
+    let hwnd = match own_window::find() {
+        Some(h) => Some(h),
+        None => {
+            log::debug!("janela ainda não existe; controles de mídia depois");
+            return None;
+        }
+    };
+    #[cfg(not(target_os = "windows"))]
+    let hwnd = None;
+
+    match MediaControls::new(PlatformConfig {
             dbus_name: app_id,
             display_name: app_name,
-            hwnd: None,
+            hwnd,
         }) {
             Ok(mut c) => {
                 let cb = callback.clone();
@@ -68,7 +143,16 @@ impl Desktop {
                 log::warn!("controles de mídia indisponíveis: {e:?}");
                 None
             }
-        };
+    }
+}
+
+impl Desktop {
+    pub fn new(app_id: &str, app_name: &str, callback: EventCallback) -> Self {
+        let controls = make_controls(app_id, app_name, &callback);
+        #[cfg(target_os = "windows")]
+        let later = controls
+            .is_none()
+            .then(|| (app_id.to_string(), app_name.to_string(), callback.clone(), RETRIES));
 
         let (tx, rx) = mpsc::channel::<NotifyMsg>();
         let app = app_name.to_string();
@@ -80,8 +164,27 @@ impl Desktop {
         Self {
             controls,
             notifier: tx,
+            #[cfg(target_os = "windows")]
+            later,
             #[cfg(target_os = "linux")]
             bluetooth: super::bluetooth::Bluetooth::new(callback),
+        }
+    }
+
+    /// Tenta de novo os controles do Windows, agora que há música tocando e a
+    /// janela certamente existe. Desiste depois de algumas tentativas para não
+    /// varrer as janelas do sistema a cada faixa.
+    #[cfg(target_os = "windows")]
+    fn controls_later(&mut self) {
+        let Some((id, name, cb, left)) = self.later.as_mut() else { return };
+        if *left == 0 {
+            self.later = None;
+            return;
+        }
+        *left -= 1;
+        if let Some(c) = make_controls(id, name, cb) {
+            self.controls = Some(c);
+            self.later = None;
         }
     }
 
@@ -93,6 +196,9 @@ impl Desktop {
         cover: Option<&std::path::Path>,
         duration_ms: Option<u64>,
     ) {
+        // Tocou música: a janela já existe, então vale tentar de novo.
+        #[cfg(target_os = "windows")]
+        self.controls_later();
         #[cfg(target_os = "linux")]
         if let Some(bt) = &self.bluetooth {
             bt.set_metadata(title, artist, album, duration_ms);
