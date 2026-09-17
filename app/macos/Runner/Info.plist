@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Para tocar do seu servidor de música e achar os aparelhos da casa.</string>
 </dict>
 </plist>
