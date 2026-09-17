@@ -336,7 +336,7 @@ class _ServerTileState extends ConsumerState<_ServerTile> {
     return u;
   }
 
-  Future<void> _test(String server) async {
+  Future<void> _test(String server, {bool retried = false}) async {
     final l10n = context.l10n;
     final number = NumberFormat.decimalPattern(Localizations.localeOf(context).toString());
     setState(() {
@@ -350,10 +350,16 @@ class _ServerTileState extends ConsumerState<_ServerTile> {
     ));
     String msg;
     var error = true;
+    var unreachable = false;
     try {
       final hello = await dio.get<dynamic>('${_base(server)}/api/hello');
       final uri = ref.read(musicProvider).analyzerUri(server, '/api/summary');
-      if (hello.data is! Map || hello.data['app'] != 'bk-analyzer' || uri == null) {
+      if (hello.statusCode != 200) {
+        // Túnel caído devolve a página de erro da Cloudflare (530): isso é
+        // "sem resposta", não "é outro programa".
+        msg = l10n.analysisServerUnreachable;
+        unreachable = true;
+      } else if (hello.data is! Map || hello.data['app'] != 'bk-analyzer' || uri == null) {
         msg = l10n.analysisServerNotBk;
       } else {
         final r = await dio.getUri<dynamic>(uri);
@@ -368,8 +374,16 @@ class _ServerTileState extends ConsumerState<_ServerTile> {
       }
     } catch (_) {
       msg = l10n.analysisServerUnreachable;
+      unreachable = true;
     } finally {
       dio.close();
+    }
+    // Pelo portal e sem resposta: o túnel pode ter trocado de nome. Pergunta
+    // ao portal e testa o endereço novo, uma vez.
+    if (unreachable && !retried && _viaPortal(server)) {
+      await ref.read(sessionProvider.notifier).refreshPortal(force: true);
+      final fresh = ref.read(settingsProvider).analysisServer;
+      if (fresh != null && fresh != server && mounted) return _test(fresh, retried: true);
     }
     if (!mounted) return;
     setState(() {

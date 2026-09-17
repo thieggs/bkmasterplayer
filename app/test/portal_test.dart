@@ -116,6 +116,12 @@ void main() {
       expect(Portal.canReplaceAnalysis('$portal/bk/analise', portal: portal), isTrue);
     });
 
+    test('endereço com /bk/analise veio de um portal: segue o portal, mesmo túnel de várias trocas atrás', () {
+      // O caso real de 17/09: o túnel trocou com o celular em casa, e o
+      // endereço salvo não batia nem com o anterior nem com o portal.
+      expect(Portal.canReplaceAnalysis('https://greetings-iso-worth-cached.trycloudflare.com/bk/analise', portal: portal), isTrue);
+    });
+
     test('outro servidor público escolhido à mão fica', () {
       expect(Portal.canReplaceAnalysis('https://analise.meudominio.com', previousMusic: tunelVelho, portal: portal), isFalse);
       expect(Portal.canReplaceAnalysis('http://8.8.8.8:4540', portal: portal), isFalse);

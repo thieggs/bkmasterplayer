@@ -96,6 +96,9 @@ class Portal {
     final u = Uri.tryParse(current.trim());
     if (u == null || u.host.isEmpty) return true;
     if (isHomeHost(u.host)) return true;
+    // Esse caminho só existe dentro de um portal: veio de um anúncio, então
+    // é túnel de algum dia. Cobre túnel velho de qualquer troca anterior.
+    if (u.path.startsWith('/bk/analise')) return true;
     for (final other in [previousMusic, portal]) {
       final o = other == null ? null : Uri.tryParse(other.trim());
       if (o != null && o.host.isNotEmpty && o.host.toLowerCase() == u.host.toLowerCase()) return true;

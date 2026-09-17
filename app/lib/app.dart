@@ -178,6 +178,8 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
     ref.watch(playerProvider.select((_) => 0));
     // Connect: anuncia este aparelho e aceita controle enquanto o app roda.
     ref.listen(connectProvider, (_, _) {});
+    // Conta com portal: segue o endereço do túnel mesmo em casa (ver PortalRefreshNotifier).
+    ref.listen(portalRefreshProvider, (_, _) {});
     final ui = ref.watch(uiPrefsProvider);
     final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(ui, Brightness.light);
     final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(ui, Brightness.dark);

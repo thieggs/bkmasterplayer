@@ -140,12 +140,20 @@ class AccountSettingsPage extends ConsumerWidget {
               ListTile(
                 leading: const SizedBox(),
                 title: Text(l10n.portalFingerprint),
-                subtitle: Text(l10n.portalFingerprintHint),
-                trailing: SelectableText(
-                  // Mesmo cálculo do `bk-portal link`, para os dois textos
-                  // baterem quando a pessoa confere de viva voz.
-                  rust.portalFingerprint(key: session.account.portalKey!),
-                  style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                // Embaixo, não ao lado: são 39 caracteres, e no `trailing`
+                // espremiam o título até ele quebrar letra por letra.
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SelectableText(
+                      // Mesmo cálculo do `bk-portal link`, para os dois
+                      // textos baterem quando a pessoa confere de viva voz.
+                      rust.portalFingerprint(key: session.account.portalKey!),
+                      style: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(l10n.portalFingerprintHint),
+                  ],
                 ),
               ),
           ],

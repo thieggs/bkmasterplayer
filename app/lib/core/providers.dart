@@ -223,14 +223,47 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     if (portal == null) return;
     client.onPortalLookup = () async {
       final notice = await Portal.fetch(portal, pinnedKey: account.portalKey);
-      final store = ref.read(accountStoreProvider);
-      final saved = store.list().where((x) => x.id == account.id).firstOrNull ?? account;
-      if (notice.music != saved.baseUrl) {
-        await store.update(saved.copyWith(baseUrl: notice.music));
-      }
-      _adoptAnalysisServer(notice, previous: saved.baseUrl, portal: portal);
+      // Sem passar o cliente: é ele que troca o endereço ao receber a
+      // resposta, e só refaz o pedido se perceber a troca.
+      await _applyNotice(account, notice);
       return notice.music;
     };
+  }
+
+  /// Leva para a conta, para a análise e (se vier) para o cliente o que o
+  /// anúncio diz.
+  Future<void> _applyNotice(ServerAccount account, PortalNotice notice, {SubsonicClient? client}) async {
+    final store = ref.read(accountStoreProvider);
+    final saved = store.list().where((x) => x.id == account.id).firstOrNull ?? account;
+    if (notice.music != saved.baseUrl) {
+      await store.update(saved.copyWith(baseUrl: notice.music));
+    }
+    client?.useRemote(notice.music);
+    _adoptAnalysisServer(notice, previous: saved.baseUrl, portal: saved.portalUrl);
+  }
+
+  DateTime _lastPortalRefresh = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Pergunta ao portal onde o servidor está, mesmo sem nada ter falhado.
+  ///
+  /// O cliente de música só pergunta quando falha — e em casa ele usa o
+  /// endereço local, que nunca falha. Então, quando o túnel trocava, o
+  /// endereço da análise (que passa por ele) ficava velho; o motor desistia
+  /// do servidor e o celular voltava a analisar sozinho, que é o que pesa.
+  Future<void> refreshPortal({bool force = false}) async {
+    final session = state.value;
+    final account = session?.account;
+    final provider = session?.provider;
+    final portal = account?.portalUrl;
+    if (account == null || portal == null || provider is! SubsonicProvider) return;
+    if (!force && DateTime.now().difference(_lastPortalRefresh) < const Duration(seconds: 30)) return;
+    _lastPortalRefresh = DateTime.now();
+    try {
+      final notice = await Portal.fetch(portal, pinnedKey: account.portalKey);
+      await _applyNotice(account, notice, client: provider.client);
+    } catch (e) {
+      debugPrint('portal: não deu para atualizar: $e');
+    }
   }
 
   /// Aponta a análise do AutoMix para o portal também, para ela funcionar
@@ -474,6 +507,29 @@ class EndpointNotifier extends Notifier<bool> {
 }
 
 final endpointProvider = NotifierProvider<EndpointNotifier, bool>(EndpointNotifier.new);
+
+/// Mantém a conta em dia com o portal: ao abrir, ao voltar para o app, quando
+/// a rede muda e de tempos em tempos. O anúncio é um arquivinho, então
+/// perguntar a cada poucos minutos não pesa.
+class PortalRefreshNotifier extends Notifier<void> {
+  @override
+  void build() {
+    final account = ref.watch(sessionProvider.select((s) => s.value?.account));
+    if (account?.portalUrl == null) return;
+    final session = ref.read(sessionProvider.notifier);
+    unawaited(session.refreshPortal(force: true));
+    final net = Connectivity().onConnectivityChanged.listen((_) => session.refreshPortal(), onError: (_) {});
+    final life = AppLifecycleListener(onResume: () => session.refreshPortal());
+    final timer = Timer.periodic(const Duration(minutes: 5), (_) => session.refreshPortal());
+    ref.onDispose(() {
+      net.cancel();
+      life.dispose();
+      timer.cancel();
+    });
+  }
+}
+
+final portalRefreshProvider = NotifierProvider<PortalRefreshNotifier, void>(PortalRefreshNotifier.new);
 
 // ---- Dados da biblioteca ----
 
