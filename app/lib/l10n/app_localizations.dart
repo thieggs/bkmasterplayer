@@ -1073,7 +1073,7 @@ abstract class AppLocalizations {
   /// No description provided for @analysisServerExample.
   ///
   /// In pt, this message translates to:
-  /// **'ex.: http://192.168.1.10:4540'**
+  /// **'ex.: http://192.168.1.10:4540, ou o link do portal (Tailscale)'**
   String get analysisServerExample;
 
   /// No description provided for @analysisServerPanel.
@@ -1243,6 +1243,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'O servidor de análise não aceitou o login desta conta (ele usa outro Navidrome?)'**
   String get analysisServerLoginFail;
+
+  /// No description provided for @analysisServerViaPortal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pelo portal: funciona fora de casa, e o endereço se atualiza sozinho quando o túnel muda.'**
+  String get analysisServerViaPortal;
+
+  /// No description provided for @analysisServerPortalFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Portal encontrado: a análise do AutoMix passa a ir por ele'**
+  String get analysisServerPortalFound;
 
   /// No description provided for @analysisServerUnreachable.
   ///

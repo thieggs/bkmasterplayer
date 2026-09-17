@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
+import '../../data/portal.dart' show PortalException;
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
@@ -391,9 +392,36 @@ class _ServerTileState extends ConsumerState<_ServerTile> {
       setState(() => _status = null);
       return;
     }
+    // O link do portal (Tailscale) também vale: ele diz onde está a análise
+    // hoje, e o endereço continua certo quando o túnel muda.
+    setState(() {
+      _testing = true;
+      _status = null;
+    });
+    try {
+      final analysis = (await ref.read(sessionProvider.notifier).usePortalLink(url))?.analysis;
+      if (analysis != null) {
+        if (!mounted) return;
+        showSnack(context, l10n.analysisServerPortalFound);
+        await _test(analysis);
+        return;
+      }
+    } on PortalException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _testing = false;
+        _status = e.message;
+        _error = true;
+      });
+      return;
+    }
+    if (!mounted) return;
     set((x) => x.copyWith(analysisServer: url));
-    _test(url);
+    await _test(url);
   }
+
+  /// Endereço de análise que veio de um portal: o painel dele não sai de casa.
+  static bool _viaPortal(String server) => Uri.tryParse(server)?.path.startsWith('/bk/analise') ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +445,11 @@ class _ServerTileState extends ConsumerState<_ServerTile> {
               padding: const EdgeInsets.only(top: 2),
               child: Text(_status!, style: theme.textTheme.bodySmall?.copyWith(color: _error ? theme.colorScheme.error : theme.colorScheme.primary)),
             ),
+          if (server != null && _viaPortal(server))
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(l10n.analysisServerViaPortal, style: theme.textTheme.bodySmall),
+            ),
           const SizedBox(height: 4),
           Text(l10n.analysisServerHint, style: theme.textTheme.bodySmall),
           const SizedBox(height: 6),
@@ -427,11 +460,13 @@ class _ServerTileState extends ConsumerState<_ServerTile> {
               OutlinedButton(onPressed: on ? _edit : null, child: Text(server == null ? l10n.analysisServerSet : l10n.analysisServerChange)),
               if (server != null) ...[
                 TextButton(onPressed: on && !_testing ? () => _test(server) : null, child: Text(l10n.analysisServerTest)),
-                TextButton.icon(
-                  icon: const Icon(Icons.open_in_new, size: 16),
-                  label: Text(l10n.analysisServerPanel),
-                  onPressed: () => launchUrl(Uri.parse(_base(server)), mode: LaunchMode.externalApplication),
-                ),
+                // Pelo portal o painel é recusado de propósito: só abre em casa.
+                if (!_viaPortal(server))
+                  TextButton.icon(
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: Text(l10n.analysisServerPanel),
+                    onPressed: () => launchUrl(Uri.parse(_base(server)), mode: LaunchMode.externalApplication),
+                  ),
               ],
             ],
           ),

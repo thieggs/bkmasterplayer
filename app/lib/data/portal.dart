@@ -86,6 +86,45 @@ class Portal {
   /// Deixa o endereço do portal no formato guardado na conta.
   static String normalize(String url) => _trim(url);
 
+  /// O servidor de análise guardado pode dar lugar ao que o portal indica?
+  ///
+  /// Sim quando ele não serve fora de casa (endereço da rede de casa, que é
+  /// justamente o que deixa o AutoMix sem análise na rua) ou quando é um
+  /// endereço que o próprio portal já deu: o túnel antigo, ou o portal em si.
+  /// Não quando a pessoa escolheu à mão outro servidor público — esse é dela.
+  static bool canReplaceAnalysis(String current, {String? previousMusic, String? portal}) {
+    final u = Uri.tryParse(current.trim());
+    if (u == null || u.host.isEmpty) return true;
+    if (isHomeHost(u.host)) return true;
+    for (final other in [previousMusic, portal]) {
+      final o = other == null ? null : Uri.tryParse(other.trim());
+      if (o != null && o.host.isNotEmpty && o.host.toLowerCase() == u.host.toLowerCase()) return true;
+    }
+    return false;
+  }
+
+  /// Endereço que só existe dentro de casa (ou dentro da Tailscale).
+  static bool isHomeHost(String host) {
+    final h = host.toLowerCase().replaceAll(RegExp(r'^\[|\]$'), '');
+    if (h == 'localhost' || h.endsWith('.local') || h.endsWith('.lan') || h.endsWith('.home.arpa')) return true;
+    final v4 = RegExp(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$').firstMatch(h);
+    if (v4 != null) {
+      final o = [for (var i = 1; i <= 4; i++) int.parse(v4.group(i)!)];
+      if (o.any((x) => x > 255)) return false;
+      return o[0] == 10 ||
+          o[0] == 127 ||
+          (o[0] == 172 && o[1] >= 16 && o[1] <= 31) ||
+          (o[0] == 192 && o[1] == 168) ||
+          (o[0] == 169 && o[1] == 254) ||
+          // Faixa da Tailscale (CGNAT): só alcança quem tem o app dela.
+          (o[0] == 100 && o[1] >= 64 && o[1] <= 127);
+    }
+    if (h.contains(':')) {
+      return h == '::1' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80:');
+    }
+    return false;
+  }
+
   static String _trim(String url) {
     var u = url.trim();
     if (!u.contains('://')) u = 'https://$u';

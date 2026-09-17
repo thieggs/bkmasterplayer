@@ -157,6 +157,34 @@ class SubsonicClient {
     }
   }
 
+  /// Passa a usar outro endereço principal (o portal disse onde o servidor
+  /// está agora). Quem estava no endereço de casa continua nele.
+  void useRemote(String url) {
+    final next = normalizeBaseUrl(url);
+    if (next == _remoteUrl) return;
+    _remoteUrl = next;
+    if (!_onLocal) _endpointChanges.add(false);
+  }
+
+  /// Este servidor responde em [base] com as credenciais desta conta?
+  ///
+  /// Serve para conferir um endereço vindo de fora antes de trocar para ele:
+  /// se a conta não entra lá, não é o mesmo servidor. Tempo de internet, não
+  /// de rede de casa.
+  Future<bool> answersAt(String base) async {
+    try {
+      final res = await Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 10),
+        responseType: ResponseType.json,
+      )).get('${normalizeBaseUrl(base)}/rest/ping', queryParameters: _baseParams, options: Options(validateStatus: (_) => true));
+      final data = res.data;
+      return data is Map && data['subsonic-response'] is Map && data['subsonic-response']['status'] == 'ok';
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Pergunta ao portal o endereço de agora. Devolve se ele mudou.
   ///
   /// Uma pergunta por vez e no máximo uma a cada [_minBetweenLookups]: quem
@@ -172,12 +200,8 @@ class SubsonicClient {
       try {
         final fresh = await ask();
         if (fresh == null || fresh.trim().isEmpty) return false;
-        final next = normalizeBaseUrl(fresh);
-        if (next == _remoteUrl) return false;
-        _remoteUrl = next;
-        // Quem estava no endereço de casa continua nele; o que mudou foi o
-        // de fora.
-        if (!_onLocal) _endpointChanges.add(false);
+        if (normalizeBaseUrl(fresh) == _remoteUrl) return false;
+        useRemote(fresh);
         return true;
       } catch (_) {
         // Portal fora do ar ou anúncio recusado: segue com o que tem.

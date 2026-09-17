@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:player_musica/data/accounts.dart';
+import 'package:player_musica/data/portal.dart';
 import 'package:player_musica/data/subsonic/subsonic_client.dart';
 
 /// Servidor Subsonic falso que responde ok.
@@ -90,6 +91,79 @@ void main() {
     final client = SubsonicClient(baseUrl: await _deadAddress(), auth: SubsonicAuth.fromPassword('u', 'p'));
     client.onPortalLookup = () async => throw Exception('portal fora do ar');
     await expectLater(client.get('getGenres'), throwsA(isA<SubsonicException>()));
+  });
+
+  group('análise seguindo o portal', () {
+    const portal = 'https://thieggs-pc.tail573c59.ts.net';
+    const tunelVelho = 'https://velho-nome-sorteado.trycloudflare.com';
+
+    test('endereço de casa dá lugar ao portal (não funciona na rua)', () {
+      for (final casa in [
+        'http://192.168.1.229:4540',
+        'http://10.0.0.5:4540',
+        'http://172.20.1.2:4540',
+        'http://100.64.180.93:4540', // Tailscale: só com o app dela
+        'http://pc.local:4540',
+        'http://localhost:4540',
+        'http://[fd12::1]:4540',
+      ]) {
+        expect(Portal.canReplaceAnalysis(casa, portal: portal), isTrue, reason: casa);
+      }
+    });
+
+    test('endereço antigo do próprio portal é trocado', () {
+      expect(Portal.canReplaceAnalysis('$tunelVelho/bk/analise', previousMusic: tunelVelho, portal: portal), isTrue);
+      expect(Portal.canReplaceAnalysis('$portal/bk/analise', portal: portal), isTrue);
+    });
+
+    test('outro servidor público escolhido à mão fica', () {
+      expect(Portal.canReplaceAnalysis('https://analise.meudominio.com', previousMusic: tunelVelho, portal: portal), isFalse);
+      expect(Portal.canReplaceAnalysis('http://8.8.8.8:4540', portal: portal), isFalse);
+    });
+
+    test('só endereço de casa conta como de casa', () {
+      for (final fora in ['172.32.0.1', '100.128.0.1', '192.169.1.1', '11.0.0.1', 'exemplo.com', '999.1.1.1']) {
+        expect(Portal.isHomeHost(fora), isFalse, reason: fora);
+      }
+    });
+  });
+
+  group('trocar de endereço com segurança', () {
+    test('useRemote troca o principal e avisa', () async {
+      final client = SubsonicClient(baseUrl: 'https://velho.trycloudflare.com', auth: SubsonicAuth.fromPassword('u', 'p'));
+      final avisos = <bool>[];
+      client.endpointChanges.listen(avisos.add);
+      client.useRemote('https://novo.trycloudflare.com/');
+      await Future<void>.delayed(Duration.zero);
+      expect(client.remoteUrl, 'https://novo.trycloudflare.com');
+      expect(avisos, [false]);
+      // O mesmo endereço de novo não vira aviso repetido.
+      client.useRemote('https://novo.trycloudflare.com');
+      await Future<void>.delayed(Duration.zero);
+      expect(avisos, [false]);
+    });
+
+    test('answersAt só diz sim quando a conta entra lá', () async {
+      final hits = <String>[];
+      final ok = await _server(hits, 'ok');
+      final client = SubsonicClient(baseUrl: 'https://x', auth: SubsonicAuth.fromPassword('u', 'p'));
+      expect(await client.answersAt('http://127.0.0.1:${ok.port}'), isTrue);
+      expect(await client.answersAt(await _deadAddress()), isFalse, reason: 'ninguém atende');
+      await ok.close(force: true);
+
+      // Responde, mas recusa a senha: é outro servidor.
+      final recusa = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      recusa.listen((req) {
+        req.response
+          ..headers.contentType = ContentType.json
+          ..write(jsonEncode({
+            'subsonic-response': {'status': 'failed', 'error': {'code': 40, 'message': 'Wrong username or password'}},
+          }));
+        req.response.close();
+      });
+      expect(await client.answersAt('http://127.0.0.1:${recusa.port}'), isFalse, reason: 'senha recusada');
+      await recusa.close(force: true);
+    });
   });
 
   group('conta com portal', () {

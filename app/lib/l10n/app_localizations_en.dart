@@ -555,7 +555,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analysisServerAddress => 'Analysis server address';
 
   @override
-  String get analysisServerExample => 'e.g. http://192.168.1.10:4540';
+  String get analysisServerExample =>
+      'e.g. http://192.168.1.10:4540, or the portal link (Tailscale)';
 
   @override
   String get analysisServerPanel => 'Open dashboard';
@@ -658,6 +659,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get analysisServerLoginFail =>
       'The analysis server rejected this account\'s login (does it use another Navidrome?)';
+
+  @override
+  String get analysisServerViaPortal =>
+      'Through the portal: works away from home, and the address updates by itself when the tunnel changes.';
+
+  @override
+  String get analysisServerPortalFound =>
+      'Portal found: AutoMix analysis now goes through it';
 
   @override
   String get analysisServerUnreachable => 'No answer from the analysis server';

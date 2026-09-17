@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter/foundation.dart' show compute, debugPrint;
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -205,6 +205,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       // Em casa, já começa pelo endereço local (teste de ~1,5 s no máximo).
       if (provider.hasLocalAddress) await provider.checkLocalAddress();
       await provider.connect();
+      if (account.portalUrl == null) unawaited(_discoverPortal(client, account));
       return Session(account: account, provider: provider);
     } on SubsonicException catch (e) {
       if (e.isAuthError) return null;
@@ -227,24 +228,75 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       if (notice.music != saved.baseUrl) {
         await store.update(saved.copyWith(baseUrl: notice.music));
       }
-      _adoptAnalysisServer(notice, previous: saved.baseUrl);
+      _adoptAnalysisServer(notice, previous: saved.baseUrl, portal: portal);
       return notice.music;
     };
   }
 
-  /// Aponta a análise do AutoMix para o portal também.
-  ///
-  /// Só mexe se a pessoa não tiver escolhido outro servidor à mão, ou se o
-  /// que está lá é o endereço antigo do próprio portal.
-  void _adoptAnalysisServer(PortalNotice notice, {String? previous}) {
+  /// Aponta a análise do AutoMix para o portal também, para ela funcionar
+  /// fora de casa. Regra em [Portal.canReplaceAnalysis]: não passa por cima
+  /// de outro servidor público que a pessoa escolheu à mão.
+  void _adoptAnalysisServer(PortalNotice notice, {String? previous, String? portal}) {
     final analysis = notice.analysis;
     if (analysis == null) return;
-    final settings = ref.read(settingsProvider.notifier);
     final current = ref.read(settingsProvider).analysisServer;
-    final stale = previous != null && current != null && current.startsWith(previous);
-    if (current == null || stale) {
-      settings.update((s) => s.copyWith(analysisServer: analysis));
+    if (current == analysis) return;
+    if (current == null || Portal.canReplaceAnalysis(current, previousMusic: previous, portal: portal)) {
+      ref.read(settingsProvider.notifier).update((s) => s.copyWith(analysisServer: analysis));
     }
+  }
+
+  /// Passa a conta a seguir o portal em [portalUrl].
+  ///
+  /// Antes confere que a conta entra no servidor que o portal indica: se não
+  /// entra, é outro servidor, e trocar deixaria a pessoa sem música. Devolve
+  /// se adotou.
+  Future<bool> _adoptPortal(SubsonicClient client, ServerAccount account, String portalUrl, PortalNotice notice) async {
+    if (!await client.answersAt(notice.music)) return false;
+    final store = ref.read(accountStoreProvider);
+    final saved = store.list().where((x) => x.id == account.id).firstOrNull ?? account;
+    final portal = Portal.normalize(portalUrl);
+    final updated = saved.copyWith(baseUrl: notice.music, portalUrl: portal, portalKey: notice.key);
+    await store.update(updated);
+    client.useRemote(notice.music);
+    _wirePortal(client, updated);
+    _adoptAnalysisServer(notice, previous: saved.baseUrl, portal: portal);
+    return true;
+  }
+
+  /// Conta salva sem portal: pergunta ao próprio endereço dela se ele é um.
+  ///
+  /// Quem entrava pelo link do Tailscale antes de o portal existir tem, na
+  /// conta, exatamente o endereço do portal — só que o app nunca perguntou.
+  /// A chave fica fixada agora, na primeira resposta; a confiança é a mesma
+  /// que o endereço já tinha, porque é para ele que a senha vai.
+  Future<void> _discoverPortal(SubsonicClient client, ServerAccount account) async {
+    try {
+      final notice = await Portal.probe(account.baseUrl);
+      if (notice == null) return;
+      await _adoptPortal(client, account, account.baseUrl, notice);
+    } catch (e) {
+      debugPrint('portal: não deu para descobrir em ${account.baseUrl}: $e');
+    }
+  }
+
+  /// A pessoa colou o link de um portal no campo do servidor de análise.
+  ///
+  /// Usa a análise que ele indica e, se a conta for do mesmo servidor, passa
+  /// a conta inteira a seguir o portal. Devolve o anúncio (`null` se o
+  /// endereço não é um portal); lança [PortalException] se a chave mudou.
+  Future<PortalNotice?> usePortalLink(String url) async {
+    final session = state.value;
+    final account = session?.account;
+    final notice = await Portal.probe(url, pinnedKey: account?.portalKey);
+    if (notice == null || notice.analysis == null) return notice;
+    final provider = session?.provider;
+    if (provider is SubsonicProvider && account != null && account.portalUrl == null) {
+      if (await _adoptPortal(provider.client, account, url, notice)) return notice;
+    }
+    // Outra conta, ou sem conta de servidor: só a análise.
+    ref.read(settingsProvider.notifier).update((s) => s.copyWith(analysisServer: notice.analysis));
+    return notice;
   }
 
   /// Faz login. Lança [SubsonicException] se falhar. Sem http(s):// no
@@ -298,7 +350,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       await ref.read(accountStoreProvider).save(account, auth);
       if (notice != null) {
         _wirePortal(client, account);
-        _adoptAnalysisServer(notice);
+        _adoptAnalysisServer(notice, portal: account.portalUrl);
       }
       if (provider.hasLocalAddress) unawaited(provider.checkLocalAddress());
       state = AsyncData(Session(account: account, provider: provider));
