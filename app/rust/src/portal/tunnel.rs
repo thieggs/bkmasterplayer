@@ -147,7 +147,14 @@ fn open_tunnel(bin: &Path, port: u16) -> Result<(Child, String)> {
     });
     match rx.recv_timeout(URL_TIMEOUT) {
         Ok(url) => Ok((child, url)),
-        Err(_) => {
+        // A saída fechou antes de qualquer endereço: o cloudflared morreu.
+        // Acontece no boot, quando ainda não há rede. A mensagem antiga dizia
+        // "não disse o endereço em 90s" mesmo quando tinha morrido em 1 s.
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+            let status = child.wait().map(|s| s.to_string()).unwrap_or_else(|e| e.to_string());
+            Err(anyhow!("o cloudflared saiu sem dar endereço ({status}); sem rede ainda?"))
+        }
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
             let _ = child.kill();
             let _ = child.wait();
             Err(anyhow!("o cloudflared não disse o endereço em {}s", URL_TIMEOUT.as_secs()))
