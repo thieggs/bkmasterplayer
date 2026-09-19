@@ -75,4 +75,29 @@ void main() {
       expect(b.keepAliveWhenPaused, isFalse);
     });
   });
+
+  group('botões de volume no aparelho controlado', () {
+    /// O passo tem que fechar os 15 toques do volume de mídia do Android, e
+    /// nem estourar nem faltar nas pontas.
+    test('quinze toques vão de zero a cheio, e param nas pontas', () {
+      var v = 0.0;
+      for (var i = 0; i < 15; i++) {
+        v = (v + volumeStep).clamp(0.0, 1.0);
+      }
+      expect(v, closeTo(1.0, 1e-9));
+      expect((v + volumeStep).clamp(0.0, 1.0), 1.0, reason: 'não passa de cheio');
+      var z = 0.0;
+      expect((z - volumeStep).clamp(0.0, 1.0), 0.0, reason: 'não fica negativo');
+      z = volumeStep;
+      expect((z - volumeStep).clamp(0.0, 1.0), closeTo(0.0, 1e-9));
+    });
+
+    test('o aviso conta cada toque, mesmo parado no máximo', () {
+      const a = CommandsState();
+      final b = a.copyWith(nudge: (volume: 1.0, device: 'Cozinha', seq: 1));
+      final c = b.copyWith(nudge: (volume: 1.0, device: 'Cozinha', seq: 2));
+      expect(b.nudge, isNot(c.nudge), reason: 'senão a tela não mostraria de novo');
+      expect(c.nudge?.device, 'Cozinha');
+    });
+  });
 }

@@ -25,6 +25,7 @@ import 'ui/pages/offline_page.dart';
 import 'ui/pages/playlists_page.dart';
 import 'ui/pages/search_page.dart';
 import 'player/commands.dart';
+import 'ui/remote_volume.dart';
 import 'ui/pages/settings/look_page.dart';
 import 'ui/pages/settings/sections.dart';
 import 'ui/pages/settings/settings_page.dart';
@@ -210,7 +211,7 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
         return AppBackground(
           child: MediaQuery(
             data: mq.copyWith(textScaler: TextScaler.linear(ui.uiScale)),
-            child: child!,
+            child: RemoteVolumeOverlay(child: child!),
           ),
         );
       },

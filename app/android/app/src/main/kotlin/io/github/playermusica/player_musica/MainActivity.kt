@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.view.KeyEvent
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -24,6 +25,9 @@ class MainActivity : AudioServiceActivity() {
 
     /** Vigia do volume de mídia, ligado só quando o app usa alguma regra dele. */
     private var volumeWatch: ContentObserver? = null
+
+    /** Botões de volume indo para o aparelho controlado, não para este. */
+    private var grabVolumeKeys = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         pendingRoute = intent?.getStringExtra("route")
@@ -58,11 +62,31 @@ class MainActivity : AudioServiceActivity() {
                         if (call.arguments == true) startVolumeWatch() else stopVolumeWatch()
                         result.success(null)
                     }
+                    // Controlando outro aparelho: os botões de volume mexem
+                    // no volume de lá, não no deste celular.
+                    "grabVolumeKeys" -> {
+                        grabVolumeKeys = call.arguments == true
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
         }
         JamNearby(applicationContext, messenger)
+    }
+
+    // Só enquanto a tela do app está na frente: com o app em segundo plano
+    // esta função nem é chamada, e os botões voltam a ser do aparelho.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val volumeKey = event.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+        if (grabVolumeKeys && volumeKey) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                system?.invokeMethod("volumeKey", if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) "up" else "down")
+            }
+            // Engole o soltar também: senão o sistema mexe no volume daqui.
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun audioManager() = getSystemService(Context.AUDIO_SERVICE) as AudioManager
