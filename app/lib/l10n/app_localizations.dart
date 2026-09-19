@@ -1933,6 +1933,108 @@ abstract class AppLocalizations {
   /// **'Confira com quem te passou o link. É o que garante que o servidor é o dele, e não o de outra pessoa.'**
   String get portalFingerprintHint;
 
+  /// No description provided for @commands.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comandos'**
+  String get commands;
+
+  /// No description provided for @commandsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Regras do tipo \"quando acontecer isto, faça aquilo\". O app só volta a tocar o que ele mesmo pausou: se você pausou na mão, ele não sai tocando sozinho.'**
+  String get commandsHint;
+
+  /// No description provided for @commandsWhen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando acontecer'**
+  String get commandsWhen;
+
+  /// No description provided for @pauseOnVolumeZero.
+  ///
+  /// In pt, this message translates to:
+  /// **'Volume no mínimo pausa'**
+  String get pauseOnVolumeZero;
+
+  /// No description provided for @pauseOnVolumeZeroHintMobile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abaixar o volume do aparelho até o fim pausa; subir volta a tocar.'**
+  String get pauseOnVolumeZeroHintMobile;
+
+  /// No description provided for @pauseOnVolumeZeroHintDesktop.
+  ///
+  /// In pt, this message translates to:
+  /// **'Zerar o volume do app pausa; subir volta a tocar.'**
+  String get pauseOnVolumeZeroHintDesktop;
+
+  /// No description provided for @pauseOnUnplug.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tirar o fone pausa'**
+  String get pauseOnUnplug;
+
+  /// No description provided for @pauseOnUnplugHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem isso a música continuaria no alto-falante.'**
+  String get pauseOnUnplugHint;
+
+  /// No description provided for @commandsKeepOpen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para o app não fechar sozinho'**
+  String get commandsKeepOpen;
+
+  /// No description provided for @keepAliveWhenPaused.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manter o app vivo quando pausado'**
+  String get keepAliveWhenPaused;
+
+  /// No description provided for @keepAliveWhenPausedHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligado, o Android pode fechar o app enquanto ele está pausado, e você volta e perde a fila. Ligado, a notificação fica na barra. Vale ao abrir o app de novo.'**
+  String get keepAliveWhenPausedHint;
+
+  /// No description provided for @batteryUnrestricted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bateria sem restrição'**
+  String get batteryUnrestricted;
+
+  /// No description provided for @batteryUnrestrictedOk.
+  ///
+  /// In pt, this message translates to:
+  /// **'Liberado: o sistema não vai fechar o app em segundo plano.'**
+  String get batteryUnrestrictedOk;
+
+  /// No description provided for @batteryUnrestrictedBad.
+  ///
+  /// In pt, this message translates to:
+  /// **'O sistema pode fechar o app em segundo plano para poupar bateria.'**
+  String get batteryUnrestrictedBad;
+
+  /// No description provided for @batteryUnrestrictedFix.
+  ///
+  /// In pt, this message translates to:
+  /// **'Liberar'**
+  String get batteryUnrestrictedFix;
+
+  /// No description provided for @closeToTrayWarn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar a janela encerra o app e a música para. Ligue \"fechar para a bandeja\" em Computador para ele só sumir da tela.'**
+  String get closeToTrayWarn;
+
+  /// No description provided for @trayGoneWarn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cuidado: com o ícone da bandeja desligado e \"fechar para a bandeja\" ligado, o app some sem deixar como reabrir.'**
+  String get trayGoneWarn;
+
   /// No description provided for @localAddressOk.
   ///
   /// In pt, this message translates to:

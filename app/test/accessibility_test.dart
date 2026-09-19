@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// com nome para o leitor de tela, área de toque de pelo menos 48 dp e texto
 /// com contraste suficiente (WCAG), no tema claro e no escuro.
 void main() {
-  const sections = ['', 'account', 'playback', 'automix', 'storage', 'sources', 'devices', 'behavior', 'about', 'diagnostics'];
+  const sections = ['', 'account', 'playback', 'automix', 'storage', 'sources', 'devices', 'commands', 'behavior', 'about', 'diagnostics'];
 
   for (final dark in [false, true]) {
     for (final section in sections) {

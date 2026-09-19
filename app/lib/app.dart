@@ -24,6 +24,7 @@ import 'ui/pages/login_page.dart';
 import 'ui/pages/offline_page.dart';
 import 'ui/pages/playlists_page.dart';
 import 'ui/pages/search_page.dart';
+import 'player/commands.dart';
 import 'ui/pages/settings/look_page.dart';
 import 'ui/pages/settings/sections.dart';
 import 'ui/pages/settings/settings_page.dart';
@@ -161,6 +162,8 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
     // Notificações do Android abrem uma tela (ex.: a Jam).
     _system.setMethodCallHandler((call) async {
       if (call.method == 'openRoute') ref.read(_routerProvider).push('${call.arguments}');
+      // O canal aceita um tratador só, então o volume é repassado daqui.
+      DeviceVolume.onNative(call);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
@@ -180,6 +183,8 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
     ref.listen(connectProvider, (_, _) {});
     // Conta com portal: segue o endereço do túnel mesmo em casa (ver PortalRefreshNotifier).
     ref.listen(portalRefreshProvider, (_, _) {});
+    // Comandos automáticos (ex.: volume no mínimo pausa).
+    ref.listen(commandsProvider, (_, _) {});
     final ui = ref.watch(uiPrefsProvider);
     final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(ui, Brightness.light);
     final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(ui, Brightness.dark);

@@ -56,6 +56,8 @@ class SettingsPage extends ConsumerWidget {
         item('sources', Icons.lyrics_outlined, l10n.settingsSources,
             'Last.fm: ${s.lastFmApiKey == null ? l10n.off : l10n.on} • ${l10n.onlineLyrics}: ${s.onlineLyrics ? l10n.on : l10n.off}'),
         item('devices', Icons.devices_outlined, l10n.settingsDevices, 'Connect: ${s.connectEnabled ? l10n.on : l10n.off} • ${l10n.party}'),
+        item('commands', Icons.bolt_outlined, l10n.commands,
+            '${l10n.pauseOnVolumeZero}: ${s.pauseOnVolumeZero ? l10n.on : l10n.off}'),
         item('behavior', Icons.touch_app_outlined, l10n.behavior,
             '${l10n.language}: ${switch (s.locale) { 'pt' => 'Português', 'en' => 'English', _ => l10n.languageSystem }}'),
         if (isDesktop)

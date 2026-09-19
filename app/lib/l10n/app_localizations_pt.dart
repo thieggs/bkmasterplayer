@@ -1029,6 +1029,66 @@ class AppLocalizationsPt extends AppLocalizations {
       'Confira com quem te passou o link. É o que garante que o servidor é o dele, e não o de outra pessoa.';
 
   @override
+  String get commands => 'Comandos';
+
+  @override
+  String get commandsHint =>
+      'Regras do tipo \"quando acontecer isto, faça aquilo\". O app só volta a tocar o que ele mesmo pausou: se você pausou na mão, ele não sai tocando sozinho.';
+
+  @override
+  String get commandsWhen => 'Quando acontecer';
+
+  @override
+  String get pauseOnVolumeZero => 'Volume no mínimo pausa';
+
+  @override
+  String get pauseOnVolumeZeroHintMobile =>
+      'Abaixar o volume do aparelho até o fim pausa; subir volta a tocar.';
+
+  @override
+  String get pauseOnVolumeZeroHintDesktop =>
+      'Zerar o volume do app pausa; subir volta a tocar.';
+
+  @override
+  String get pauseOnUnplug => 'Tirar o fone pausa';
+
+  @override
+  String get pauseOnUnplugHint =>
+      'Sem isso a música continuaria no alto-falante.';
+
+  @override
+  String get commandsKeepOpen => 'Para o app não fechar sozinho';
+
+  @override
+  String get keepAliveWhenPaused => 'Manter o app vivo quando pausado';
+
+  @override
+  String get keepAliveWhenPausedHint =>
+      'Desligado, o Android pode fechar o app enquanto ele está pausado, e você volta e perde a fila. Ligado, a notificação fica na barra. Vale ao abrir o app de novo.';
+
+  @override
+  String get batteryUnrestricted => 'Bateria sem restrição';
+
+  @override
+  String get batteryUnrestrictedOk =>
+      'Liberado: o sistema não vai fechar o app em segundo plano.';
+
+  @override
+  String get batteryUnrestrictedBad =>
+      'O sistema pode fechar o app em segundo plano para poupar bateria.';
+
+  @override
+  String get batteryUnrestrictedFix => 'Liberar';
+
+  @override
+  String get closeToTrayWarn =>
+      'Fechar a janela encerra o app e a música para. Ligue \"fechar para a bandeja\" em Computador para ele só sumir da tela.';
+
+  @override
+  String get trayGoneWarn =>
+      'Cuidado: com o ícone da bandeja desligado e \"fechar para a bandeja\" ligado, o app some sem deixar como reabrir.';
+
+  @override
   String get localAddressOk => 'O endereço de casa respondeu e já está em uso';
 
   @override

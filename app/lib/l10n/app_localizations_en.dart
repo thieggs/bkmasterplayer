@@ -1028,6 +1028,66 @@ class AppLocalizationsEn extends AppLocalizations {
       'Check it with whoever gave you the link. It is what proves the server is theirs and nobody else\'s.';
 
   @override
+  String get commands => 'Commands';
+
+  @override
+  String get commandsHint =>
+      'Rules like \"when this happens, do that\". The app only resumes what it paused itself: if you paused by hand, it won\'t start playing on its own.';
+
+  @override
+  String get commandsWhen => 'When this happens';
+
+  @override
+  String get pauseOnVolumeZero => 'Volume at minimum pauses';
+
+  @override
+  String get pauseOnVolumeZeroHintMobile =>
+      'Turning the device volume all the way down pauses; turning it up resumes.';
+
+  @override
+  String get pauseOnVolumeZeroHintDesktop =>
+      'Setting the app volume to zero pauses; raising it resumes.';
+
+  @override
+  String get pauseOnUnplug => 'Unplugging headphones pauses';
+
+  @override
+  String get pauseOnUnplugHint =>
+      'Without this the music would keep going on the speaker.';
+
+  @override
+  String get commandsKeepOpen => 'So the app doesn\'t close by itself';
+
+  @override
+  String get keepAliveWhenPaused => 'Keep the app alive while paused';
+
+  @override
+  String get keepAliveWhenPausedHint =>
+      'Off, Android may close the app while it is paused and you come back to an empty queue. On, the notification stays in the bar. Takes effect next time the app starts.';
+
+  @override
+  String get batteryUnrestricted => 'Battery unrestricted';
+
+  @override
+  String get batteryUnrestrictedOk =>
+      'Allowed: the system won\'t close the app in the background.';
+
+  @override
+  String get batteryUnrestrictedBad =>
+      'The system may close the app in the background to save battery.';
+
+  @override
+  String get batteryUnrestrictedFix => 'Allow';
+
+  @override
+  String get closeToTrayWarn =>
+      'Closing the window quits the app and the music stops. Turn on \"close to tray\" under Computer so it only leaves the screen.';
+
+  @override
+  String get trayGoneWarn =>
+      'Careful: with the tray icon off and \"close to tray\" on, the app disappears with no way to bring it back.';
+
+  @override
   String get localAddressOk => 'The home address responded and is now in use';
 
   @override

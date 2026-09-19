@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../connect/connect_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../../../connect/devices_sheet.dart';
 import '../../../src/rust/api/portal.dart' as rust;
 import '../../../core/providers.dart';
@@ -43,6 +46,7 @@ Widget settingsSectionPage(String id) => switch (id) {
       'sources' => const SourcesSettingsPage(),
       'devices' => const DevicesSettingsPage(),
       'behavior' => const BehaviorSettingsPage(),
+      'commands' => const CommandsSettingsPage(),
       'desktop' => const DesktopSettingsPage(),
       'diagnostics' => const DiagnosticsPage(),
       _ => const AboutSettingsPage(),
@@ -696,7 +700,9 @@ class DesktopSettingsPage extends ConsumerWidget {
           secondary: const Icon(Icons.web_asset),
           title: Text(l10n.trayIcon),
           value: s.trayIcon,
-          onChanged: (v) => set((x) => x.copyWith(trayIcon: v)),
+          // Desligar o ícone com "fechar para a bandeja" ligado deixaria o
+          // app escondido e sem como reabrir: desliga os dois juntos.
+          onChanged: (v) => set((x) => x.copyWith(trayIcon: v, closeToTray: v && x.closeToTray)),
         ),
         SwitchListTile(
           secondary: const Icon(Icons.close_fullscreen),
@@ -705,6 +711,12 @@ class DesktopSettingsPage extends ConsumerWidget {
           value: s.closeToTray,
           onChanged: s.trayIcon ? (v) => set((x) => x.copyWith(closeToTray: v)) : null,
         ),
+        if (!s.closeToTray)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
+            child: Text(l10n.closeToTrayWarn,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error)),
+          ),
         SwitchListTile(
           secondary: const Icon(Icons.notifications_outlined),
           title: Text(l10n.trackNotifications),
@@ -751,6 +763,103 @@ class AboutSettingsPage extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => showLicensePage(context: context, applicationName: l10n.appTitle, applicationIcon: const BkLogo(size: 48)),
         ),
+      ],
+    );
+  }
+}
+
+// ---- Comandos: "quando acontecer isto, faça aquilo" ----
+
+/// Regras automáticas e o que evita o app fechar sozinho.
+///
+/// As duas coisas moram juntas de propósito: quem procura "por que parou" e
+/// quem procura "por que fechou" procura no mesmo lugar.
+class CommandsSettingsPage extends ConsumerStatefulWidget {
+  const CommandsSettingsPage({super.key});
+
+  @override
+  ConsumerState<CommandsSettingsPage> createState() => _CommandsSettingsPageState();
+}
+
+class _CommandsSettingsPageState extends ConsumerState<CommandsSettingsPage> {
+  /// `null` enquanto não se sabe (ou fora do Android).
+  bool? _batteryFree;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isAndroid) unawaited(_checkBattery());
+  }
+
+  Future<void> _checkBattery() async {
+    final ok = await Permission.ignoreBatteryOptimizations.isGranted;
+    if (mounted) setState(() => _batteryFree = ok);
+  }
+
+  Future<void> _askBattery() async {
+    await Permission.ignoreBatteryOptimizations.request();
+    await _checkBattery();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final s = ref.watch(settingsProvider);
+    final set = ref.read(settingsProvider.notifier).update;
+
+    return SettingsScaffold(
+      title: l10n.commands,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Text(l10n.commandsHint, style: theme.textTheme.bodyMedium),
+        ),
+        SettingsSection(l10n.commandsWhen),
+        SwitchListTile(
+          secondary: const Icon(Icons.volume_off_outlined),
+          title: Text(l10n.pauseOnVolumeZero),
+          subtitle: Text(Platform.isAndroid ? l10n.pauseOnVolumeZeroHintMobile : l10n.pauseOnVolumeZeroHintDesktop),
+          value: s.pauseOnVolumeZero,
+          onChanged: (v) => set((x) => x.copyWith(pauseOnVolumeZero: v)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.headset_off_outlined),
+          title: Text(l10n.pauseOnUnplug),
+          subtitle: Text(l10n.pauseOnUnplugHint),
+          value: s.pauseOnUnplug,
+          onChanged: (v) => set((x) => x.copyWith(pauseOnUnplug: v)),
+        ),
+        SettingsSection(l10n.commandsKeepOpen),
+        if (Platform.isAndroid) ...[
+          SwitchListTile(
+            secondary: const Icon(Icons.play_circle_outline),
+            title: Text(l10n.keepAliveWhenPaused),
+            subtitle: Text(l10n.keepAliveWhenPausedHint),
+            value: s.keepAliveWhenPaused,
+            onChanged: (v) => set((x) => x.copyWith(keepAliveWhenPaused: v)),
+          ),
+          ListTile(
+            leading: Icon(Icons.battery_saver_outlined, color: _batteryFree == false ? theme.colorScheme.error : null),
+            title: Text(l10n.batteryUnrestricted),
+            subtitle: Text(switch (_batteryFree) {
+              true => l10n.batteryUnrestrictedOk,
+              false => l10n.batteryUnrestrictedBad,
+              null => '',
+            }),
+            trailing: _batteryFree == false ? OutlinedButton(onPressed: _askBattery, child: Text(l10n.batteryUnrestrictedFix)) : null,
+          ),
+        ],
+        if (_isDesktop && !s.closeToTray)
+          ListTile(
+            leading: Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error),
+            title: Text(l10n.closeToTrayWarn),
+          ),
+        if (_isDesktop && s.closeToTray && !s.trayIcon)
+          ListTile(
+            leading: Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error),
+            title: Text(l10n.trayGoneWarn),
+          ),
       ],
     );
   }

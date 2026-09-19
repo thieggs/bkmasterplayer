@@ -27,11 +27,12 @@ Future<void> initMobileMedia(ProviderContainer container) async {
       androidNotificationChannelId: 'io.github.playermusica.player_musica.playback',
       androidNotificationChannelName: Platform.localeName.startsWith('pt') ? 'Reprodução' : 'Playback',
       androidNotificationIcon: 'drawable/ic_stat_bk',
-      // Na pausa sai do primeiro plano: solta o wake lock (bateria) e a
-      // notificação pode ser dispensada. Voltar a tocar pelo botão do fone ou
-      // da caixa funciona com o app em segundo plano porque o Android libera o
-      // serviço por um tempo quando um controle de mídia manda um comando.
-      androidStopForegroundOnPause: true,
+      // Sair do primeiro plano na pausa solta o wake lock (bateria) e deixa
+      // dispensar a notificação — mas também deixa o Android matar o app
+      // enquanto está pausado, e a pessoa volta e encontra tudo fechado.
+      // Quem decide é a configuração "manter o app vivo pausado"; só vale ao
+      // abrir o app, porque o audio_service lê isto uma vez.
+      androidStopForegroundOnPause: !container.read(settingsProvider).keepAliveWhenPaused,
       // Android Auto: lista/grade por pasta e busca na tela do carro.
       androidBrowsableRootExtras: AutoBrowser.rootExtras,
     ),
@@ -54,7 +55,7 @@ class _BkAudioHandler extends BaseAudioHandler {
     _session.interruptionEventStream.listen(_onInterruption);
     // Fone desconectado / Bluetooth caiu: pausa em vez de sair no alto-falante.
     _session.becomingNoisyEventStream.listen((_) {
-      if (!_remote) _player.pause();
+      if (!_remote && _container.read(settingsProvider).pauseOnUnplug) _player.pause();
     });
     _container.listen<PlayerState>(playerProvider, (_, s) => _update(s), fireImmediately: true);
     // O carro abriu o app antes do login voltar (ou trocou a conta): recarrega as pastas.

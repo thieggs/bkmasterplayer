@@ -49,6 +49,9 @@ class AppSettings {
     this.eqPreset = 'flat',
     this.trayIcon = true,
     this.closeToTray = false,
+    this.pauseOnVolumeZero = false,
+    this.pauseOnUnplug = true,
+    this.keepAliveWhenPaused = true,
     this.connectEnabled = true,
     this.deviceName,
     this.localFolders = const [],
@@ -110,6 +113,16 @@ class AppSettings {
   // Desktop
   final bool trayIcon;
   final bool closeToTray;
+
+  /// Volume no mínimo pausa; subir o volume volta a tocar.
+  final bool pauseOnVolumeZero;
+
+  /// Tirar o fone pausa.
+  final bool pauseOnUnplug;
+
+  /// Android: segue em primeiro plano mesmo pausado, para o sistema não
+  /// matar o app enquanto ele está parado.
+  final bool keepAliveWhenPaused;
 
   /// Aparece para os outros aparelhos da mesma conta (BKmasterplayer Connect) e
   /// aceita ser controlado por eles.
@@ -177,6 +190,9 @@ class AppSettings {
     String? eqPreset,
     bool? trayIcon,
     bool? closeToTray,
+    bool? pauseOnVolumeZero,
+    bool? pauseOnUnplug,
+    bool? keepAliveWhenPaused,
     bool? connectEnabled,
     String? deviceName,
     bool clearDeviceName = false,
@@ -224,6 +240,9 @@ class AppSettings {
         eqPreset: eqPreset ?? this.eqPreset,
         trayIcon: trayIcon ?? this.trayIcon,
         closeToTray: closeToTray ?? this.closeToTray,
+        pauseOnVolumeZero: pauseOnVolumeZero ?? this.pauseOnVolumeZero,
+        pauseOnUnplug: pauseOnUnplug ?? this.pauseOnUnplug,
+        keepAliveWhenPaused: keepAliveWhenPaused ?? this.keepAliveWhenPaused,
         connectEnabled: connectEnabled ?? this.connectEnabled,
         deviceName: clearDeviceName ? null : (deviceName ?? this.deviceName),
         localFolders: localFolders ?? this.localFolders,
@@ -269,6 +288,9 @@ class AppSettings {
         'eqPreset': eqPreset,
         'trayIcon': trayIcon,
         'closeToTray': closeToTray,
+        'pauseOnVolumeZero': pauseOnVolumeZero,
+        'pauseOnUnplug': pauseOnUnplug,
+        'keepAliveWhenPaused': keepAliveWhenPaused,
         'connectEnabled': connectEnabled,
         'deviceName': deviceName,
         'localFolders': localFolders,
@@ -318,6 +340,9 @@ class AppSettings {
       eqPreset: j['eqPreset'] as String? ?? d.eqPreset,
       trayIcon: pick('trayIcon', d.trayIcon),
       closeToTray: pick('closeToTray', d.closeToTray),
+      pauseOnVolumeZero: pick('pauseOnVolumeZero', d.pauseOnVolumeZero),
+      pauseOnUnplug: pick('pauseOnUnplug', d.pauseOnUnplug),
+      keepAliveWhenPaused: pick('keepAliveWhenPaused', d.keepAliveWhenPaused),
       connectEnabled: pick('connectEnabled', d.connectEnabled),
       deviceName: j['deviceName'] as String?,
       localFolders: (j['localFolders'] as List?)?.whereType<String>().toList() ?? d.localFolders,
