@@ -7,6 +7,7 @@ pub mod automix;
 pub mod deck;
 pub mod decoder;
 pub mod mixer;
+pub mod recommend;
 pub mod output;
 pub mod resample;
 
