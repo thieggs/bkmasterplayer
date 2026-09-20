@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import '../core/providers.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
 import '../src/rust/api/engine.dart' as engine;
+import '../ui/widgets/cover_art.dart';
 
 /// Álbum ou playlist baixado para ouvir offline (com a lista de músicas
 /// guardada localmente, para funcionar mesmo sem servidor).
@@ -108,7 +111,29 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
   Future<void> add(OfflineCollection c) async {
     state = [...state.where((x) => x.id != c.id), c];
     await _save();
+    unawaited(_cacheCovers(c.songs));
     await engine.playerDownloadOffline(tracks: _tracks(c.songs));
+  }
+
+  /// Guarda a capa junto com a música.
+  ///
+  /// Sem isto a capa offline dependia de a pessoa ter aberto o álbum antes
+  /// (é o que enche o cache). Baixa no maior tamanho que as telas usam: os
+  /// menores saem dele quando faltar (ver `CoverImageProvider.fetchFile`).
+  Future<void> _cacheCovers(Iterable<Song> songs) async {
+    final provider = ref.read(musicProvider);
+    final dir = p.join(ref.read(cacheDirProvider).path, 'ui_covers');
+    final ids = {for (final s in songs) s.coverArt}.whereType<String>();
+    for (final id in ids) {
+      final uri = provider.coverUri(id, size: 600);
+      final key = provider.coverCacheKey(id, size: 600);
+      if (uri == null || key == null) continue;
+      try {
+        await CoverImageProvider.fetchFile(url: uri.toString(), cacheKey: key, cacheDir: dir);
+      } catch (e) {
+        debugPrint('capa offline de $id: $e');
+      }
+    }
   }
 
   /// Ao abrir o app (com o login pronto): a fila de downloads é só da memória,

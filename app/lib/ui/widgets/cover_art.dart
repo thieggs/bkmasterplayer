@@ -35,20 +35,75 @@ class CoverImageProvider extends ImageProvider<CoverImageProvider> {
   }
 
   /// Arquivo da capa no cache em disco (baixa se ainda não tem).
+  ///
+  /// O cache é por tamanho, porque o servidor gera a miniatura pedida. Sem
+  /// rede isso deixava a capa sumir: a tela pedia 300 e no disco só havia a
+  /// de 128, guardada quando a capa apareceu numa lista. Então, quando não dá
+  /// para baixar, serve outro tamanho já guardado da mesma capa — uma capa um
+  /// pouco maior ou menor é melhor que um quadrado cinza.
   static Future<File> fetchFile({required String url, required String cacheKey, required String cacheDir}) async {
-    final file = File(p.join(cacheDir, '${fnv1a32(cacheKey).toRadixString(16)}.img'));
+    final (base, size) = _splitKey(cacheKey);
+    final file = File(p.join(cacheDir, '${_hash(base)}_$size.img'));
     if (await file.exists()) return file;
-    final req = await _http.getUrl(Uri.parse(url));
-    final res = await req.close();
-    if (res.statusCode != 200) {
-      throw StateError('capa: HTTP ${res.statusCode}');
+    // Cache do formato antigo (o tamanho ia dentro do nome embaralhado):
+    // aproveita e já passa para o nome novo, em vez de baixar de novo.
+    final legacy = File(p.join(cacheDir, '${_hash(cacheKey)}.img'));
+    if (await legacy.exists()) {
+      try {
+        return await legacy.rename(file.path);
+      } catch (_) {
+        return legacy;
+      }
     }
-    final bytes = await consolidateHttpClientResponseBytes(res);
-    if (bytes.isEmpty) throw StateError('capa vazia');
-    final tmp = File('${file.path}.${bytes.length}.tmp');
-    await tmp.writeAsBytes(bytes);
-    await tmp.rename(file.path);
-    return file;
+    try {
+      final req = await _http.getUrl(Uri.parse(url));
+      final res = await req.close();
+      if (res.statusCode != 200) {
+        throw StateError('capa: HTTP ${res.statusCode}');
+      }
+      final bytes = await consolidateHttpClientResponseBytes(res);
+      if (bytes.isEmpty) throw StateError('capa vazia');
+      final tmp = File('${file.path}.${bytes.length}.tmp');
+      await tmp.writeAsBytes(bytes);
+      await tmp.rename(file.path);
+      return file;
+    } catch (_) {
+      final outro = await cachedAnySize(cacheDir: cacheDir, cacheKey: cacheKey);
+      if (outro != null) return outro;
+      rethrow;
+    }
+  }
+
+  static String _hash(String s) => fnv1a32(s).toRadixString(16);
+
+  /// Separa a chave em "qual capa" e "que tamanho" (o tamanho é o fim dela).
+  static (String, int) _splitKey(String key) {
+    final i = key.lastIndexOf(':');
+    if (i < 0) return (key, 0);
+    return (key.substring(0, i), int.tryParse(key.substring(i + 1)) ?? 0);
+  }
+
+  /// Maior tamanho desta mesma capa já guardado no disco, se houver.
+  static Future<File?> cachedAnySize({required String cacheDir, required String cacheKey}) async {
+    final (base, _) = _splitKey(cacheKey);
+    final prefixo = '${_hash(base)}_';
+    File? melhor;
+    var maior = -1;
+    try {
+      await for (final e in Directory(cacheDir).list(followLinks: false)) {
+        if (e is! File) continue;
+        final nome = p.basename(e.path);
+        if (!nome.startsWith(prefixo) || !nome.endsWith('.img')) continue;
+        final n = int.tryParse(nome.substring(prefixo.length, nome.length - 4)) ?? -1;
+        if (n > maior) {
+          maior = n;
+          melhor = e;
+        }
+      }
+    } catch (_) {
+      // Pasta ainda não existe: nada guardado.
+    }
+    return melhor;
   }
 
   @override
