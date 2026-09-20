@@ -394,6 +394,11 @@ impl Store {
         self.save_config(&g)
     }
 
+    /// Pasta dos dados (onde o exportador do AudioMuse grava os vetores).
+    pub fn dir(&self) -> &std::path::Path {
+        &self.dir
+    }
+
     pub fn worker_token(&self) -> String {
         self.inner.lock().config.worker_token.clone()
     }

@@ -128,11 +128,15 @@ impl App {
         let resp = match (&method, path) {
             (Method::Get, "/") | (Method::Get, "/index.html") => page(),
             (Method::Get, "/favicon.svg") | (Method::Get, "/favicon.ico") => bytes(200, "image/svg+xml", FAVICON.as_bytes().to_vec()),
-            (Method::Get, "/api/hello") => json_resp(
-                200,
-                &json!({"app": "bk-analyzer", "version": env!("CARGO_PKG_VERSION"), "analysis_version": ANALYSIS_VERSION,
-                        "configured": self.store.config().navidrome.is_some()}),
-            ),
+            (Method::Get, "/api/hello") => {
+                let v = self.vectors_version();
+                json_resp(
+                    200,
+                    &json!({"app": "bk-analyzer", "version": env!("CARGO_PKG_VERSION"), "analysis_version": ANALYSIS_VERSION,
+                            "configured": self.store.config().navidrome.is_some(),
+                            "vectors": v.as_deref()}),
+                )
+            }
             (Method::Post, "/api/login") => self.login(&mut req),
             (Method::Post, "/api/logout") => {
                 if let Some(t) = cookie(&req) {
@@ -147,6 +151,7 @@ impl App {
                 json_resp(200, &json!({"total": s["total"], "counts": s["counts"], "analysis_version": ANALYSIS_VERSION,
                     "workers_online": s["workers"].as_array().map(|w| w.iter().filter(|x| x["online"] == true).count()).unwrap_or(0)}))
             }
+            (Method::Get, "/api/vectors") if self.player_ok(&req, &q) => self.vectors(&req),
             (_, p) if p.starts_with("/api/") => match self.session(&req) {
                 Some(user) => self.panel_api(&mut req, &method, p, &q, &user),
                 None => err(401, "entre com a sua conta do Navidrome"),
@@ -271,6 +276,47 @@ impl App {
 
     /// Login de player (u/t/s da API Subsonic), conferido no Navidrome e
     /// lembrado por 10 min (errado: por 30 s).
+    fn vectors_path(&self) -> std::path::PathBuf {
+        self.store.dir().join("vetores.bkvec")
+    }
+
+    /// Versão do arquivo de vetores: tamanho e data, que é o bastante para o
+    /// app saber que mudou sem baixar os 21 MB de novo.
+    fn vectors_version(&self) -> Option<String> {
+        let m = std::fs::metadata(self.vectors_path()).ok()?;
+        let t = m.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?.as_secs();
+        Some(format!("{}-{}", m.len(), t))
+    }
+
+    /// Entrega o arquivo de vetores do AudioMuse (ver
+    /// `dev/exporta_audiomuse.py`). São uns 21 MB: vai em fluxo, sem carregar
+    /// na memória, e com versão para o app não repetir o download.
+    fn vectors(&self, req: &Request) -> Resp {
+        let Some(versao) = self.vectors_version() else {
+            return err(404, "este servidor não tem os vetores do AudioMuse");
+        };
+        if header(req, "If-None-Match").is_some_and(|h| h.trim_matches('"') == versao) {
+            return Response::new(StatusCode(304), vec![hdr("ETag", &format!("\"{versao}\""))], Box::new(Cursor::new(Vec::new())) as Box<dyn Read + Send>, Some(0), None);
+        }
+        match std::fs::File::open(self.vectors_path()) {
+            Ok(f) => {
+                let len = f.metadata().ok().map(|m| m.len() as usize);
+                Response::new(
+                    StatusCode(200),
+                    vec![
+                        hdr("Content-Type", "application/octet-stream"),
+                        hdr("ETag", &format!("\"{versao}\"")),
+                        hdr("Cache-Control", "no-cache"),
+                    ],
+                    Box::new(f) as Box<dyn Read + Send>,
+                    len,
+                    None,
+                )
+            }
+            Err(e) => err(500, &format!("não deu para ler os vetores: {e}")),
+        }
+    }
+
     fn player_ok(&self, req: &Request, q: &HashMap<String, String>) -> bool {
         let key = match (q.get("u"), q.get("t"), q.get("s"), q.get("apiKey")) {
             (Some(u), Some(t), Some(s), _) => (u.clone(), t.clone(), s.clone()),

@@ -30,7 +30,7 @@ const MAX_IN_FLIGHT: usize = 512;
 /// Só isto do BK Analyzer sai para a internet. O painel, a API dos
 /// trabalhadores (que baixa áudio com o login do dono) e o resto ficam de
 /// fora: quem quiser mexer neles entra pela rede de casa.
-const ANALYSIS_PUBLIC: [&str; 3] = ["/api/hello", "/api/summary", "/api/analysis/"];
+const ANALYSIS_PUBLIC: [&str; 4] = ["/api/hello", "/api/summary", "/api/analysis/", "/api/vectors"];
 /// Cabeçalhos que morrem em cada salto e não podem ser repassados.
 const HOP_BY_HOP: [&str; 8] =
     ["connection", "keep-alive", "transfer-encoding", "te", "trailer", "upgrade", "proxy-authenticate", "proxy-authorization"];
@@ -277,6 +277,7 @@ mod tests {
             ("/api/hello", true),
             ("/api/summary", true),
             ("/api/analysis/abc123", true),
+            ("/api/vectors", true),
             ("/api/worker/audio", false),
             ("/api/worker-setup", false),
             ("/api/state", false),
