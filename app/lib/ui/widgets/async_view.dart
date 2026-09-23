@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/subsonic/subsonic_client.dart';
 import '../../l10n/l10n.dart';
+
+/// Em português e curto, em vez da exceção crua na tela.
+///
+/// O que vem do servidor já chega explicado (`SubsonicException`); o resto é
+/// defeito nosso, e o nome da classe não ajuda ninguém.
+String mensagemDoErro(Object e, AppLocalizations l10n) => switch (e) {
+      SubsonicException s => s.message,
+      StateError _ => l10n.notConnected,
+      _ => l10n.couldNotLoad,
+    };
 
 /// Mostra carregando / erro com "tentar de novo" / conteúdo.
 class AsyncView<T> extends StatelessWidget {
@@ -25,7 +36,7 @@ class AsyncView<T> extends StatelessWidget {
             children: [
               Icon(Icons.cloud_off, size: 40, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 12),
-              Text('$e', textAlign: TextAlign.center),
+              Text(mensagemDoErro(e, context.l10n), textAlign: TextAlign.center),
               if (onRetry != null) ...[
                 const SizedBox(height: 12),
                 OutlinedButton(onPressed: onRetry, child: Text(context.l10n.retry)),

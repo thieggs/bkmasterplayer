@@ -471,11 +471,22 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 final sessionProvider = AsyncNotifierProvider<SessionNotifier, Session?>(SessionNotifier.new);
 
 /// Provedor de música da sessão atual (lança se não houver login).
+///
+/// Só para quem já sabe que há sessão (ações, player). Numa tela que carrega
+/// dados, usar [musicaDaSessao]: entrar leva um tempo, e ler daqui nesse
+/// intervalo faz a tela mostrar erro em vez de "carregando".
 final musicProvider = Provider<MusicProvider>((ref) {
   final s = ref.watch(sessionProvider).value;
   if (s == null) throw StateError('sem sessão');
   return s.provider;
 });
+
+/// O provedor de música, esperando a sessão terminar de entrar.
+Future<MusicProvider> musicaDaSessao(Ref ref) async {
+  final s = await ref.watch(sessionProvider.future);
+  if (s == null) throw StateError('sem sessão');
+  return s.provider;
+}
 
 final serverInfoProvider = Provider<ServerInfo?>((ref) => ref.watch(sessionProvider).value?.info);
 
@@ -535,48 +546,48 @@ final portalRefreshProvider = NotifierProvider<PortalRefreshNotifier, void>(Port
 
 typedef AlbumListQuery = ({AlbumListType type, int size, String? genre});
 
-final albumListProvider = FutureProvider.autoDispose.family<List<Album>, AlbumListQuery>((ref, q) {
-  return ref.watch(musicProvider).albumList(q.type, size: q.size, genre: q.genre);
+final albumListProvider = FutureProvider.autoDispose.family<List<Album>, AlbumListQuery>((ref, q) async {
+  return (await musicaDaSessao(ref)).albumList(q.type, size: q.size, genre: q.genre);
 });
 
-final albumProvider = FutureProvider.autoDispose.family<Album, String>((ref, id) {
-  return ref.watch(musicProvider).album(id);
+final albumProvider = FutureProvider.autoDispose.family<Album, String>((ref, id) async {
+  return (await musicaDaSessao(ref)).album(id);
 });
 
-final artistsProvider = FutureProvider.autoDispose<List<Artist>>((ref) {
-  return ref.watch(musicProvider).artists();
+final artistsProvider = FutureProvider.autoDispose<List<Artist>>((ref) async {
+  return (await musicaDaSessao(ref)).artists();
 });
 
-final artistProvider = FutureProvider.autoDispose.family<Artist, String>((ref, id) {
-  return ref.watch(musicProvider).artist(id);
+final artistProvider = FutureProvider.autoDispose.family<Artist, String>((ref, id) async {
+  return (await musicaDaSessao(ref)).artist(id);
 });
 
-final artistInfoProvider = FutureProvider.autoDispose.family<ArtistInfo?, String>((ref, id) {
-  return ref.watch(musicProvider).artistInfo(id);
+final artistInfoProvider = FutureProvider.autoDispose.family<ArtistInfo?, String>((ref, id) async {
+  return (await musicaDaSessao(ref)).artistInfo(id);
 });
 
-final topSongsProvider = FutureProvider.autoDispose.family<List<Song>, String>((ref, artistName) {
-  return ref.watch(musicProvider).topSongs(artistName);
+final topSongsProvider = FutureProvider.autoDispose.family<List<Song>, String>((ref, artistName) async {
+  return (await musicaDaSessao(ref)).topSongs(artistName);
 });
 
-final playlistsProvider = FutureProvider.autoDispose<List<Playlist>>((ref) {
-  return ref.watch(musicProvider).playlists();
+final playlistsProvider = FutureProvider.autoDispose<List<Playlist>>((ref) async {
+  return (await musicaDaSessao(ref)).playlists();
 });
 
-final playlistProvider = FutureProvider.autoDispose.family<Playlist, String>((ref, id) {
-  return ref.watch(musicProvider).playlist(id);
+final playlistProvider = FutureProvider.autoDispose.family<Playlist, String>((ref, id) async {
+  return (await musicaDaSessao(ref)).playlist(id);
 });
 
-final genresProvider = FutureProvider.autoDispose<List<Genre>>((ref) {
-  return ref.watch(musicProvider).genres();
+final genresProvider = FutureProvider.autoDispose<List<Genre>>((ref) async {
+  return (await musicaDaSessao(ref)).genres();
 });
 
-final genreSongsProvider = FutureProvider.autoDispose.family<List<Song>, String>((ref, genre) {
-  return ref.watch(musicProvider).songsByGenre(genre, count: 200);
+final genreSongsProvider = FutureProvider.autoDispose.family<List<Song>, String>((ref, genre) async {
+  return (await musicaDaSessao(ref)).songsByGenre(genre, count: 200);
 });
 
-final starredSongsProvider = FutureProvider.autoDispose<List<Song>>((ref) {
-  return ref.watch(musicProvider).starredSongs();
+final starredSongsProvider = FutureProvider.autoDispose<List<Song>>((ref) async {
+  return (await musicaDaSessao(ref)).starredSongs();
 });
 
 final searchProvider = FutureProvider.autoDispose.family<SearchResult, String>((ref, query) async {
@@ -586,14 +597,14 @@ final searchProvider = FutureProvider.autoDispose.family<SearchResult, String>((
   ref.onDispose(() => cancelled = true);
   await Future<void>.delayed(const Duration(milliseconds: 250));
   if (cancelled) return const SearchResult();
-  return ref.watch(musicProvider).search(query);
+  return (await musicaDaSessao(ref)).search(query);
 });
 
 /// Letra: do servidor (ou .lrc ao lado do arquivo); se faltar, da internet.
 final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, Song>((ref, song) async {
   Lyrics? own;
   try {
-    own = await ref.watch(musicProvider).lyrics(song);
+    own = await (await musicaDaSessao(ref)).lyrics(song);
   } catch (_) {}
   if (own != null && own.lines.isNotEmpty) return own;
   final s = ref.read(settingsProvider);

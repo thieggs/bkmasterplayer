@@ -254,6 +254,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get retry => 'Tentar de novo';
 
   @override
+  String get notConnected => 'Ainda não conectado ao servidor';
+
+  @override
+  String get couldNotLoad => 'Não deu para carregar agora';
+
+  @override
   String get rgAlbum => 'Por álbum';
 
   @override

@@ -255,6 +255,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Retry';
 
   @override
+  String get notConnected => 'Not connected to the server yet';
+
+  @override
+  String get couldNotLoad => 'Couldn\'t load this right now';
+
+  @override
   String get rgAlbum => 'Album';
 
   @override

@@ -86,6 +86,8 @@
  "replayGain": "Normalização de volume (ReplayGain)",
  "required": "Obrigatório",
  "retry": "Tentar de novo",
+ "notConnected": "Ainda não conectado ao servidor",
+ "couldNotLoad": "Não deu para carregar agora",
  "rgAlbum": "Por álbum",
  "rgAuto": "Automático",
  "rgOff": "Desligado",

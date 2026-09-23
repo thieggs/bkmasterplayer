@@ -572,6 +572,18 @@ abstract class AppLocalizations {
   /// **'Tentar de novo'**
   String get retry;
 
+  /// No description provided for @notConnected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não conectado ao servidor'**
+  String get notConnected;
+
+  /// No description provided for @couldNotLoad.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para carregar agora'**
+  String get couldNotLoad;
+
   /// No description provided for @rgAlbum.
   ///
   /// In pt, this message translates to:
