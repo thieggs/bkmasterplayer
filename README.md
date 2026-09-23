@@ -125,6 +125,39 @@ A análise do servidor só é usada quando o app toca o mesmo arquivo analisado
 (o original, sem limite de qualidade); fora de casa, sem o servidor, o aparelho
 analisa como antes.
 
+## Recomendação sem internet (vetores do AudioMuse)
+
+O AudioMuse analisa cada música com uma rede neural e guarda os vetores no
+Postgres dele. `dev/exporta_audiomuse.py` lê — só lê — e empacota tudo num
+arquivo de uns 21 MB, que o BK Analyzer entrega ao aparelho em `/api/vectors`
+(com versão no ETag: o app pergunta antes e recebe 304 quando nada mudou).
+
+Com o arquivo no aparelho, "parecidas" (mix instantâneo, rádio e AutoMix) é
+resolvido ali mesmo, em poucos milissegundos. Funciona sem internet e gasta
+menos bateria do que perguntar ao servidor: acordar o rádio do celular custa
+cerca de mil vezes mais que a conta.
+
+Em Ajustes → AutoMix → Recomendações dá para escolher **como** medir parecida:
+
+| estilo | o que compara |
+|---|---|
+| Parecida no som | o timbre e o arranjo (padrão) |
+| Mesmo clima | dançante, agressiva, feliz, festa, relaxada, triste |
+| Mesmo estilo musical | os gêneros que a análise reconheceu |
+| Mesma época | anos próximos, com o som desempatando |
+| Mesmo assunto | o que a letra fala |
+| Combina pra emendar | andamento próximo e tom que casa, como os DJs |
+| Como o AudioMuse faz | a conta do servidor: 0,75 letra + 0,25 som |
+
+```bash
+./dev/exporta_audiomuse.py                    # gera ~/.local/share/bk-analyzer/vetores.bkvec
+```
+
+Vale automatizar com um timer do systemd (`bk-vetores.timer`), para o aparelho
+acompanhar a biblioteca. A mesma faixa costuma existir em vários arquivos
+(single, álbum, coletânea): o vetor vai uma vez e os ids apontam para ele,
+senão a mesma música apareceria repetida nas sugestões.
+
 ## Um endereço só, de qualquer lugar (BK Portal)
 
 Servidor de casa exposto por túnel grátis (Cloudflare) ganha um endereço novo a
