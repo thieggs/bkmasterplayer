@@ -19,18 +19,20 @@ Future<void> showRadioSheet(BuildContext context, WidgetRef ref, Song song) {
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (sheet) => _RadioSheet(song: song, host: context),
+    builder: (sheet) => _RadioSheet(song: song, host: context, hostRef: ref),
   );
 }
 
 class _RadioSheet extends ConsumerWidget {
-  const _RadioSheet({required this.song, required this.host});
+  const _RadioSheet({required this.song, required this.host, required this.hostRef});
 
   final Song song;
 
   /// Tela de baixo: continua viva depois que a folha fecha, então é ela que
-  /// mostra o aviso e navega.
+  /// mostra o aviso, navega e toca. O `ref` da folha morre junto com ela, e a
+  /// rádio ainda está sendo montada quando isso acontece.
   final BuildContext host;
+  final WidgetRef hostRef;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,9 +63,9 @@ class _RadioSheet extends ConsumerWidget {
                 subtitle: Text(e.hint(l10n), style: theme.textTheme.bodySmall),
                 trailing: e == escolhido ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
                 onTap: () {
-                  ref.read(settingsProvider.notifier).update((x) => x.copyWith(recommendStyle: e.id));
+                  hostRef.read(settingsProvider.notifier).update((x) => x.copyWith(recommendStyle: e.id));
                   Navigator.of(context).pop();
-                  LibraryActions.instantMix(host, ref, song, style: e);
+                  LibraryActions.instantMix(host, hostRef, song, style: e);
                 },
               ),
             const Divider(height: 8),

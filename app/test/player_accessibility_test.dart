@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:player_musica/connect/connect_service.dart';
 import 'package:player_musica/core/providers.dart';
 import 'package:player_musica/domain/models.dart';
+import 'package:player_musica/data/recommend.dart';
 import 'package:player_musica/l10n/l10n.dart';
 import 'package:player_musica/player/player_controller.dart';
 import 'package:player_musica/ui/player/now_playing_page.dart';
 import 'package:player_musica/ui/player/player_bar.dart';
+import 'package:player_musica/ui/recommend_style_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Player falso (sem o motor): uma música tocando.
@@ -78,6 +80,20 @@ void main() {
     testWidgets('acessível: tocando agora no celular ($tema)', (tester) async {
       final h = tester.ensureSemantics();
       await _pump(tester, const NowPlayingPage(), const Size(400, 860), dark: dark);
+      await _guidelines(tester);
+      h.dispose();
+    });
+
+    testWidgets('acessível: rádio do player ($tema)', (tester) async {
+      final h = tester.ensureSemantics();
+      await _pump(tester, const NowPlayingPage(), const Size(400, 860), dark: dark);
+      await tester.tap(find.byIcon(Icons.radio));
+      await tester.pumpAndSettle();
+      // As sete maneiras de recomendar, cada uma com nome e explicação.
+      final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+      for (final e in RecommendStyle.values) {
+        expect(find.text(e.label(l10n)), findsOneWidget, reason: e.id);
+      }
       await _guidelines(tester);
       h.dispose();
     });
