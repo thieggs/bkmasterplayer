@@ -137,7 +137,10 @@ resolvido ali mesmo, em poucos milissegundos. Funciona sem internet e gasta
 menos bateria do que perguntar ao servidor: acordar o rádio do celular custa
 cerca de mil vezes mais que a conta.
 
-Em Ajustes → AutoMix → Recomendações dá para escolher **como** medir parecida:
+O **ícone de rádio na tela do player** abre as opções e já começa a rádio do
+jeito escolhido. Isto não é o AutoMix: o AutoMix costura uma música na outra,
+a recomendação decide **qual** música vem. Em Ajustes → Recomendações fica o
+mesmo, para valer também no mix instantâneo e na fila infinita:
 
 | estilo | o que compara |
 |---|---|
@@ -157,6 +160,42 @@ Vale automatizar com um timer do systemd (`bk-vetores.timer`), para o aparelho
 acompanhar a biblioteca. A mesma faixa costuma existir em vários arquivos
 (single, álbum, coletânea): o vetor vai uma vez e os ids apontam para ele,
 senão a mesma música apareceria repetida nas sugestões.
+
+## Limpeza: repetidas e lixo do banco
+
+Duas ferramentas; as duas só mostram o que fariam até levarem `--aplicar`:
+
+```bash
+./dev/limpa_repetidas.py --descarte /media/.../repetidas   # músicas repetidas
+./dev/limpa_audiomuse.py                                   # lixo no banco
+```
+
+`limpa_repetidas.py` junta como a mesma música o que tem **áudio idêntico byte
+a byte** (só nome e etiqueta mudam) e o que o AudioMuse marcou com a **mesma
+impressão digital acústica** — a mesma gravação, ainda que em qualidades
+diferentes. Fica a de melhor taxa; empatou, fica a que pertence a um álbum,
+para não abrir buraco num disco por causa de uma avulsa baixada duas vezes. As
+outras são **movidas** (não apagadas) para a pasta de descarte, com a letra
+`.lrc` junto; no mesmo disco isso é instantâneo e dá para voltar atrás.
+
+A impressão digital reconhece a gravação, não a edição, então o mesmo show
+pode aparecer cortado em pontos diferentes: o grupo é separado por duração e
+só o que casa dentro de 3 s é tratado; o resto sai numa lista para conferir.
+
+`limpa_audiomuse.py` tira do AudioMuse as **ligações mortas** (a cada releitura
+o Navidrome dá um id novo para a mesma música e o AudioMuse guarda os dois; aqui
+havia arquivo apontado por cinco ids), as impressões digitais de música que saiu
+e as **análises com vetores idênticos**. Análise sem dono fica: o `item_id` é a
+própria impressão digital do som, então ela é reencontrada se o arquivo voltar —
+apagar só obrigaria a rede neural a refazer o trabalho (`--orfas` força).
+
+> O caminho que o AudioMuse guarda é uma foto de quando a análise rodou e
+> **não serve para decidir nada** depois que a biblioteca é reorganizada. Quem
+> sabe onde a música está hoje é o Navidrome, lido só para leitura; a ligação
+> entre os dois é o id do Navidrome.
+
+Depois da limpeza, vale reexportar os vetores (`./dev/exporta_audiomuse.py`)
+para o aparelho não sugerir música que não existe mais.
 
 ## Um endereço só, de qualquer lugar (BK Portal)
 
