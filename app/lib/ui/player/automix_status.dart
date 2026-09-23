@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+
+import '../actions.dart';
 
 import '../../core/providers.dart';
 import '../../l10n/l10n.dart';
@@ -112,7 +113,7 @@ class _AutomixStatusSheet extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.pop(context);
-                context.push('/settings/automix');
+                goFromPlayer(context, '/settings/automix');
               },
             ),
           ],

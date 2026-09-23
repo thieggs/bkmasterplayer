@@ -117,12 +117,12 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
           alignment: WrapAlignment.center,
           children: [
             TextButton(
-              onPressed: song.artistId == null ? null : () => context.push('/artist/${song.artistId}'),
+              onPressed: song.artistId == null ? null : () => goFromPlayer(context, '/artist/${song.artistId}'),
               child: Text(song.displayArtist),
             ),
             if (song.album != null)
               TextButton(
-                onPressed: song.albumId == null ? null : () => context.push('/album/${song.albumId}'),
+                onPressed: song.albumId == null ? null : () => goFromPlayer(context, '/album/${song.albumId}'),
                 child: Text(song.album!),
               ),
           ],

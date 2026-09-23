@@ -10,6 +10,7 @@ import '../data/subsonic/subsonic_client.dart';
 import '../domain/models.dart';
 import '../l10n/l10n.dart';
 import '../player/player_controller.dart';
+import 'widgets/async_view.dart';
 
 /// Favoritos alterados nesta sessão (atualiza a UI na hora, sem recarregar listas).
 class StarOverrides extends Notifier<Map<String, bool>> {
@@ -22,6 +23,21 @@ class StarOverrides extends Notifier<Map<String, bool>> {
 final starOverridesProvider = NotifierProvider<StarOverrides, Map<String, bool>>(StarOverrides.new);
 
 bool isSongStarred(WidgetRef ref, Song s) => ref.watch(starOverridesProvider)[s.id] ?? s.isStarred;
+
+/// Abre uma tela do app, fechando antes a tela cheia do player.
+///
+/// O `/now-playing` fica fora do shell (é diálogo de tela cheia). Empurrar em
+/// cima dele uma tela de dentro do shell deixa **dois shells** na pilha, com
+/// páginas de mesma chave; o Navigator recusa (`_debugCheckDuplicatedPageKeys`)
+/// e a tela abre vazia. Fechar o player antes resolve — e é o que se espera:
+/// tocar no artista leva ao artista.
+///
+/// Fora do player não muda nada.
+void goFromPlayer(BuildContext context, String route) {
+  final router = GoRouter.of(context);
+  if (router.state.matchedLocation == '/now-playing' && router.canPop()) router.pop();
+  router.push(route);
+}
 
 void showSnack(BuildContext context, String text) {
   ScaffoldMessenger.maybeOf(context)
@@ -227,7 +243,7 @@ class _SongPickerState extends ConsumerState<_SongPicker> {
                   ],
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('$e')),
+                error: (e, _) => Center(child: Text(mensagemDoErro(e, context.l10n))),
               ),
             ),
           ],
@@ -259,8 +275,8 @@ Future<void> showSongMenu(BuildContext context, WidgetRef ref, Song song, {Offse
     (Icons.playlist_add, l10n.addToPlaylist, () => LibraryActions.addToPlaylist(context, ref, [song])),
     if (!(ref.read(sessionProvider).value?.isLocal ?? true))
       (Icons.share_outlined, l10n.shareLink, () => LibraryActions.share(context, ref, [song.id], description: song.title)),
-    if (song.albumId != null) (Icons.album, l10n.goToAlbum, () => context.push('/album/${song.albumId}')),
-    if (song.artistId != null) (Icons.person, l10n.goToArtist, () => context.push('/artist/${song.artistId}')),
+    if (song.albumId != null) (Icons.album, l10n.goToAlbum, () => goFromPlayer(context, '/album/${song.albumId}')),
+    if (song.artistId != null) (Icons.person, l10n.goToArtist, () => goFromPlayer(context, '/artist/${song.artistId}')),
   ];
 
   final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;

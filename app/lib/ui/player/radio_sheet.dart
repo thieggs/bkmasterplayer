@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../data/recommend.dart';
@@ -83,7 +82,7 @@ class _RadioSheet extends ConsumerWidget {
               trailing: TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  host.push('/settings/recommend');
+                  goFromPlayer(host, '/settings/recommend');
                 },
                 child: Text(l10n.settings),
               ),
