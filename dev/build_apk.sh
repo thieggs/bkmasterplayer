@@ -16,6 +16,11 @@ if [ "${ALL_ABIS:-0}" = 1 ]; then PLATFORMS=android-arm,android-arm64,android-x6
 cd "$ROOT/app"
 # O cargokit não apaga o motor de ABIs de builds anteriores (ex.: x86_64 do emulador).
 rm -rf build/player_engine/jniLibs
+# O Gradle dá a tarefa do Dart como "em dia" e reaproveita o app.so de antes,
+# mesmo com o código mudado: o APK sai com a versão velha e nada avisa.
+# Apagar a saída obriga a recompilar. (Visto em 23/09/2026: três builds
+# seguidos entregaram o app.so das 11:25.)
+rm -rf build/app/intermediates/flutter
 flutter build apk --release --target-platform "$PLATFORMS" --build-name "$BASE" --build-number "$CODE"
 mkdir -p "$ROOT/dist"
 OUT="$ROOT/dist/bkmasterplayer_${BASE}+${CODE}_${ABI}.apk"
