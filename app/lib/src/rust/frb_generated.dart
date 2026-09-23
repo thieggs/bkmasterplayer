@@ -6,6 +6,7 @@
 import 'api/engine.dart';
 import 'api/library.dart';
 import 'api/portal.dart';
+import 'api/recommend.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -68,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1894564572;
+  int get rustContentHash => -1779097055;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -193,6 +194,21 @@ abstract class RustLibApi extends BaseApi {
     required List<int> raw,
     required String pinnedKey,
   });
+
+  Future<int> crateApiRecommendRecommendCount();
+
+  Future<bool> crateApiRecommendRecommendKnows({required String id});
+
+  Future<int> crateApiRecommendRecommendLoad({required String path});
+
+  Future<List<SimilarSong>> crateApiRecommendRecommendSimilar({
+    required String seed,
+    required String style,
+    required int limit,
+    required List<String> allowed,
+  });
+
+  Future<void> crateApiRecommendRecommendUnload();
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -1394,6 +1410,155 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     argNames: ["raw", "pinnedKey"],
   );
 
+  @override
+  Future<int> crateApiRecommendRecommendCount() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 44,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiRecommendRecommendCountConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendCountConstMeta =>
+      const TaskConstMeta(debugName: "recommend_count", argNames: []);
+
+  @override
+  Future<bool> crateApiRecommendRecommendKnows({required String id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 45,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiRecommendRecommendKnowsConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendKnowsConstMeta =>
+      const TaskConstMeta(debugName: "recommend_knows", argNames: ["id"]);
+
+  @override
+  Future<int> crateApiRecommendRecommendLoad({required String path}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(path, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 46,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiRecommendRecommendLoadConstMeta,
+        argValues: [path],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendLoadConstMeta =>
+      const TaskConstMeta(debugName: "recommend_load", argNames: ["path"]);
+
+  @override
+  Future<List<SimilarSong>> crateApiRecommendRecommendSimilar({
+    required String seed,
+    required String style,
+    required int limit,
+    required List<String> allowed,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(seed, serializer);
+          sse_encode_String(style, serializer);
+          sse_encode_u_32(limit, serializer);
+          sse_encode_list_String(allowed, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 47,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_similar_song,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiRecommendRecommendSimilarConstMeta,
+        argValues: [seed, style, limit, allowed],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendSimilarConstMeta =>
+      const TaskConstMeta(
+        debugName: "recommend_similar",
+        argNames: ["seed", "style", "limit", "allowed"],
+      );
+
+  @override
+  Future<void> crateApiRecommendRecommendUnload() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 48,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiRecommendRecommendUnloadConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendUnloadConstMeta =>
+      const TaskConstMeta(debugName: "recommend_unload", argNames: []);
+
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -1608,6 +1773,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  List<SimilarSong> dco_decode_list_similar_song(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_similar_song).toList();
   }
 
   @protected
@@ -1889,6 +2060,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       key: dco_decode_String(arr[3]),
       fingerprint: dco_decode_String(arr[4]),
       expires: dco_decode_u_64(arr[5]),
+    );
+  }
+
+  @protected
+  SimilarSong dco_decode_similar_song(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return SimilarSong(
+      id: dco_decode_String(arr[0]),
+      score: dco_decode_f_32(arr[1]),
     );
   }
 
@@ -2238,6 +2421,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  List<SimilarSong> sse_decode_list_similar_song(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SimilarSong>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_similar_song(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -2637,6 +2832,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SimilarSong sse_decode_similar_song(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_score = sse_decode_f_32(deserializer);
+    return SimilarSong(id: var_id, score: var_score);
+  }
+
+  @protected
   TrackSource sse_decode_track_source(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_String(deserializer);
@@ -3006,6 +3209,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_similar_song(
+    List<SimilarSong> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_similar_song(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_local_track(LocalTrack self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.path, serializer);
@@ -3318,6 +3533,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.key, serializer);
     sse_encode_String(self.fingerprint, serializer);
     sse_encode_u_64(self.expires, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_song(SimilarSong self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_f_32(self.score, serializer);
   }
 
   @protected

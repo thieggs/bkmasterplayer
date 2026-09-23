@@ -70,6 +70,10 @@ abstract class MusicProvider {
 
   /// Instant Mix / rádio (no Navidrome com AudioMuse, vem da análise sônica).
   Future<List<Song>> similarSongs(String songId, {int count = 50});
+
+  /// Músicas por id, na ordem pedida (o que não existir mais é pulado).
+  /// A recomendação do aparelho devolve ids; é por aqui que viram músicas.
+  Future<List<Song>> songsByIds(List<String> ids);
   Future<List<SonicMatch>> sonicSimilar(String songId, {int count = 50});
   Future<List<SonicMatch>> sonicPath(String startSongId, String endSongId, {int count = 25});
 

@@ -24,6 +24,7 @@ import 'ui/pages/login_page.dart';
 import 'ui/pages/offline_page.dart';
 import 'ui/pages/playlists_page.dart';
 import 'ui/pages/search_page.dart';
+import 'data/recommend.dart';
 import 'player/commands.dart';
 import 'ui/remote_volume.dart';
 import 'ui/pages/settings/look_page.dart';
@@ -186,6 +187,8 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
     ref.listen(portalRefreshProvider, (_, _) {});
     // Comandos automáticos (ex.: volume no mínimo pausa).
     ref.listen(commandsProvider, (_, _) {});
+    // Vetores do AudioMuse no aparelho (baixa/solta conforme a opção).
+    ref.listen(recommendProvider, (_, _) {});
     final ui = ref.watch(uiPrefsProvider);
     final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(ui, Brightness.light);
     final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(ui, Brightness.dark);

@@ -2035,6 +2035,138 @@ abstract class AppLocalizations {
   /// **'Cuidado: com o ícone da bandeja desligado e \"fechar para a bandeja\" ligado, o app some sem deixar como reabrir.'**
   String get trayGoneWarn;
 
+  /// No description provided for @recommend.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recomendações'**
+  String get recommend;
+
+  /// No description provided for @recommendHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como o app escolhe as parecidas no mix instantâneo, no rádio e no AutoMix.'**
+  String get recommendHint;
+
+  /// No description provided for @recommendStyleSound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parecida no som'**
+  String get recommendStyleSound;
+
+  /// No description provided for @recommendStyleSoundHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O timbre e o arranjo. É o padrão.'**
+  String get recommendStyleSoundHint;
+
+  /// No description provided for @recommendStyleMood.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mesmo clima'**
+  String get recommendStyleMood;
+
+  /// No description provided for @recommendStyleMoodHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dançante, agressiva, feliz, festa, relaxada, triste.'**
+  String get recommendStyleMoodHint;
+
+  /// No description provided for @recommendStyleGenre.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mesmo estilo musical'**
+  String get recommendStyleGenre;
+
+  /// No description provided for @recommendStyleGenreHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os gêneros que a análise reconheceu na música.'**
+  String get recommendStyleGenreHint;
+
+  /// No description provided for @recommendStyleEra.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mesma época'**
+  String get recommendStyleEra;
+
+  /// No description provided for @recommendStyleEraHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anos próximos, com o som desempatando.'**
+  String get recommendStyleEraHint;
+
+  /// No description provided for @recommendStyleLyrics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mesmo assunto'**
+  String get recommendStyleLyrics;
+
+  /// No description provided for @recommendStyleLyricsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pelo que a letra fala.'**
+  String get recommendStyleLyricsHint;
+
+  /// No description provided for @recommendStyleMix.
+  ///
+  /// In pt, this message translates to:
+  /// **'Combina pra emendar'**
+  String get recommendStyleMix;
+
+  /// No description provided for @recommendStyleMixHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Andamento próximo e tom que casa, como os DJs fazem.'**
+  String get recommendStyleMixHint;
+
+  /// No description provided for @recommendStyleServer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como o AudioMuse faz'**
+  String get recommendStyleServer;
+
+  /// No description provided for @recommendStyleServerHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A mesma conta do servidor: três quartos letra, um quarto som.'**
+  String get recommendStyleServerHint;
+
+  /// No description provided for @recommendOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guardar no aparelho (funciona sem internet)'**
+  String get recommendOffline;
+
+  /// No description provided for @recommendOfflineHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixa uma vez o resultado da análise do AudioMuse. Depois as parecidas saem na hora, sem internet, e gastando menos bateria do que perguntar ao servidor.'**
+  String get recommendOfflineHint;
+
+  /// No description provided for @recommendReady.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} músicas prontas no aparelho'**
+  String recommendReady(int n);
+
+  /// No description provided for @recommendDownloading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando…'**
+  String get recommendDownloading;
+
+  /// No description provided for @recommendNoServer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configure o servidor de análise acima para poder baixar.'**
+  String get recommendNoServer;
+
+  /// No description provided for @recommendUpdate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurar atualização'**
+  String get recommendUpdate;
+
   /// No description provided for @localAddressOk.
   ///
   /// In pt, this message translates to:

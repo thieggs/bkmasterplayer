@@ -273,6 +273,26 @@ class SubsonicProvider implements MusicProvider {
   }
 
   @override
+  Future<List<Song>> songsByIds(List<String> ids) async {
+    // Em blocos: o servidor não tem pedido em lote, e abrir cinquenta
+    // conexões de uma vez só atrapalha.
+    final out = <String, Song>{};
+    for (var i = 0; i < ids.length; i += 8) {
+      final bloco = ids.skip(i).take(8);
+      await Future.wait(bloco.map((id) async {
+        try {
+          final body = await client.get('getSong', {'id': id});
+          final m = body['song'];
+          if (m is Map) out[id] = parseSong(Map<String, dynamic>.from(m));
+        } on SubsonicException {
+          // Música apagada do servidor desde a última análise: pula.
+        }
+      }));
+    }
+    return [for (final id in ids) ?out[id]];
+  }
+
+  @override
   Future<List<SonicMatch>> sonicSimilar(String songId, {int count = 50}) async {
     final body = await client.get('getSonicSimilarTracks', {'id': songId, 'count': count});
     return parseSonicMatches(body);

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers.dart';
+import '../data/recommend.dart';
 import '../data/similar.dart';
 import '../data/subsonic/subsonic_client.dart';
 import '../domain/models.dart';
@@ -60,7 +61,7 @@ class LibraryActions {
     try {
       final s = ref.read(settingsProvider);
       final similar = await findSimilar(ref.read(musicProvider), song,
-          count: 60, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null);
+          count: 60, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null, local: ref.read(recommendProvider.notifier));
       if (similar.isEmpty) {
         if (context.mounted) showSnack(context, l10n.noSimilarSongs);
         return;

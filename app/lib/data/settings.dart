@@ -49,6 +49,8 @@ class AppSettings {
     this.eqPreset = 'flat',
     this.trayIcon = true,
     this.closeToTray = false,
+    this.recommendStyle = 'sound',
+    this.recommendOffline = false,
     this.pauseOnVolumeZero = false,
     this.pauseOnUnplug = true,
     this.keepAliveWhenPaused = true,
@@ -113,6 +115,13 @@ class AppSettings {
   // Desktop
   final bool trayIcon;
   final bool closeToTray;
+
+  /// Como medir "parecida": sound, mood, genre, era, lyrics, mix, server.
+  final String recommendStyle;
+
+  /// Guardar os vetores do AudioMuse no aparelho (uns 21 MB) para recomendar
+  /// sem internet. Entra desligado: é download grande para os dados móveis.
+  final bool recommendOffline;
 
   /// Volume no mínimo pausa; subir o volume volta a tocar.
   final bool pauseOnVolumeZero;
@@ -190,6 +199,8 @@ class AppSettings {
     String? eqPreset,
     bool? trayIcon,
     bool? closeToTray,
+    String? recommendStyle,
+    bool? recommendOffline,
     bool? pauseOnVolumeZero,
     bool? pauseOnUnplug,
     bool? keepAliveWhenPaused,
@@ -240,6 +251,8 @@ class AppSettings {
         eqPreset: eqPreset ?? this.eqPreset,
         trayIcon: trayIcon ?? this.trayIcon,
         closeToTray: closeToTray ?? this.closeToTray,
+        recommendStyle: recommendStyle ?? this.recommendStyle,
+        recommendOffline: recommendOffline ?? this.recommendOffline,
         pauseOnVolumeZero: pauseOnVolumeZero ?? this.pauseOnVolumeZero,
         pauseOnUnplug: pauseOnUnplug ?? this.pauseOnUnplug,
         keepAliveWhenPaused: keepAliveWhenPaused ?? this.keepAliveWhenPaused,
@@ -288,6 +301,8 @@ class AppSettings {
         'eqPreset': eqPreset,
         'trayIcon': trayIcon,
         'closeToTray': closeToTray,
+        'recommendStyle': recommendStyle,
+        'recommendOffline': recommendOffline,
         'pauseOnVolumeZero': pauseOnVolumeZero,
         'pauseOnUnplug': pauseOnUnplug,
         'keepAliveWhenPaused': keepAliveWhenPaused,
@@ -340,6 +355,8 @@ class AppSettings {
       eqPreset: j['eqPreset'] as String? ?? d.eqPreset,
       trayIcon: pick('trayIcon', d.trayIcon),
       closeToTray: pick('closeToTray', d.closeToTray),
+      recommendStyle: pick('recommendStyle', d.recommendStyle),
+      recommendOffline: pick('recommendOffline', d.recommendOffline),
       pauseOnVolumeZero: pick('pauseOnVolumeZero', d.pauseOnVolumeZero),
       pauseOnUnplug: pick('pauseOnUnplug', d.pauseOnUnplug),
       keepAliveWhenPaused: pick('keepAliveWhenPaused', d.keepAliveWhenPaused),

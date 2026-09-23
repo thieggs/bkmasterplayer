@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../connect/connect_service.dart';
 import '../core/providers.dart';
+import '../data/recommend.dart';
 import '../data/settings.dart';
 import '../data/similar.dart';
 import 'dj_mode.dart';
@@ -382,7 +383,8 @@ class PlayerController extends Notifier<PlayerState> {
       }
       if (songs.isEmpty) {
         final s = ref.read(settingsProvider);
-        songs = await findSimilar(p, seed, count: 40, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null);
+        songs = await findSimilar(p, seed, count: 40, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
+            local: ref.read(recommendProvider.notifier));
       }
       if (songs.isEmpty) songs = await p.randomSongs(size: 20);
       final seen = state.queue.map((q) => q.song.id).toSet();
@@ -952,7 +954,8 @@ class PlayerController extends Notifier<PlayerState> {
       }
       if (cands.isEmpty) {
         final s = ref.read(settingsProvider);
-        final list = await findSimilar(p, cur.song, count: 30, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null);
+        final list = await findSimilar(p, cur.song, count: 30, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
+            local: ref.read(recommendProvider.notifier));
         cands = [for (final (i, x) in list.indexed) (x, 1 - 0.5 * i / max(1, list.length))];
       }
       final inQueue = state.queue.map((q) => q.song.id).toSet();

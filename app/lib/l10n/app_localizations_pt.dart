@@ -1089,6 +1089,86 @@ class AppLocalizationsPt extends AppLocalizations {
       'Cuidado: com o ícone da bandeja desligado e \"fechar para a bandeja\" ligado, o app some sem deixar como reabrir.';
 
   @override
+  String get recommend => 'Recomendações';
+
+  @override
+  String get recommendHint =>
+      'Como o app escolhe as parecidas no mix instantâneo, no rádio e no AutoMix.';
+
+  @override
+  String get recommendStyleSound => 'Parecida no som';
+
+  @override
+  String get recommendStyleSoundHint => 'O timbre e o arranjo. É o padrão.';
+
+  @override
+  String get recommendStyleMood => 'Mesmo clima';
+
+  @override
+  String get recommendStyleMoodHint =>
+      'Dançante, agressiva, feliz, festa, relaxada, triste.';
+
+  @override
+  String get recommendStyleGenre => 'Mesmo estilo musical';
+
+  @override
+  String get recommendStyleGenreHint =>
+      'Os gêneros que a análise reconheceu na música.';
+
+  @override
+  String get recommendStyleEra => 'Mesma época';
+
+  @override
+  String get recommendStyleEraHint => 'Anos próximos, com o som desempatando.';
+
+  @override
+  String get recommendStyleLyrics => 'Mesmo assunto';
+
+  @override
+  String get recommendStyleLyricsHint => 'Pelo que a letra fala.';
+
+  @override
+  String get recommendStyleMix => 'Combina pra emendar';
+
+  @override
+  String get recommendStyleMixHint =>
+      'Andamento próximo e tom que casa, como os DJs fazem.';
+
+  @override
+  String get recommendStyleServer => 'Como o AudioMuse faz';
+
+  @override
+  String get recommendStyleServerHint =>
+      'A mesma conta do servidor: três quartos letra, um quarto som.';
+
+  @override
+  String get recommendOffline => 'Guardar no aparelho (funciona sem internet)';
+
+  @override
+  String get recommendOfflineHint =>
+      'Baixa uma vez o resultado da análise do AudioMuse. Depois as parecidas saem na hora, sem internet, e gastando menos bateria do que perguntar ao servidor.';
+
+  @override
+  String recommendReady(int n) {
+    final intl.NumberFormat nNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String nString = nNumberFormat.format(n);
+
+    return '$nString músicas prontas no aparelho';
+  }
+
+  @override
+  String get recommendDownloading => 'Baixando…';
+
+  @override
+  String get recommendNoServer =>
+      'Configure o servidor de análise acima para poder baixar.';
+
+  @override
+  String get recommendUpdate => 'Procurar atualização';
+
+  @override
   String get localAddressOk => 'O endereço de casa respondeu e já está em uso';
 
   @override

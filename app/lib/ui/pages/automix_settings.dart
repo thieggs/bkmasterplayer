@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
 import '../../data/portal.dart' show PortalException;
+import '../../data/recommend.dart';
 import '../../data/settings.dart';
 import '../../l10n/l10n.dart';
 import '../../src/rust/api/engine.dart' as engine;
@@ -175,6 +176,7 @@ class AutomixSettingsSection extends ConsumerWidget {
         ),
         const _ServerTile(),
         const _ModelTile(),
+        const RecommendSection(),
         Padding(
           padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
           child: Align(
@@ -486,6 +488,87 @@ class _ServerTileState extends ConsumerState<_ServerTile> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Recomendações: como o app escolhe as "parecidas", e guardar a análise do
+/// AudioMuse no aparelho para isso funcionar sem internet.
+class RecommendSection extends ConsumerWidget {
+  const RecommendSection({super.key});
+
+  static (String, String) _nome(AppLocalizations l10n, RecommendStyle s) => switch (s) {
+        RecommendStyle.sound => (l10n.recommendStyleSound, l10n.recommendStyleSoundHint),
+        RecommendStyle.mood => (l10n.recommendStyleMood, l10n.recommendStyleMoodHint),
+        RecommendStyle.genre => (l10n.recommendStyleGenre, l10n.recommendStyleGenreHint),
+        RecommendStyle.era => (l10n.recommendStyleEra, l10n.recommendStyleEraHint),
+        RecommendStyle.lyrics => (l10n.recommendStyleLyrics, l10n.recommendStyleLyricsHint),
+        RecommendStyle.mix => (l10n.recommendStyleMix, l10n.recommendStyleMixHint),
+        RecommendStyle.server => (l10n.recommendStyleServer, l10n.recommendStyleServerHint),
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final s = ref.watch(settingsProvider);
+    final set = ref.read(settingsProvider.notifier).update;
+    final rec = ref.watch(recommendProvider);
+    final escolhido = RecommendStyle.parse(s.recommendStyle);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.auto_awesome_outlined),
+          title: Text(l10n.recommend),
+          subtitle: Text(l10n.recommendHint, style: theme.textTheme.bodySmall),
+        ),
+        RadioGroup<RecommendStyle>(
+          groupValue: escolhido,
+          onChanged: (v) => set((x) => x.copyWith(recommendStyle: (v ?? RecommendStyle.sound).id)),
+          child: Column(
+            children: [
+              for (final e in RecommendStyle.values)
+                RadioListTile<RecommendStyle>(
+                  value: e,
+                  title: Text(_nome(l10n, e).$1),
+                  subtitle: Text(_nome(l10n, e).$2, style: theme.textTheme.bodySmall),
+                ),
+            ],
+          ),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.download_for_offline_outlined),
+          title: Text(l10n.recommendOffline),
+          subtitle: Text(l10n.recommendOfflineHint, style: theme.textTheme.bodySmall),
+          value: s.recommendOffline,
+          onChanged: s.analysisServer == null ? null : (v) => set((x) => x.copyWith(recommendOffline: v)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(72, 0, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (s.analysisServer == null)
+                Text(l10n.recommendNoServer, style: theme.textTheme.bodySmall)
+              else if (rec.downloading) ...[
+                Text(l10n.recommendDownloading, style: theme.textTheme.bodySmall),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(value: rec.progress >= 0 ? rec.progress : null),
+              ] else if (rec.error != null)
+                Text(rec.error!, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error))
+              else if (rec.ready) ...[
+                Text(l10n.recommendReady(rec.songs),
+                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
+                TextButton(
+                  onPressed: () => ref.read(recommendProvider.notifier).sync(force: true),
+                  child: Text(l10n.recommendUpdate),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

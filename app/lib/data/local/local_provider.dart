@@ -652,6 +652,10 @@ class LocalProvider implements MusicProvider {
   }
 
   @override
+  Future<List<Song>> songsByIds(List<String> ids) async =>
+      [for (final id in ids) ?_byId[id]];
+
+  @override
   Future<List<Song>> similarSongs(String songId, {int count = 50}) async {
     final seed = _byId[songId];
     if (seed == null) return const [];

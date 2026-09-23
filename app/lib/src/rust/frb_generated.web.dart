@@ -9,6 +9,7 @@
 import 'api/engine.dart';
 import 'api/library.dart';
 import 'api/portal.dart';
+import 'api/recommend.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -121,6 +122,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<SimilarSong> dco_decode_list_similar_song(dynamic raw);
+
+  @protected
   LocalTrack dco_decode_local_track(dynamic raw);
 
   @protected
@@ -173,6 +177,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PortalNotice dco_decode_portal_notice(dynamic raw);
+
+  @protected
+  SimilarSong dco_decode_similar_song(dynamic raw);
 
   @protected
   TrackSource dco_decode_track_source(dynamic raw);
@@ -301,6 +308,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<SimilarSong> sse_decode_list_similar_song(SseDeserializer deserializer);
+
+  @protected
   LocalTrack sse_decode_local_track(SseDeserializer deserializer);
 
   @protected
@@ -357,6 +367,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PortalNotice sse_decode_portal_notice(SseDeserializer deserializer);
+
+  @protected
+  SimilarSong sse_decode_similar_song(SseDeserializer deserializer);
 
   @protected
   TrackSource sse_decode_track_source(SseDeserializer deserializer);
@@ -521,6 +534,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_similar_song(
+    List<SimilarSong> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_local_track(LocalTrack self, SseSerializer serializer);
 
   @protected
@@ -585,6 +604,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_portal_notice(PortalNotice self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_similar_song(SimilarSong self, SseSerializer serializer);
 
   @protected
   void sse_encode_track_source(TrackSource self, SseSerializer serializer);
