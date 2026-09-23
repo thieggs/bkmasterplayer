@@ -13,6 +13,7 @@ import '../actions.dart';
 import '../widgets/cover_art.dart';
 import 'player_bar.dart';
 import 'queue_panel.dart';
+import 'radio_sheet.dart';
 import 'sleep_timer_button.dart';
 
 class NowPlayingPage extends ConsumerStatefulWidget {
@@ -156,9 +157,9 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
             ),
           if (song != null)
             IconButton(
-              tooltip: l10n.instantMix,
-              icon: const Icon(Icons.auto_awesome),
-              onPressed: () => LibraryActions.instantMix(context, ref, song),
+              tooltip: l10n.radioSheetTitle,
+              icon: const Icon(Icons.radio),
+              onPressed: () => showRadioSheet(context, ref, song),
             ),
           const SleepTimerButton(),
           const DevicesButton(),

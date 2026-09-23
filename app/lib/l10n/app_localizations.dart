@@ -2044,8 +2044,26 @@ abstract class AppLocalizations {
   /// No description provided for @recommendHint.
   ///
   /// In pt, this message translates to:
-  /// **'Como o app escolhe as parecidas no mix instantâneo, no rádio e no AutoMix.'**
+  /// **'Quais músicas a análise do AudioMuse escolhe para o rádio, o mix instantâneo e a fila infinita. Não confunda com o AutoMix, que só costura uma música na outra.'**
   String get recommendHint;
+
+  /// No description provided for @radioSheetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rádio'**
+  String get radioSheetTitle;
+
+  /// No description provided for @radioSheetHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toque no jeito que o AudioMuse deve usar para escolher as próximas.'**
+  String get radioSheetHint;
+
+  /// No description provided for @radioSheetOnline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perguntando ao servidor. Guarde no aparelho para funcionar sem internet.'**
+  String get radioSheetOnline;
 
   /// No description provided for @recommendStyleSound.
   ///
@@ -2158,7 +2176,7 @@ abstract class AppLocalizations {
   /// No description provided for @recommendNoServer.
   ///
   /// In pt, this message translates to:
-  /// **'Configure o servidor de análise acima para poder baixar.'**
+  /// **'Configure o servidor de análise em Conta e servidor para poder baixar.'**
   String get recommendNoServer;
 
   /// No description provided for @recommendUpdate.

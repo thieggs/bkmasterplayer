@@ -55,13 +55,16 @@ class LibraryActions {
   }
 
   /// Mix instantâneo (getSimilarSongs2 — no Navidrome+AudioMuse vem da análise sônica).
-  static Future<void> instantMix(BuildContext context, WidgetRef ref, Song song) async {
+  static Future<void> instantMix(BuildContext context, WidgetRef ref, Song song, {RecommendStyle? style}) async {
     final l10n = context.l10n;
     showSnack(context, l10n.buildingMix);
     try {
       final s = ref.read(settingsProvider);
       final similar = await findSimilar(ref.read(musicProvider), song,
-          count: 60, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null, local: ref.read(recommendProvider.notifier));
+          count: 60,
+          lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
+          local: ref.read(recommendProvider.notifier),
+          style: style);
       if (similar.isEmpty) {
         if (context.mounted) showSnack(context, l10n.noSimilarSongs);
         return;

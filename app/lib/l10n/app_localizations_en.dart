@@ -1092,7 +1092,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recommendHint =>
-      'How the app picks similar songs for the instant mix, the radio and AutoMix.';
+      'Which songs the AudioMuse analysis picks for the radio, the instant mix and the endless queue. Not to be confused with AutoMix, which only blends one song into the next.';
+
+  @override
+  String get radioSheetTitle => 'Radio';
+
+  @override
+  String get radioSheetHint => 'Tap how AudioMuse should pick what comes next.';
+
+  @override
+  String get radioSheetOnline =>
+      'Asking the server. Keep it on the device to work without the internet.';
 
   @override
   String get recommendStyleSound => 'Similar sound';
@@ -1163,7 +1173,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recommendNoServer =>
-      'Set the analysis server above to be able to download.';
+      'Set the analysis server in Account and server to be able to download.';
 
   @override
   String get recommendUpdate => 'Check for update';

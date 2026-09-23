@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/local/local_provider.dart';
+import '../../../data/recommend.dart';
 import '../../../data/settings.dart';
 import '../../../l10n/l10n.dart';
+import '../../recommend_style_ui.dart';
 import 'common.dart';
 
 /// Ajustes: uma lista de categorias; cada uma abre a própria tela.
@@ -51,6 +53,8 @@ class SettingsPage extends ConsumerWidget {
         item('playback', Icons.play_circle_outline, l10n.playback,
             '${l10n.crossfade}: ${s.crossfadeSeconds == 0 ? l10n.off : l10n.seconds(s.crossfadeSeconds)} • ${l10n.equalizer}: ${s.eqEnabled ? l10n.on : l10n.off} • ReplayGain: ${rg(s.replayGainMode)}'),
         item('automix', Icons.auto_awesome, l10n.automix, s.automixEnabled ? l10n.on : l10n.off),
+        item('recommend', Icons.radio, l10n.recommend,
+            '${RecommendStyle.parse(s.recommendStyle).label(l10n)} • ${l10n.recommendOffline}: ${s.recommendOffline ? l10n.on : l10n.off}'),
         item('storage', Icons.storage_outlined, l10n.settingsStorage,
             '${l10n.cache}: ${(s.cacheLimitMb / 1024).toStringAsFixed(1)} GB'),
         item('sources', Icons.lyrics_outlined, l10n.settingsSources,

@@ -26,6 +26,7 @@ import '../../widgets/download_manager.dart';
 import '../automix_settings.dart';
 import 'common.dart';
 import 'diagnostics_page.dart';
+import 'recommend_page.dart';
 
 final outputDevicesProvider = FutureProvider.autoDispose<List<engine.OutputDevice>>((ref) => engine.playerOutputDevices());
 final cacheSizeProvider = FutureProvider.autoDispose<int>((ref) => engine.playerCacheSize());
@@ -42,6 +43,7 @@ Widget settingsSectionPage(String id) => switch (id) {
       'account' => const AccountSettingsPage(),
       'playback' => const PlaybackSettingsPage(),
       'automix' => const _AutomixSettingsPage(),
+      'recommend' => const RecommendSettingsPage(),
       'storage' => const StorageSettingsPage(),
       'sources' => const SourcesSettingsPage(),
       'devices' => const DevicesSettingsPage(),

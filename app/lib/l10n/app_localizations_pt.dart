@@ -1093,7 +1093,18 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get recommendHint =>
-      'Como o app escolhe as parecidas no mix instantâneo, no rádio e no AutoMix.';
+      'Quais músicas a análise do AudioMuse escolhe para o rádio, o mix instantâneo e a fila infinita. Não confunda com o AutoMix, que só costura uma música na outra.';
+
+  @override
+  String get radioSheetTitle => 'Rádio';
+
+  @override
+  String get radioSheetHint =>
+      'Toque no jeito que o AudioMuse deve usar para escolher as próximas.';
+
+  @override
+  String get radioSheetOnline =>
+      'Perguntando ao servidor. Guarde no aparelho para funcionar sem internet.';
 
   @override
   String get recommendStyleSound => 'Parecida no som';
@@ -1163,7 +1174,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get recommendNoServer =>
-      'Configure o servidor de análise acima para poder baixar.';
+      'Configure o servidor de análise em Conta e servidor para poder baixar.';
 
   @override
   String get recommendUpdate => 'Procurar atualização';

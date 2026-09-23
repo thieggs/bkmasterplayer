@@ -13,10 +13,11 @@ import 'recommend.dart';
 /// - servidor com AudioMuse: o "similar" do servidor (análise sônica);
 /// - sem AudioMuse e com Last.fm: parecidas do Last.fm achadas no servidor;
 /// - senão: o "similar" do servidor (a biblioteca local já usa o Last.fm).
-Future<List<Song>> findSimilar(MusicProvider p, Song seed, {int count = 50, LastFm? lastFm, RecommendNotifier? local}) async {
+Future<List<Song>> findSimilar(MusicProvider p, Song seed,
+    {int count = 50, LastFm? lastFm, RecommendNotifier? local, RecommendStyle? style}) async {
   if (local != null && local.ready) {
     try {
-      final r = await local.similar(seed, count: count);
+      final r = await local.similar(seed, count: count, style: style);
       if (r.isNotEmpty) return r;
     } catch (e) {
       debugPrint('parecidas no aparelho: $e');
