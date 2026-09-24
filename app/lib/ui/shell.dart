@@ -35,13 +35,15 @@ final _tabs = <String, _Dest>{
   'artists': _Dest('/artists', Icons.person_outline, Icons.person, (l) => l.artists),
   'playlists': _Dest('/playlists', Icons.queue_music_outlined, Icons.queue_music, (l) => l.playlists),
   'genres': _Dest('/genres', Icons.sell_outlined, Icons.sell, (l) => l.genres),
+  'generate': _Dest('/generate', Icons.playlist_add_circle_outlined, Icons.playlist_add_circle,
+      (l) => l.generatePlaylist),
   'favorites': _Dest('/favorites', Icons.favorite_border, Icons.favorite, (l) => l.favorites),
   'downloads': _Dest('/offline', Icons.download_outlined, Icons.download_done, (l) => l.downloads),
 };
 final _settingsDest = _Dest('/settings', Icons.settings_outlined, Icons.settings, (l) => l.settings);
 
 // Prefixos: '/album' cobre a lista (/albums) e o álbum aberto (/album/:id).
-const _libraryPaths = ['/library', '/album', '/song', '/artist', '/playlist', '/genre', '/favorites', '/offline'];
+const _libraryPaths = ['/library', '/album', '/song', '/artist', '/playlist', '/genre', '/favorites', '/offline', '/generate'];
 const _settingsPaths = ['/settings', '/equalizer', '/customize'];
 
 /// A aba [id] (do celular) cobre o endereço [loc]?

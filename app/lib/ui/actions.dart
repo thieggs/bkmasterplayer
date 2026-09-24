@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers.dart';
+import '../data/playlist_gen.dart';
 import '../data/recommend.dart';
 import '../data/similar.dart';
 import '../data/subsonic/subsonic_client.dart';
@@ -273,6 +274,11 @@ Future<void> showSongMenu(BuildContext context, WidgetRef ref, Song song, {Offse
     (starred ? Icons.favorite : Icons.favorite_border, starred ? l10n.unfavorite : l10n.favorite,
         () => LibraryActions.toggleStar(context, ref, song)),
     (Icons.playlist_add, l10n.addToPlaylist, () => LibraryActions.addToPlaylist(context, ref, [song])),
+    (Icons.playlist_add_circle_outlined, l10n.generatePlaylist, () {
+      // Leva a música como ponto de partida e abre a tela dos critérios.
+      ref.read(generateProvider.notifier).set((x) => x.copyWith(seed: song));
+      goFromPlayer(context, '/generate');
+    }),
     if (!(ref.read(sessionProvider).value?.isLocal ?? true))
       (Icons.share_outlined, l10n.shareLink, () => LibraryActions.share(context, ref, [song.id], description: song.title)),
     if (song.albumId != null) (Icons.album, l10n.goToAlbum, () => goFromPlayer(context, '/album/${song.albumId}')),

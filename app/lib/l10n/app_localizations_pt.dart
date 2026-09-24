@@ -1095,6 +1095,71 @@ class AppLocalizationsPt extends AppLocalizations {
       'Cuidado: com o ícone da bandeja desligado e \"fechar para a bandeja\" ligado, o app some sem deixar como reabrir.';
 
   @override
+  String get generatePlaylist => 'Gerar playlist';
+
+  @override
+  String get generateHint =>
+      'Escolha como a playlist deve ser montada. Quem escolhe as músicas é a análise do AudioMuse.';
+
+  @override
+  String get genSeed => 'Música de partida';
+
+  @override
+  String get genSeedNone => 'Nenhuma — a biblioteca toda';
+
+  @override
+  String get genGuide => 'Guiar por';
+
+  @override
+  String get genGenre => 'Gênero';
+
+  @override
+  String get genAny => 'Qualquer';
+
+  @override
+  String get genEra => 'Época';
+
+  @override
+  String get genByMinutes => 'Por tempo';
+
+  @override
+  String get genByCount => 'Por número';
+
+  @override
+  String get genOnlyStarred => 'Só favoritas';
+
+  @override
+  String get genOnlyDownloaded => 'Só baixadas';
+
+  @override
+  String get genOnlyDownloadedHint =>
+      'Funciona sem internet, com o que já está no aparelho.';
+
+  @override
+  String get genDo => 'Gerar';
+
+  @override
+  String get genAgain => 'Gerar de novo';
+
+  @override
+  String get genSave => 'Salvar como playlist';
+
+  @override
+  String genMinutes(int n) {
+    return '$n min';
+  }
+
+  @override
+  String genSongs(int n) {
+    return '$n músicas';
+  }
+
+  @override
+  String genResult(int n, int d) {
+    return '$n músicas · $d min';
+  }
+
+  @override
   String get recommend => 'Recomendações';
 
   @override

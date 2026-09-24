@@ -107,6 +107,7 @@ class _Names {
         'artists' => l.artists,
         'playlists' => l.playlists,
         'genres' => l.genres,
+        'generate' => l.generatePlaylist,
         'favorites' => l.favorites,
         _ => l.downloads,
       };
@@ -121,6 +122,7 @@ const tabIcons = <String, IconData>{
   'artists': Icons.person_outline,
   'playlists': Icons.queue_music_outlined,
   'genres': Icons.sell_outlined,
+  'generate': Icons.playlist_add_circle_outlined,
   'favorites': Icons.favorite_border,
   'downloads': Icons.download_outlined,
 };

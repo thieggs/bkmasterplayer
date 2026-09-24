@@ -76,8 +76,27 @@ class SettingsNotifier extends Notifier<AppSettings> {
 final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
 
 class UiPrefsNotifier extends Notifier<UiPrefs> {
+  /// Abas que nasceram depois: quem já usava o app tem a lista salva, e o
+  /// padrão novo não chegaria nele. Entram uma vez só, e quem tirar não as vê
+  /// voltar.
+  static const _abasNovas = {'gerarPlaylist': 'generate'};
+
   @override
-  UiPrefs build() => UiPrefs.load(ref.watch(prefsProvider));
+  UiPrefs build() => _comAbasNovas(UiPrefs.load(ref.watch(prefsProvider)));
+
+  UiPrefs _comAbasNovas(UiPrefs p) {
+    final prefs = ref.read(prefsProvider);
+    var atual = p;
+    for (final e in _abasNovas.entries) {
+      if (prefs.getBool('aba.${e.key}') ?? false) continue;
+      unawaited(prefs.setBool('aba.${e.key}', true));
+      if (!atual.sidebarTabs.contains(e.value)) {
+        atual = atual.copyWith(sidebarTabs: [...atual.sidebarTabs, e.value]);
+        atual.save(prefs);
+      }
+    }
+    return atual;
+  }
 
   void update(UiPrefs Function(UiPrefs p) change) {
     state = change(state);

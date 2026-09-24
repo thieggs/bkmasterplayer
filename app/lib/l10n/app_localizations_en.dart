@@ -1094,6 +1094,71 @@ class AppLocalizationsEn extends AppLocalizations {
       'Careful: with the tray icon off and \"close to tray\" on, the app disappears with no way to bring it back.';
 
   @override
+  String get generatePlaylist => 'Generate playlist';
+
+  @override
+  String get generateHint =>
+      'Choose how the playlist should be built. The AudioMuse analysis picks the songs.';
+
+  @override
+  String get genSeed => 'Starting song';
+
+  @override
+  String get genSeedNone => 'None — the whole library';
+
+  @override
+  String get genGuide => 'Guided by';
+
+  @override
+  String get genGenre => 'Genre';
+
+  @override
+  String get genAny => 'Any';
+
+  @override
+  String get genEra => 'Era';
+
+  @override
+  String get genByMinutes => 'By time';
+
+  @override
+  String get genByCount => 'By count';
+
+  @override
+  String get genOnlyStarred => 'Favourites only';
+
+  @override
+  String get genOnlyDownloaded => 'Downloaded only';
+
+  @override
+  String get genOnlyDownloadedHint =>
+      'Works without the internet, using what is already on the device.';
+
+  @override
+  String get genDo => 'Generate';
+
+  @override
+  String get genAgain => 'Generate again';
+
+  @override
+  String get genSave => 'Save as playlist';
+
+  @override
+  String genMinutes(int n) {
+    return '$n min';
+  }
+
+  @override
+  String genSongs(int n) {
+    return '$n songs';
+  }
+
+  @override
+  String genResult(int n, int d) {
+    return '$n songs · $d min';
+  }
+
+  @override
   String get recommend => 'Recommendations';
 
   @override

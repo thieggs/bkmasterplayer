@@ -2047,6 +2047,120 @@ abstract class AppLocalizations {
   /// **'Cuidado: com o ícone da bandeja desligado e \"fechar para a bandeja\" ligado, o app some sem deixar como reabrir.'**
   String get trayGoneWarn;
 
+  /// No description provided for @generatePlaylist.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar playlist'**
+  String get generatePlaylist;
+
+  /// No description provided for @generateHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha como a playlist deve ser montada. Quem escolhe as músicas é a análise do AudioMuse.'**
+  String get generateHint;
+
+  /// No description provided for @genSeed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Música de partida'**
+  String get genSeed;
+
+  /// No description provided for @genSeedNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma — a biblioteca toda'**
+  String get genSeedNone;
+
+  /// No description provided for @genGuide.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guiar por'**
+  String get genGuide;
+
+  /// No description provided for @genGenre.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gênero'**
+  String get genGenre;
+
+  /// No description provided for @genAny.
+  ///
+  /// In pt, this message translates to:
+  /// **'Qualquer'**
+  String get genAny;
+
+  /// No description provided for @genEra.
+  ///
+  /// In pt, this message translates to:
+  /// **'Época'**
+  String get genEra;
+
+  /// No description provided for @genByMinutes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por tempo'**
+  String get genByMinutes;
+
+  /// No description provided for @genByCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por número'**
+  String get genByCount;
+
+  /// No description provided for @genOnlyStarred.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só favoritas'**
+  String get genOnlyStarred;
+
+  /// No description provided for @genOnlyDownloaded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só baixadas'**
+  String get genOnlyDownloaded;
+
+  /// No description provided for @genOnlyDownloadedHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Funciona sem internet, com o que já está no aparelho.'**
+  String get genOnlyDownloadedHint;
+
+  /// No description provided for @genDo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar'**
+  String get genDo;
+
+  /// No description provided for @genAgain.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar de novo'**
+  String get genAgain;
+
+  /// No description provided for @genSave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar como playlist'**
+  String get genSave;
+
+  /// No description provided for @genMinutes.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} min'**
+  String genMinutes(int n);
+
+  /// No description provided for @genSongs.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} músicas'**
+  String genSongs(int n);
+
+  /// No description provided for @genResult.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} músicas · {d} min'**
+  String genResult(int n, int d);
+
   /// No description provided for @recommend.
   ///
   /// In pt, this message translates to:

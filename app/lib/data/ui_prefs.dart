@@ -166,8 +166,8 @@ class UiPrefs {
 
   static const allPlayerButtons = ['shuffle', 'repeat', 'favorite', 'mix', 'eq', 'lyrics', 'queue', 'sleep', 'devices', 'mini', 'volume'];
   static const allHomeSections = ['newest', 'recent', 'frequent', 'random', 'starred', 'highest'];
-  static const allTabs = ['home', 'search', 'library', 'albums', 'songs', 'artists', 'playlists', 'genres', 'favorites', 'downloads'];
-  static const defaultSidebarTabs = ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'favorites', 'downloads'];
+  static const allTabs = ['home', 'search', 'library', 'albums', 'songs', 'artists', 'playlists', 'genres', 'generate', 'favorites', 'downloads'];
+  static const defaultSidebarTabs = ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'generate', 'favorites', 'downloads'];
   static const defaultMobileTabs = ['home', 'search', 'library'];
   static const bodyFonts = ['system', 'nunito', 'spaceGrotesk', 'jetbrainsMono'];
   static const titleFonts = ['system', 'nunito', 'spaceGrotesk', 'jetbrainsMono', 'playfair', 'bebas'];
