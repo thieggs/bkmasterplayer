@@ -163,12 +163,26 @@ senão a mesma música apareceria repetida nas sugestões.
 
 ## Limpeza: repetidas e lixo do banco
 
-Duas ferramentas; as duas só mostram o que fariam até levarem `--aplicar`:
+No PC, o atalho **"Limpar biblioteca"** na área de trabalho faz tudo de uma
+vez: mostra o que faria, pede confirmação e só então mexe. Por baixo é
+`dev/manutencao.sh`, que encadeia as ferramentas abaixo e ainda manda o
+Navidrome reler e refaz os vetores do celular.
+
+Cada uma também roda sozinha, e só mostra o que faria até levar `--aplicar`:
 
 ```bash
 ./dev/limpa_repetidas.py --descarte /media/.../repetidas   # músicas repetidas
+./dev/separa_artistas.py                                   # artistas grudados
 ./dev/limpa_audiomuse.py                                   # lixo no banco
 ```
+
+`separa_artistas.py` conserta a etiqueta que veio com tudo num campo só
+(`Mandragora,420`), que faz o Navidrome criar **um** artista com o nome
+inteiro e sumir com a música na busca por qualquer um deles. Grava
+ARTIST/ALBUMARTIST como vários valores (ID3v2.4), que é o jeito correto — a
+configuração do próprio Navidrome para isso (`Tags.artists.Split`) não
+funciona na 0.63.2. Divide em vírgula e em barra sem espaço, nunca em `&`,
+e guarda o valor original para `--desfazer`.
 
 `limpa_repetidas.py` junta como a mesma música o que tem **áudio idêntico byte
 a byte** (só nome e etiqueta mudam) e o que o AudioMuse marcou com a **mesma
