@@ -8,7 +8,7 @@ import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
 import '../widgets/album_card.dart';
 import '../widgets/async_view.dart';
-import '../widgets/cover_art.dart';
+import '../widgets/artist_photo.dart';
 import '../widgets/song_tile.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -127,7 +127,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     child: SizedBox(
                                       width: 110,
                                       child: Column(children: [
-                                        CoverArt(coverArtId: a.coverArt, size: 90, radius: 45, icon: Icons.person),
+                                        ArtistPhoto(name: a.name, coverArt: a.coverArt, size: 90, radius: 45),
                                         const SizedBox(height: 6),
                                         Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                                       ]),

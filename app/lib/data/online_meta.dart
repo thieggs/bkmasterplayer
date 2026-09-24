@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
 
@@ -186,6 +187,89 @@ Future<String?> _deezerCover(String artist, String album) async {
     for (final e in ((r.data as Map?)?['data'] as List? ?? const [])) {
       if (e is Map && _sameAlbum(artist, album, (e['artist'] as Map?)?['name'] as String?, e['title'] as String?)) {
         return e['cover_xl'] as String? ?? e['cover_big'] as String?;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+/// Foto do artista que o servidor não tem, buscada na internet.
+///
+/// O Deezer cobre bem eletrônica e música brasileira, que é o grosso desta
+/// biblioteca; o TheAudioDB entra para o que falta. Salva em [dir] e devolve
+/// o caminho (null = não achou). "Não achou" fica guardado por 7 dias, para
+/// não perguntar de novo a cada abertura da tela.
+Future<String?> fetchArtistPhoto({required String artist, required String dir}) async {
+  final nome = artist.trim();
+  if (nome.isEmpty) return null;
+  final destino = File(p.join(dir, 'artista_${_hash(nome)}.jpg'));
+  if (await destino.exists()) return destino.path;
+  final vazio = File('${destino.path}.nao');
+  if (await vazio.exists()) {
+    final idade = DateTime.now().difference(await vazio.lastModified());
+    if (idade < const Duration(days: 7)) return null;
+  }
+
+  final url = await _deezerArtist(nome) ?? await _audioDbArtist(nome);
+  if (url == null) {
+    try {
+      await vazio.parent.create(recursive: true);
+      await vazio.writeAsString('');
+    } catch (_) {}
+    return null;
+  }
+  try {
+    final r = await _dio.get<List<int>>(url, options: Options(responseType: ResponseType.bytes));
+    if (r.statusCode != 200 || r.data == null || r.data!.length < 2000) return null;
+    await destino.parent.create(recursive: true);
+    final tmp = File('${destino.path}.baixando');
+    await tmp.writeAsBytes(r.data!);
+    await tmp.rename(destino.path);
+    return destino.path;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Deezer: escolhe pelo nome igual e, entre os iguais, o de mais fãs —
+/// "Filipe Ret" aparece duas vezes, uma com dois milhões de fãs e outra com
+/// nove.
+Future<String?> _deezerArtist(String nome) async {
+  try {
+    final r = await _dio.get('https://api.deezer.com/search/artist',
+        queryParameters: {'q': nome, 'limit': 25});
+    final lista = ((r.data as Map?)?['data'] as List? ?? const []).whereType<Map>().toList();
+    return escolheFotoDeezer(lista, nome);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Entre os que o Deezer devolveu, a foto do artista certo: nome igual e,
+/// no desempate, o de mais fãs.
+@visibleForTesting
+String? escolheFotoDeezer(List<Map> achados, String nome) {
+  final alvo = matchKey(nome);
+  final bons = [
+    for (final a in achados)
+      if (matchKey('${a['name']}') == alvo && !_semFoto('${a['picture_xl'] ?? ''}')) a,
+  ]..sort((a, b) => ((b['nb_fan'] as num?) ?? 0).compareTo((a['nb_fan'] as num?) ?? 0));
+  if (bons.isEmpty) return null;
+  return bons.first['picture_xl'] as String? ?? bons.first['picture_big'] as String?;
+}
+
+/// O Deezer sempre devolve uma URL; quando não há foto, ela vem sem o código
+/// da imagem (".../artist//...").
+bool _semFoto(String url) => url.isEmpty || url.contains('/artist//');
+
+Future<String?> _audioDbArtist(String nome) async {
+  try {
+    final r = await _dio.get('https://www.theaudiodb.com/api/v1/json/2/search.php',
+        queryParameters: {'s': nome});
+    for (final a in ((r.data as Map?)?['artists'] as List? ?? const []).whereType<Map>()) {
+      final thumb = a['strArtistThumb'] as String?;
+      if (thumb != null && thumb.isNotEmpty && matchKey('${a['strArtist']}') == matchKey(nome)) {
+        return thumb;
       }
     }
   } catch (_) {}

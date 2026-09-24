@@ -10,7 +10,7 @@ import '../../player/player_controller.dart';
 import '../actions.dart';
 import '../widgets/album_card.dart';
 import '../widgets/async_view.dart';
-import '../widgets/cover_art.dart';
+import '../widgets/artist_photo.dart';
 import '../widgets/song_tile.dart';
 
 class ArtistsPage extends ConsumerStatefulWidget {
@@ -75,7 +75,7 @@ class _ArtistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: CoverArt(coverArtId: artist.coverArt, size: 44, radius: 22, icon: Icons.person),
+      leading: ArtistPhoto(name: artist.name, coverArt: artist.coverArt, size: 44, radius: 22),
       title: Text(artist.name),
       subtitle: artist.albumCount != null ? Text(context.l10n.albumCount(artist.albumCount!)) : null,
       onTap: () => context.push('/artist/${artist.id}'),
@@ -119,7 +119,7 @@ class _ArtistView extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              CoverArt(coverArtId: artist.coverArt, size: 140, radius: 70, icon: Icons.person),
+              ArtistPhoto(name: artist.name, coverArt: artist.coverArt, size: 140, radius: 70),
               const SizedBox(width: 24),
               Expanded(
                 child: Column(
@@ -214,7 +214,7 @@ class _ArtistView extends ConsumerWidget {
                       width: 120,
                       child: Column(
                         children: [
-                          CoverArt(coverArtId: s.coverArt, size: 100, radius: 50, icon: Icons.person),
+                          ArtistPhoto(name: s.name, coverArt: s.coverArt, size: 100, radius: 50),
                           const SizedBox(height: 6),
                           Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                         ],
