@@ -70,6 +70,10 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_bkjam._tcp</string>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Para tocar do seu servidor de música na rede de casa.</string>
 	<key>NSAppTransportSecurity</key>

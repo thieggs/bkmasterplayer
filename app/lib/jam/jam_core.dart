@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 
 import '../connect/connect_auth.dart';
 import '../connect/connect_service.dart';
+import 'jam_bonjour.dart';
 import '../core/providers.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
@@ -378,6 +379,7 @@ class JamHostState {
 }
 
 class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
+  final _bonjour = JamBonjour();
   String _name = '';
   final _tokens = <String, _LanLink>{};
   final _addedBy = <String, String>{};
@@ -431,6 +433,15 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
     connect.jamRoutes = this;
     await connect.announceJam();
     _announce = Timer.periodic(const Duration(seconds: 5), (_) => connect.announceJam());
+    // Bonjour em paralelo ao broadcast: é o que o iPhone aceita, atravessa
+    // Wi-Fi que filtra broadcast, e continua de pé quando o Android manda o
+    // app para segundo plano (quem responde é o sistema).
+    unawaited(_bonjour.advertise(
+      deviceId: _myId(ref),
+      jamId: id,
+      name: _name,
+      port: connect.jamPort,
+    ));
     final nearby = jamNearby;
     if (nearby != null && nearby.available) {
       try {
@@ -457,6 +468,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
       if (!r.decision.isCompleted) r.decision.complete(false);
     }
     _shutdown();
+    unawaited(_bonjour.stopAdvertising());
     state = const JamHostState();
   }
 
@@ -843,6 +855,8 @@ class JamGuestState {
 class JamGuestNotifier extends Notifier<JamGuestState> {
   JamLink? _link;
   StreamSubscription<List<JamOffer>>? _nearbySub;
+  final _bonjour = JamBonjour();
+  List<LanJamOffer> _bonjourOffers = const [];
   List<JamOffer> _nearbyOffers = const [];
   VoidCallback? _lanListener;
   int _req = 0;
@@ -871,6 +885,10 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     _lanListener ??= () => _mergeOffers();
     connect.jamOffers.addListener(_lanListener!);
     await connect.refresh();
+    unawaited(_bonjour.discover((l) {
+      _bonjourOffers = l;
+      _mergeOffers();
+    }));
     final nearby = jamNearby;
     if (nearby != null && nearby.available && _nearbySub == null) {
       try {
@@ -886,7 +904,12 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
   }
 
   void _mergeOffers() {
-    final lan = ref.read(connectProvider.notifier).jamOffers.value;
+    // As duas descobertas podem achar a mesma Festa; vale uma vez só.
+    final porId = <String, LanJamOffer>{
+      for (final o in ref.read(connectProvider.notifier).jamOffers.value) o.deviceId: o,
+      for (final o in _bonjourOffers) o.deviceId: o,
+    };
+    final lan = porId.values;
     final offers = <JamOffer>[
       for (final o in lan)
         JamOffer(key: 'wifi:${o.deviceId}', hostId: o.deviceId, hostName: o.name, via: 'wifi', join: (id, name, pass) => joinLan(o, id, name, pass)),
@@ -905,6 +928,8 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     _nearbySub?.cancel();
     _nearbySub = null;
     jamNearby?.stopDiscovery();
+    unawaited(_bonjour.stopDiscovery());
+    _bonjourOffers = const [];
   }
 
   static const _kPasses = 'jamPasses';

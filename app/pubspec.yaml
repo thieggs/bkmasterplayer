@@ -60,6 +60,7 @@ dependencies:
   rxdart: ^0.28.0
   url_launcher: ^6.3.2
   package_info_plus: ^10.2.1
+  bonsoir: ^7.1.4
 
 dev_dependencies:
   flutter_test:

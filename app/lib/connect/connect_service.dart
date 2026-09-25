@@ -469,6 +469,9 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
     await announceJam();
   }
 
+  /// Porta em que a Festa atende (a mesma do anúncio por UDP).
+  int get jamPort => _http?.port ?? connectTcpPort;
+
   Map<String, dynamic>? _jamAnnouncement() {
     final j = jamRoutes;
     final me = _me;
