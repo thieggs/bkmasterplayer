@@ -371,6 +371,8 @@ struct Vinyl {
     filled: usize,
     /// Primeiro frame ainda não lido do deck (na contagem do deck).
     head: u64,
+    /// De qual faixa é o que está guardado (outra faixa = memória não serve).
+    token: u64,
     /// A agulha, fracionária: é dela que sai o tom.
     pos: f64,
     /// Velocidade que o dedo pediu e a que está valendo.
@@ -394,6 +396,7 @@ impl Vinyl {
             memory: vec![0.0; (rate as usize * VINYL_MEMORY_SECS).min(VINYL_MEMORY_MAX_FRAMES) * 2],
             filled: 0,
             head: 0,
+            token: 0,
             pos: 0.0,
             target: 1.0,
             speed: 1.0,
@@ -410,15 +413,50 @@ impl Vinyl {
         self.memory.len() / 2
     }
 
-    /// Pega o disco no ponto em que a faixa está agora.
-    fn grab(&mut self, at: u64) {
+    /// Pega o disco no ponto em que a faixa está agora, aproveitando o que já
+    /// estava guardado: é esse passado que dá para voltar girando.
+    fn grab(&mut self, token: u64, at: u64) {
         self.active = true;
-        self.head = at;
+        // Outra faixa, ou a posição pulou (seek): o guardado não é o passado
+        // deste ponto.
+        if self.token != token || at != self.head {
+            self.token = token;
+            self.filled = 0;
+            self.head = at;
+        }
         self.pos = at as f64;
-        self.filled = 0;
         self.speed = 1.0;
         self.target = 1.0;
         self.gain = 1.0;
+    }
+
+    /// Copia `buf` para a memória terminando no frame `consumed`.
+    fn write(&mut self, consumed: u64, buf: &[f32]) {
+        let frames = buf.len() / 2;
+        let start = consumed.saturating_sub(frames as u64) as usize;
+        let cap = self.frames();
+        let mut i = 0;
+        while i < frames {
+            let w = (start + i) % cap;
+            let run = (cap - w).min(frames - i);
+            self.memory[w * 2..(w + run) * 2].copy_from_slice(&buf[i * 2..(i + run) * 2]);
+            i += run;
+        }
+        self.head = consumed;
+        self.filled = (self.filled + frames).min(cap);
+    }
+
+    /// Vai guardando o que a faixa toca normalmente, para o disco já ter
+    /// passado quando a mão pegar nele. Sem isto a memória começa vazia no
+    /// momento do gesto e voltar o disco não toca nada — só o que a própria
+    /// mão tivesse adiantado antes.
+    fn remember(&mut self, token: u64, consumed: u64, buf: &[f32]) {
+        let start = consumed.saturating_sub((buf.len() / 2) as u64);
+        if self.token != token || start != self.head {
+            self.token = token;
+            self.filled = 0;
+        }
+        self.write(consumed, buf);
     }
 
     /// O mais antigo que a memória ainda guarda.
@@ -442,7 +480,6 @@ impl Vinyl {
     /// Puxa do deck até ter o frame `upto` na memória. `false` = o deck secou
     /// (rede atrasada ou fim da faixa).
     fn fill_to(&mut self, slot: &mut Slot, upto: u64) -> bool {
-        let cap = self.frames();
         while self.head <= upto {
             // Em pedaços, não frame a frame: isto roda dentro do callback de
             // áudio, e o que sobra vai para a memória de qualquer jeito.
@@ -451,13 +488,10 @@ impl Vinyl {
             if got == 0 {
                 return false;
             }
-            for i in 0..got {
-                let w = ((self.head as usize + i) % cap) * 2;
-                self.memory[w] = self.tmp[i * 2];
-                self.memory[w + 1] = self.tmp[i * 2 + 1];
-            }
-            self.head += got as u64;
-            self.filled = (self.filled + got).min(cap);
+            let end = self.head + got as u64;
+            let tmp = std::mem::take(&mut self.tmp);
+            self.write(end, &tmp[..got * 2]);
+            self.tmp = tmp;
         }
         true
     }
@@ -668,8 +702,8 @@ impl Mixer {
                             // pré-eco: antes dele a posição ainda não vale).
                             match self.current.as_ref() {
                                 Some(cur) if !cur.skip_lead => {
-                                    let at = cur.src.shared.consumed.load(Ordering::Relaxed);
-                                    self.vinyl.grab(at);
+                                    let sh = &cur.src.shared;
+                                    self.vinyl.grab(sh.token, sh.consumed.load(Ordering::Relaxed));
                                 }
                                 _ => {}
                             }
@@ -815,6 +849,11 @@ impl Mixer {
                 if got < n && !cur.src.shared.eof.load(Ordering::Acquire) {
                     underrun = true;
                 }
+                // O disco vai guardando o que passou mesmo sem ninguém na mão:
+                // é o que dá para voltar quando a mão chegar.
+                let sh = &cur.src.shared;
+                let at = sh.consumed.load(Ordering::Relaxed);
+                self.vinyl.remember(sh.token, at, &scratch[..got * 2]);
             }
             let gain = cur.src.gain;
             match &self.transition {
@@ -1185,13 +1224,37 @@ mod vinyl_tests {
     /// Deck de mentira com uma rampa (o frame `i` vale `i + 1`): como a
     /// interpolação é linear, dá para conferir a agulha na casa decimal.
     fn ramp_slot(frames: usize) -> (rtrb::Producer<f32>, Slot) {
-        let (mut p, c) = rtrb::RingBuffer::<f32>::new(frames * 2);
-        for i in 0..frames {
+        ramp_slot_cap(frames, frames)
+    }
+
+    /// Anel com espaço para `cap` frames, mas só `fill` já decodificados: o
+    /// resto chega depois, como a produtora do deck faria.
+    fn ramp_slot_cap(cap: usize, fill: usize) -> (rtrb::Producer<f32>, Slot) {
+        let (mut p, c) = rtrb::RingBuffer::<f32>::new(cap * 2);
+        feed(&mut p, 0, fill);
+        let shared = DeckShared::new(1, 48000);
+        (p, Slot::new(Box::new(DeckSource { shared, ring: c, gain: 1.0 }), false, 0))
+    }
+
+    fn feed(p: &mut rtrb::Producer<f32>, from: usize, frames: usize) {
+        for i in from..from + frames {
             p.push(i as f32 + 1.0).unwrap();
             p.push(-(i as f32 + 1.0)).unwrap();
         }
-        let shared = DeckShared::new(1, 48000);
-        (p, Slot::new(Box::new(DeckSource { shared, ring: c, gain: 1.0 }), false, 0))
+    }
+
+    /// A agulha voltou a tocar? (com a rampa de ganho, o som volta alguns
+    /// frames depois do motivo dele.)
+    fn voltou(out: &[f32]) -> bool {
+        out[out.len() - 200..].iter().any(|x| *x != 0.0)
+    }
+
+    /// Reprodução normal, com ninguém no disco: é assim que a memória enche.
+    fn normal(v: &mut Vinyl, slot: &mut Slot, n: usize) {
+        let mut buf = vec![0.0; n * 2];
+        let got = slot.pull(&mut buf, n);
+        let at = slot.src.shared.consumed.load(Ordering::Relaxed);
+        v.remember(slot.src.shared.token, at, &buf[..got * 2]);
     }
 
     fn play(v: &mut Vinyl, slot: &mut Slot, n: usize) -> Vec<f32> {
@@ -1215,7 +1278,7 @@ mod vinyl_tests {
     fn na_velocidade_normal_sai_o_mesmo_audio() {
         let (_p, mut slot) = ramp_slot(2000);
         let mut v = Vinyl::new(48000);
-        v.grab(0);
+        v.grab(1, 0);
         let out = play(&mut v, &mut slot, 100);
         for i in 0..100 {
             assert!((out[i * 2] - (i as f32 + 1.0)).abs() < 1e-3, "frame {i}: {}", out[i * 2]);
@@ -1225,10 +1288,38 @@ mod vinyl_tests {
     }
 
     #[test]
+    fn o_disco_ja_tem_passado_quando_a_mao_pega_nele() {
+        let (_p, mut slot) = ramp_slot(4000);
+        let mut v = Vinyl::new(48000);
+        // Tocou normal, sem ninguém no disco.
+        normal(&mut v, &mut slot, 500);
+        let at = at(&v, &slot);
+        assert_eq!(at, 500);
+        // Pega e volta na hora: tem que tocar, sem precisar adiantar antes.
+        v.grab(1, at);
+        v.target = -1.0;
+        v.speed = -1.0;
+        let out = play(&mut v, &mut slot, 100);
+        for i in 0..100 {
+            assert!((out[i * 2] - (501.0 - i as f32)).abs() < 1e-3, "frame {i}: {}", out[i * 2]);
+        }
+    }
+
+    #[test]
+    fn memoria_de_outra_faixa_nao_vale_como_passado() {
+        let (_p, mut slot) = ramp_slot(4000);
+        let mut v = Vinyl::new(48000);
+        normal(&mut v, &mut slot, 500);
+        // Trocou a faixa (ou deu seek): o guardado não é o passado deste ponto.
+        v.grab(2, 500);
+        assert_eq!(v.filled, 0);
+    }
+
+    #[test]
     fn devagar_estica_o_som_e_anda_menos() {
         let (_p, mut slot) = ramp_slot(2000);
         let mut v = Vinyl::new(48000);
-        v.grab(0);
+        v.grab(1, 0);
         // Sem a rampa de velocidade, para medir só o passo da agulha.
         v.target = 0.5;
         v.speed = 0.5;
@@ -1243,7 +1334,7 @@ mod vinyl_tests {
     fn para_tras_toca_de_tras_para_frente_e_a_posicao_volta() {
         let (_p, mut slot) = ramp_slot(2000);
         let mut v = Vinyl::new(48000);
-        v.grab(0);
+        v.grab(1, 0);
         play(&mut v, &mut slot, 200);
         assert_eq!(at(&v, &slot), 200);
         v.target = -1.0;
@@ -1259,7 +1350,7 @@ mod vinyl_tests {
     fn disco_parado_e_giro_rapido_demais_nao_fazem_som() {
         let (_p, mut slot) = ramp_slot(2000);
         let mut v = Vinyl::new(48000);
-        v.grab(0);
+        v.grab(1, 0);
         play(&mut v, &mut slot, 100);
         v.target = 0.0;
         v.speed = 0.0;
@@ -1274,7 +1365,7 @@ mod vinyl_tests {
     fn sem_limite_a_agulha_nao_levanta_por_velocidade() {
         let (_p, mut slot) = ramp_slot(4000);
         let mut v = Vinyl::new(48000);
-        v.grab(0);
+        v.grab(1, 0);
         v.max = f32::INFINITY;
         v.target = 20.0;
         v.speed = 20.0;
@@ -1288,7 +1379,7 @@ mod vinyl_tests {
     fn com_limite_alto_ainda_ha_limite() {
         let (_p, mut slot) = ramp_slot(4000);
         let mut v = Vinyl::new(48000);
-        v.grab(0);
+        v.grab(1, 0);
         v.max = 12.0;
         v.target = 12.0;
         v.speed = 12.0;
@@ -1299,7 +1390,7 @@ mod vinyl_tests {
     fn sem_audio_decodificado_a_agulha_cala_em_vez_de_repetir() {
         let (_p, mut slot) = ramp_slot(10);
         let mut v = Vinyl::new(48000);
-        v.grab(0);
+        v.grab(1, 0);
         let out = play(&mut v, &mut slot, 500);
         assert!(out[0] != 0.0 && out[2] != 0.0);
         assert!(calou(&out), "repetiu o que não tinha");
@@ -1310,7 +1401,7 @@ mod vinyl_tests {
         let (_p, mut slot) = ramp_slot(4000);
         // Memória curta de propósito: 400 frames.
         let mut v = Vinyl::new(100);
-        v.grab(0);
+        v.grab(1, 0);
         play(&mut v, &mut slot, 1000);
         v.target = -1.0;
         v.speed = -1.0;
@@ -1320,12 +1411,57 @@ mod vinyl_tests {
         assert!(calou(&out), "zumbiu na parede da memória");
     }
 
+    // ---- Calar é sempre temporário: quando o motivo passa, a agulha volta
+    // sozinha, sem o dedo ter que pedir de novo. ----
+
+    #[test]
+    fn chegando_mais_audio_a_agulha_volta_sozinha() {
+        // Só 10 frames decodificados: seca na hora.
+        let (mut p, mut slot) = ramp_slot_cap(4000, 10);
+        let mut v = Vinyl::new(48000);
+        v.grab(1, 0);
+        assert!(calou(&play(&mut v, &mut slot, 500)), "devia ter calado ao secar");
+        // A produtora entrega mais, e ninguém avisa a agulha.
+        feed(&mut p, 10, 1000);
+        assert!(voltou(&play(&mut v, &mut slot, 500)), "não voltou sozinha");
+    }
+
+    #[test]
+    fn saindo_da_parede_da_memoria_a_agulha_volta_sozinha() {
+        let (_p, mut slot) = ramp_slot(4000);
+        // Memória curta de propósito: 400 frames.
+        let mut v = Vinyl::new(100);
+        v.grab(1, 0);
+        play(&mut v, &mut slot, 1000);
+        v.target = -1.0;
+        v.speed = -1.0;
+        assert!(calou(&play(&mut v, &mut slot, 2000)), "devia ter calado na parede");
+        // Virou o disco para frente de novo.
+        v.target = 1.0;
+        v.speed = 1.0;
+        assert!(voltou(&play(&mut v, &mut slot, 500)), "não voltou ao sair da parede");
+    }
+
+    #[test]
+    fn abaixando_do_limite_a_agulha_volta_sozinha() {
+        let (_p, mut slot) = ramp_slot(40000);
+        let mut v = Vinyl::new(48000);
+        v.grab(1, 0);
+        v.max = 4.0;
+        v.target = 8.0;
+        v.speed = 8.0;
+        assert!(calou(&play(&mut v, &mut slot, 500)), "devia ter calado acima do limite");
+        v.target = 1.0;
+        v.speed = 1.0;
+        assert!(voltou(&play(&mut v, &mut slot, 500)), "não voltou abaixo do limite");
+    }
+
     #[test]
     fn nao_volta_alem_do_que_a_memoria_guarda() {
         let (_p, mut slot) = ramp_slot(2000);
         // Memória curta de propósito: 100 frames.
         let mut v = Vinyl::new(25);
-        v.grab(0);
+        v.grab(1, 0);
         play(&mut v, &mut slot, 300);
         v.target = -1.0;
         v.speed = -1.0;
