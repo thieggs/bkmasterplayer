@@ -91,7 +91,12 @@ jobs:
         run: |
           choco install llvm innosetup -y --no-progress
           echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+      # O MSVC do Visual Studio 18 recusa <experimental/coroutine>, que o
+      # permission_handler_windows ainda usa. A definição é a que a própria
+      # mensagem de erro manda usar, e vale só para este build.
       - working-directory: app
+        env:
+          CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
         run: flutter build windows --release
       - name: Instalador
         run: |
