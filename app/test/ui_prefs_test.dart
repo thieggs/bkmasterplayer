@@ -19,6 +19,15 @@ void main() {
     expect((p.transitions, p.animations), ('default', 'normal'));
     expect(p.sidebarTabs, ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'generate', 'favorites', 'downloads']);
     expect(p.mobileTabs, ['home', 'search', 'library']);
+    // Só vale no layout vinil, que não é o padrão: nada muda para quem não escolheu.
+    expect((p.nowPlayingLayout, p.vinylScratch), ('side', true));
+  });
+
+  test('girar o disco: guarda o desligado e ignora lixo', () {
+    const off = UiPrefs(vinylScratch: false);
+    expect(off.themeJson()['vinylScratch'], false);
+    expect(UiPrefs.fromJson(off.toJson()).vinylScratch, isFalse);
+    expect(UiPrefs.fromJson({'vinylScratch': 'sim'}).vinylScratch, isTrue);
   });
 
   test('migra modo, cor, cor da capa e escala das configurações antigas (e salva)', () async {

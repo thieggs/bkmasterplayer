@@ -336,6 +336,8 @@
  "layoutLyrics": "Capa + letra",
  "layoutMinimal": "Minimalista",
  "layoutVinyl": "Vinil",
+ "vinylScratch": "Girar o disco para procurar",
+ "vinylScratchHint": "Gire a capa com o dedo, como um vinil, para adiantar e voltar a música. Ela emudece enquanto você procura e volta a tocar ao soltar.",
  "backgroundBlur": "Fundo desfocado da capa",
  "layout": "Layout",
  "sidebar": "Barra lateral",

@@ -1603,6 +1603,18 @@ abstract class AppLocalizations {
   /// **'Vinil'**
   String get layoutVinyl;
 
+  /// No description provided for @vinylScratch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Girar o disco para procurar'**
+  String get vinylScratch;
+
+  /// No description provided for @vinylScratchHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gire a capa com o dedo, como um vinil, para adiantar e voltar a música. Ela emudece enquanto você procura e volta a tocar ao soltar.'**
+  String get vinylScratchHint;
+
   /// No description provided for @backgroundBlur.
   ///
   /// In pt, this message translates to:

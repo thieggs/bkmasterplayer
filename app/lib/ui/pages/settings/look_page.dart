@@ -51,7 +51,9 @@ class LookPage extends ConsumerWidget {
         part('shapes', Icons.rounded_corner, l10n.lookShapes,
             '${l10n.cornerRadius}: ${ui.radius.round()} • ${n.shape(ui.coverShape)} • ${(ui.uiScale * 100).round()}%'),
         part('background', Icons.wallpaper_outlined, l10n.lookBackground, n.background(ui.background)),
-        part('nowplaying', Icons.album_outlined, l10n.nowPlaying, n.layout(ui.nowPlayingLayout)),
+        part('nowplaying', Icons.album_outlined, l10n.nowPlaying,
+            n.layout(ui.nowPlayingLayout) +
+                (ui.nowPlayingLayout == 'vinyl' ? ' • ${ui.vinylScratch ? l10n.vinylScratch : l10n.off}' : '')),
         part('structure', Icons.dashboard_customize_outlined, l10n.lookStructure,
             '${l10n.mobileTabs}: ${ui.mobileTabs.length + 1} • ${l10n.playerStyle}: ${n.player(ui.playerStyle)}'),
         part('motion', Icons.animation_outlined, l10n.lookMotion, '${n.transition(ui.transitions)} • ${n.speed(ui.animations)}'),
@@ -504,6 +506,14 @@ class _NowPlayingPage extends StatelessWidget {
           },
           onChanged: (v) => set((p) => p.copyWith(nowPlayingLayout: v)),
         ),
+        if (ui.nowPlayingLayout == 'vinyl')
+          SwitchListTile(
+            secondary: const Icon(Icons.touch_app_outlined),
+            title: Text(l10n.vinylScratch),
+            subtitle: Text(l10n.vinylScratchHint),
+            value: ui.vinylScratch,
+            onChanged: (v) => set((p) => p.copyWith(vinylScratch: v)),
+          ),
         ListTile(
           leading: const Icon(Icons.blur_on),
           title: Row(children: [Expanded(child: Text(l10n.backgroundBlur)), Text('${(ui.nowPlayingBlur * 100).round()}%')]),

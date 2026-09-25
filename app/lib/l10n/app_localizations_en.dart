@@ -854,6 +854,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get layoutVinyl => 'Vinyl';
 
   @override
+  String get vinylScratch => 'Spin the record to seek';
+
+  @override
+  String get vinylScratchHint =>
+      'Turn the cover with your finger, like a record, to move through the song. It goes quiet while you search and plays again when you let go.';
+
+  @override
   String get backgroundBlur => 'Blurred cover background';
 
   @override

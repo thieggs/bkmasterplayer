@@ -1,0 +1,320 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/format.dart';
+import '../../domain/models.dart';
+import '../../l10n/l10n.dart';
+import '../../player/player_controller.dart';
+import '../widgets/cover_art.dart';
+
+/// Para onde o disco está sendo girado agora (null = ninguém girando). A barra
+/// de progresso segue isto, para o tempo dela bater com o do disco.
+class VinylScrubNotifier extends Notifier<Duration?> {
+  @override
+  Duration? build() => null;
+
+  void set(Duration? at) => state = at;
+}
+
+final vinylScrubProvider = NotifierProvider<VinylScrubNotifier, Duration?>(VinylScrubNotifier.new);
+
+/// Uma volta do disco = a duração dividida por isto (a música inteira em ~6
+/// voltas), com piso e teto: nem lento demais numa faixa curta nem grosso
+/// demais numa longa.
+const _turnsPerSong = 6;
+const _minSecondsPerTurn = 10.0;
+const _maxSecondsPerTurn = 60.0;
+
+/// Quanto o volume cai ao pegar o disco (e volta ao soltar): o "freio" do vinil.
+const _brakeDuration = Duration(milliseconds: 220);
+
+/// Quanto de música anda em uma volta do disco.
+@visibleForTesting
+double vinylSecondsPerTurn(Duration total) {
+  if (total <= Duration.zero) return 30;
+  return (total.inSeconds / _turnsPerSong).clamp(_minSecondsPerTurn, _maxSecondsPerTurn);
+}
+
+/// Onde [turns] voltas a partir de [from] deixam a música, e quantas voltas
+/// isso valeu de verdade: nas pontas o disco trava, como o fim do sulco, e
+/// girar mais não conta (senão o caminho de volta ficaria torto).
+@visibleForTesting
+({Duration at, double turns}) vinylSeek({
+  required Duration from,
+  required Duration total,
+  required double turns,
+  required double secondsPerTurn,
+}) {
+  double turnsTo(Duration at) => (at - from).inMilliseconds / (secondsPerTurn * 1000);
+  final wanted = from + Duration(milliseconds: (turns * secondsPerTurn * 1000).round());
+  if (wanted < Duration.zero) return (at: Duration.zero, turns: turnsTo(Duration.zero));
+  if (total > Duration.zero && wanted > total) return (at: total, turns: turnsTo(total));
+  return (at: wanted, turns: turns);
+}
+
+/// A capa como um disco de vinil, girando enquanto a música toca.
+///
+/// Com [scratch], o disco também é o controle: gire com o dedo para adiantar e
+/// voltar a música. Como num vinil de verdade, ele para debaixo do dedo, a
+/// música emudece enquanto você procura o ponto e volta a tocar ao soltar.
+class VinylDisc extends ConsumerStatefulWidget {
+  const VinylDisc({super.key, required this.size, required this.song, required this.scratch});
+
+  final double size;
+  final Song? song;
+  final bool scratch;
+
+  @override
+  ConsumerState<VinylDisc> createState() => _VinylDiscState();
+}
+
+class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateMixin {
+  late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 12));
+
+  /// 1 = volume normal, 0 = mudo (a rampa ao pegar e soltar o disco).
+  late final AnimationController _brake = AnimationController(vsync: this, value: 1, duration: _brakeDuration);
+
+  /// Voltas dadas com o dedo (somadas às do giro automático).
+  double _turns = 0;
+  double _turnsAtGrab = 0;
+  double? _lastAngle;
+
+  bool _dragging = false;
+  bool _wasPlaying = false;
+  Duration _from = Duration.zero;
+  Duration _to = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _brake.addListener(_applyBrake);
+    _brake.addStatusListener(_onBrake);
+  }
+
+  @override
+  void dispose() {
+    _brake.removeListener(_applyBrake);
+    // Saiu da tela com o disco na mão: devolve o volume e solta a barra.
+    if (_dragging) {
+      ref.read(playerProvider.notifier).fadeVolume(1);
+      ref.read(vinylScrubProvider.notifier).set(null);
+    }
+    _spin.dispose();
+    _brake.dispose();
+    super.dispose();
+  }
+
+  void _applyBrake() => ref.read(playerProvider.notifier).fadeVolume(_brake.value);
+
+  void _onBrake(AnimationStatus s) {
+    // Chegou no mudo com o dedo ainda no disco: pausa de verdade.
+    if (s == AnimationStatus.dismissed && _dragging && _wasPlaying) {
+      ref.read(playerProvider.notifier).pause();
+    }
+  }
+
+  double _angleAt(Offset local) {
+    final c = widget.size / 2;
+    return math.atan2(local.dy - c, local.dx - c);
+  }
+
+  void _onStart(DragStartDetails d) {
+    final p = ref.read(playerProvider);
+    if (p.current == null) return;
+    _dragging = true;
+    _wasPlaying = p.playing;
+    _from = p.position;
+    _to = p.position;
+    _turnsAtGrab = _turns;
+    _lastAngle = _angleAt(d.localPosition);
+    _spin.stop();
+    ref.read(vinylScrubProvider.notifier).set(_to);
+    if (_wasPlaying) _brake.reverse();
+    setState(() {});
+  }
+
+  void _onUpdate(DragUpdateDetails d) {
+    if (!_dragging) return;
+    final a = _angleAt(d.localPosition);
+    final last = _lastAngle;
+    _lastAngle = a;
+    if (last == null) return;
+    var step = a - last;
+    // Menor caminho: passar pelo topo do disco não pode valer uma volta.
+    if (step > math.pi) step -= 2 * math.pi;
+    if (step < -math.pi) step += 2 * math.pi;
+
+    final total = ref.read(playerProvider).duration;
+    final turned = vinylSeek(
+      from: _from,
+      total: total,
+      turns: _turns + step / (2 * math.pi) - _turnsAtGrab,
+      secondsPerTurn: vinylSecondsPerTurn(total),
+    );
+    _to = turned.at;
+    _turns = _turnsAtGrab + turned.turns;
+    ref.read(vinylScrubProvider.notifier).set(_to);
+    setState(() {});
+  }
+
+  void _onEnd(DragEndDetails d) {
+    if (!_dragging) return;
+    _dragging = false;
+    _lastAngle = null;
+    final p = ref.read(playerProvider.notifier);
+    p.seek(_to);
+    if (_wasPlaying) p.play();
+    _brake.forward();
+    ref.read(vinylScrubProvider.notifier).set(null);
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.size;
+    final playing = ref.watch(playerProvider.select((s) => s.playing));
+    // Gira só enquanto toca e ninguém está segurando.
+    if (playing && !_dragging && !_spin.isAnimating) {
+      _spin.repeat();
+    } else if ((!playing || _dragging) && _spin.isAnimating) {
+      _spin.stop();
+    }
+
+    final disc = AnimatedBuilder(
+      animation: _spin,
+      builder: (context, child) => Transform.rotate(angle: (_spin.value + _turns) * 2 * math.pi, child: child),
+      child: Container(
+        width: size,
+        height: size,
+        padding: EdgeInsets.all(size * 0.06),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
+          gradient: RadialGradient(
+            colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900, Colors.black],
+            stops: const [0.3, 0.55, 0.8, 1],
+          ),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(child: CustomPaint(painter: const _Grooves())),
+            CoverArt(coverArtId: widget.song?.coverArt, size: size * 0.88, radius: size),
+            Container(
+              width: size * 0.05,
+              height: size * 0.05,
+              decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final hero = Hero(tag: 'now-cover', child: disc);
+    if (!widget.scratch) return hero;
+
+    return Semantics(
+      label: context.l10n.vinylScratch,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          RawGestureDetector(
+            gestures: {
+              _DiscPan: GestureRecognizerFactoryWithHandlers<_DiscPan>(
+                _DiscPan.new,
+                (r) => r
+                  ..onStart = _onStart
+                  ..onUpdate = _onUpdate
+                  ..onEnd = _onEnd,
+              ),
+            },
+            child: hero,
+          ),
+          if (_dragging)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Align(alignment: const Alignment(0, 0.62), child: _ScrubLabel(from: _from, to: _to)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// O tempo para onde o disco está sendo girado, e o quanto andou.
+class _ScrubLabel extends StatelessWidget {
+  const _ScrubLabel({required this.from, required this.to});
+
+  final Duration from;
+  final Duration to;
+
+  @override
+  Widget build(BuildContext context) {
+    final delta = to - from;
+    final sign = delta.isNegative ? '−' : '+';
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '${formatDuration(to)}   $sign${formatDuration(delta.abs())}',
+        style: theme.textTheme.titleMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+      ),
+    );
+  }
+}
+
+/// Os sulcos do disco: círculos finos e um risco de brilho, para o giro
+/// aparecer mesmo quando a capa é escura.
+class _Grooves extends CustomPainter {
+  const _Grooves();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6
+      ..color = Colors.white.withValues(alpha: 0.05);
+    for (var i = 0; i < 18; i++) {
+      canvas.drawCircle(c, r * (0.50 + i * 0.028), ring);
+    }
+    final shine = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * 0.02
+      ..color = Colors.white.withValues(alpha: 0.10);
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r * 0.96), -0.25, 0.5, false, shine);
+  }
+
+  @override
+  bool shouldRepaint(_Grooves oldDelegate) => false;
+}
+
+/// Ganha a disputa do PageView e da rolagem: arrasto em cima do disco é do
+/// disco. Declara vitória antes deles (metade da folga de toque).
+class _DiscPan extends PanGestureRecognizer {
+  Offset? _down;
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _down = event.position;
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    final down = _down;
+    if (event is PointerMoveEvent && down != null && (event.position - down).distance > kTouchSlop / 2) {
+      resolve(GestureDisposition.accepted);
+    }
+    super.handleEvent(event);
+  }
+}

@@ -12,6 +12,7 @@ import '../../desktop/desktop_integration.dart';
 import '../actions.dart';
 import 'automix_status.dart';
 import 'sleep_timer_button.dart';
+import 'vinyl_disc.dart';
 import '../widgets/cover_art.dart';
 
 /// Barra de progresso com arrasto (só aplica o seek ao soltar) e buffer.
@@ -30,8 +31,10 @@ class _SeekBarState extends ConsumerState<SeekBar> {
   Widget build(BuildContext context) {
     final s = ref.watch(playerProvider.select((s) => (s.position, s.duration, s.buffered)));
     final (pos, dur, buffered) = s;
+    // Girando o disco de vinil: a barra mostra para onde ele está indo.
+    final scrub = ref.watch(vinylScrubProvider);
     final max = dur.inMilliseconds.toDouble().clamp(1.0, double.infinity);
-    final value = (_drag ?? pos.inMilliseconds.toDouble()).clamp(0.0, max);
+    final value = (_drag ?? scrub?.inMilliseconds.toDouble() ?? pos.inMilliseconds.toDouble()).clamp(0.0, max);
     final theme = Theme.of(context);
     final slider = SliderTheme(
       data: SliderTheme.of(

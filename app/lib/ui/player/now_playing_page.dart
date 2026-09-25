@@ -16,6 +16,7 @@ import 'player_bar.dart';
 import 'queue_panel.dart';
 import 'radio_sheet.dart';
 import 'sleep_timer_button.dart';
+import 'vinyl_disc.dart';
 
 class NowPlayingPage extends ConsumerStatefulWidget {
   const NowPlayingPage({super.key, this.showLyrics = false});
@@ -27,15 +28,8 @@ class NowPlayingPage extends ConsumerStatefulWidget {
 
 enum _Side { lyrics, queue }
 
-class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTickerProviderStateMixin {
+class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
   late _Side _side = widget.showLyrics ? _Side.lyrics : _Side.queue;
-  late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 12));
-
-  @override
-  void dispose() {
-    _spin.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,47 +42,9 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
     final ui = ref.watch(uiPrefsProvider);
     final layout = ui.nowPlayingLayout;
     final vinyl = layout == 'vinyl';
-    final playing = ref.watch(playerProvider.select((s) => s.playing));
-    // Vinil gira só enquanto toca.
-    if (vinyl && playing && !_spin.isAnimating) {
-      _spin.repeat();
-    } else if ((!vinyl || !playing) && _spin.isAnimating) {
-      _spin.stop();
-    }
 
     Widget cover(double size) {
-      if (vinyl) {
-        return Hero(
-          tag: 'now-cover',
-          child: RotationTransition(
-            turns: _spin,
-            child: Container(
-              width: size,
-              height: size,
-              padding: EdgeInsets.all(size * 0.06),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
-                gradient: RadialGradient(
-                  colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900, Colors.black],
-                  stops: const [0.3, 0.55, 0.8, 1],
-                ),
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CoverArt(coverArtId: song?.coverArt, size: size * 0.88, radius: size),
-                  Container(
-                    width: size * 0.05,
-                    height: size * 0.05,
-                    decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
+      if (vinyl) return VinylDisc(size: size, song: song, scratch: ui.vinylScratch);
       return Hero(
         tag: 'now-cover',
         child: Material(

@@ -33,6 +33,7 @@ class UiPrefs {
     this.backgroundDim = 0.6,
     this.nowPlayingLayout = 'side',
     this.nowPlayingBlur = 0.6,
+    this.vinylScratch = true,
     this.sidebar = 'auto',
     this.sidebarTabs = defaultSidebarTabs,
     this.mobileTabs = defaultMobileTabs,
@@ -121,6 +122,10 @@ class UiPrefs {
 
   /// Intensidade do fundo desfocado da capa (0 a 1).
   final double nowPlayingBlur;
+
+  /// No layout vinil: girar o disco com o dedo adianta e volta a música.
+  /// Quem quer só a capa redonda de vinil, sem a mecânica, desliga aqui.
+  final bool vinylScratch;
 
   // ---- Estrutura ----
 
@@ -228,6 +233,7 @@ class UiPrefs {
     double? backgroundDim,
     String? nowPlayingLayout,
     double? nowPlayingBlur,
+    bool? vinylScratch,
     String? sidebar,
     List<String>? sidebarTabs,
     List<String>? mobileTabs,
@@ -265,6 +271,7 @@ class UiPrefs {
         backgroundDim: backgroundDim ?? this.backgroundDim,
         nowPlayingLayout: nowPlayingLayout ?? this.nowPlayingLayout,
         nowPlayingBlur: nowPlayingBlur ?? this.nowPlayingBlur,
+        vinylScratch: vinylScratch ?? this.vinylScratch,
         sidebar: sidebar ?? this.sidebar,
         sidebarTabs: sidebarTabs ?? this.sidebarTabs,
         mobileTabs: mobileTabs ?? this.mobileTabs,
@@ -303,6 +310,7 @@ class UiPrefs {
         'backgroundDim': backgroundDim,
         'nowPlayingLayout': nowPlayingLayout,
         'nowPlayingBlur': nowPlayingBlur,
+        'vinylScratch': vinylScratch,
         'sidebar': sidebar,
         'sidebarTabs': sidebarTabs,
         'mobileTabs': mobileTabs,
@@ -387,6 +395,7 @@ class UiPrefs {
       backgroundDim: num_('backgroundDim', d.backgroundDim, 0, 1),
       nowPlayingLayout: one('nowPlayingLayout', d.nowPlayingLayout, const ['side', 'lyrics', 'minimal', 'vinyl']),
       nowPlayingBlur: num_('nowPlayingBlur', d.nowPlayingBlur, 0, 1),
+      vinylScratch: j['vinylScratch'] is bool ? j['vinylScratch'] as bool : d.vinylScratch,
       sidebar: one('sidebar', d.sidebar, const ['auto', 'expanded', 'rail']),
       sidebarTabs: sidebarTabs.isEmpty ? d.sidebarTabs : sidebarTabs,
       mobileTabs: mobileTabs.length < 2 ? d.mobileTabs : mobileTabs,

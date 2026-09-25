@@ -257,6 +257,8 @@
  "layoutLyrics": "Cover + lyrics",
  "layoutMinimal": "Minimal",
  "layoutVinyl": "Vinyl",
+ "vinylScratch": "Spin the record to seek",
+ "vinylScratchHint": "Turn the cover with your finger, like a record, to move through the song. It goes quiet while you search and plays again when you let go.",
  "backgroundBlur": "Blurred cover background",
  "layout": "Layout",
  "sidebar": "Sidebar",

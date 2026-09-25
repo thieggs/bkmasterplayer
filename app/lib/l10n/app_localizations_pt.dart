@@ -853,6 +853,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get layoutVinyl => 'Vinil';
 
   @override
+  String get vinylScratch => 'Girar o disco para procurar';
+
+  @override
+  String get vinylScratchHint =>
+      'Gire a capa com o dedo, como um vinil, para adiantar e voltar a música. Ela emudece enquanto você procura e volta a tocar ao soltar.';
+
+  @override
   String get backgroundBlur => 'Fundo desfocado da capa';
 
   @override
