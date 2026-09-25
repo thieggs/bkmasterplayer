@@ -662,6 +662,11 @@
    }
   }
  },
+ "jamLeave": "Sair",
+ "jamBarHosting": "Festa aberta · {n} na sala",
+ "@jamBarHosting": {"placeholders": {"n": {"type": "int"}}},
+ "jamBarGuest": "Na Festa de {nome}",
+ "@jamBarGuest": {"placeholders": {"nome": {"type": "String"}}},
  "endJam": "Encerrar",
  "jamPeople": "{count, plural, =0{Ninguém na Festa} =1{1 pessoa na Festa} other{{count} pessoas na Festa}}",
  "@jamPeople": {
@@ -676,6 +681,7 @@
  "upNext": "Próximas",
  "jamAdd": "Adicionar",
  "jamMine": "Minhas",
+ "jamQueueTitle": "Fila da Festa",
  "jamQueueEmpty": "Nada na fila ainda: adicione uma música.",
  "addedBy": "por {name}",
  "@addedBy": {

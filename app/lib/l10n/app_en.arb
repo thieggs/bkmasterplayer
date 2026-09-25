@@ -573,6 +573,11 @@
    }
   }
  },
+ "jamLeave": "Leave",
+ "jamBarHosting": "Party open · {n} in the room",
+ "@jamBarHosting": {"placeholders": {"n": {"type": "int"}}},
+ "jamBarGuest": "In {nome}'s party",
+ "@jamBarGuest": {"placeholders": {"nome": {"type": "String"}}},
  "endJam": "End",
  "jamPeople": "{count, plural, =0{Nobody in the Party} =1{1 person in the Party} other{{count} people in the Party}}",
  "@jamPeople": {
@@ -587,6 +592,7 @@
  "upNext": "Up next",
  "jamAdd": "Add",
  "jamMine": "Mine",
+ "jamQueueTitle": "Party queue",
  "jamQueueEmpty": "Nothing queued yet: add a song.",
  "addedBy": "by {name}",
  "@addedBy": {

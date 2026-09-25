@@ -315,7 +315,7 @@ class _GuestView extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  _HostCover(id: cur['coverArt'] as String?, size: 64),
+                  JamHostCover(id: cur['coverArt'] as String?, size: 64),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -346,15 +346,15 @@ class _GuestView extends ConsumerWidget {
             ],
           ),
           TabBar(tabs: [Tab(text: l10n.upNext), Tab(text: l10n.jamAdd), Tab(text: l10n.jamMine)]),
-          const Expanded(child: TabBarView(children: [_UpNext(), _HostSearch(), _MySongs()])),
+          const Expanded(child: TabBarView(children: [JamUpNext(), _HostSearch(), _MySongs()])),
         ],
       ),
     );
   }
 }
 
-class _HostCover extends ConsumerWidget {
-  const _HostCover({required this.id, this.size = 44});
+class JamHostCover extends ConsumerWidget {
+  const JamHostCover({super.key, required this.id, this.size = 44});
   final String? id;
   final double size;
 
@@ -381,8 +381,10 @@ class _HostCover extends ConsumerWidget {
   }
 }
 
-class _UpNext extends ConsumerWidget {
-  const _UpNext();
+/// Fila do anfitrião. Também aparece no painel de fila do player,
+/// porque o convidado não controla a fila local — quem manda é o dono.
+class JamUpNext extends ConsumerWidget {
+  const JamUpNext({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -395,7 +397,7 @@ class _UpNext extends ConsumerWidget {
         final s = next[i];
         final by = s['by'] as String?;
         return ListTile(
-          leading: _HostCover(id: s['coverArt'] as String?),
+          leading: JamHostCover(id: s['coverArt'] as String?),
           title: Text('${s['title'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(
             [s['artist'] ?? '', if (by != null) l10n.addedBy(by)].where((x) => '$x'.isNotEmpty).join(' • '),
@@ -470,7 +472,7 @@ class _HostSearchState extends ConsumerState<_HostSearch> {
               final s = _results[i];
               final added = _added.contains(s.id);
               return ListTile(
-                leading: _HostCover(id: s.coverArt),
+                leading: JamHostCover(id: s.coverArt),
                 title: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(s.displayArtist, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: Icon(added ? Icons.check : Icons.add),

@@ -2833,6 +2833,24 @@ abstract class AppLocalizations {
   /// **'Aparece como \"{name}\" para quem está perto.'**
   String jamOpenHint(String name);
 
+  /// No description provided for @jamLeave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair'**
+  String get jamLeave;
+
+  /// No description provided for @jamBarHosting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Festa aberta · {n} na sala'**
+  String jamBarHosting(int n);
+
+  /// No description provided for @jamBarGuest.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na Festa de {nome}'**
+  String jamBarGuest(String nome);
+
   /// No description provided for @endJam.
   ///
   /// In pt, this message translates to:
@@ -2874,6 +2892,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Minhas'**
   String get jamMine;
+
+  /// No description provided for @jamQueueTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fila da Festa'**
+  String get jamQueueTitle;
 
   /// No description provided for @jamQueueEmpty.
   ///

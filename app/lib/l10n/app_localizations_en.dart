@@ -1567,6 +1567,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get jamLeave => 'Leave';
+
+  @override
+  String jamBarHosting(int n) {
+    return 'Party open · $n in the room';
+  }
+
+  @override
+  String jamBarGuest(String nome) {
+    return 'In $nome\'s party';
+  }
+
+  @override
   String get endJam => 'End';
 
   @override
@@ -1596,6 +1609,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get jamMine => 'Mine';
+
+  @override
+  String get jamQueueTitle => 'Party queue';
 
   @override
   String get jamQueueEmpty => 'Nothing queued yet: add a song.';

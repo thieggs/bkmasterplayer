@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../connect/devices_sheet.dart';
 import '../../core/providers.dart';
 import '../../domain/models.dart';
+import '../../jam/jam_bar.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
 import '../actions.dart';
@@ -141,6 +142,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> with SingleTick
           );
         },
       ),
+      const JamBar(),
       const SizedBox(height: 12),
       const SizedBox(width: 520, child: SeekBar()),
       const TransportControls(big: true),
