@@ -867,6 +867,25 @@ class AppLocalizationsPt extends AppLocalizations {
       'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Desligado, a música só emudece enquanto você procura.';
 
   @override
+  String get vinylSecondsPerTurn => 'Música por volta do disco';
+
+  @override
+  String get vinylSecondsPerTurnHint =>
+      'Quanto a música anda a cada volta inteira do disco. O padrão, 1,8 s, é a volta de um LP de 33⅓ RPM: girando no ritmo de um disco de verdade, o som sai no tom certo. Mais segundos procuram mais rápido; menos, mais fino.';
+
+  @override
+  String vinylTurnSeconds(double n) {
+    final intl.NumberFormat nNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String nString = nNumberFormat.format(n);
+
+    return '$nString s';
+  }
+
+  @override
   String get vinylSpeedLimit => 'Até onde a agulha aguenta';
 
   @override

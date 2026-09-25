@@ -330,7 +330,14 @@ impl Slot {
 }
 
 /// Quanto do que já tocou fica guardado, para dar para voltar girando o disco.
-const VINYL_MEMORY_SECS: usize = 4;
+/// É o que decide até onde a agulha alcança para trás: passando disso, ela
+/// encosta na parede e cala. Uma volta do disco vale no máximo 4 s de música
+/// (o ajuste no app), então isto cobre três voltas.
+const VINYL_MEMORY_SECS: usize = 12;
+
+/// Teto da memória em frames, para uma placa de taxa alta não pedir uma
+/// montanha de RAM (a 48 kHz isto não pega; a 192 kHz vira 3 s).
+const VINYL_MEMORY_MAX_FRAMES: usize = VINYL_MEMORY_SECS * 48_000;
 
 /// Acima do limite não é mais som de disco, é chiado: a agulha levanta. O
 /// limite é escolhido nos ajustes; a agulha começa a sumir nesta fração dele.
@@ -342,6 +349,10 @@ const VINYL_MIN_SPEED: f32 = 0.05;
 
 /// A velocidade leva este tempo para chegar onde o dedo pediu (degrau estala).
 const VINYL_RAMP_SECS: f32 = 0.015;
+
+/// O ganho da agulha também sobe e desce em rampa: cortar o som de uma vez,
+/// ao encostar na parede da memória ou ao passar do limite, é um clique.
+const VINYL_GAIN_RAMP_SECS: f32 = 0.004;
 
 /// Leitura do deck com velocidade variável, para girar a capa como um vinil.
 ///
@@ -369,6 +380,9 @@ struct Vinyl {
     step: f32,
     /// Acima disto a agulha levanta (infinito = sem limite).
     max: f32,
+    /// Ganho da agulha agora, e o passo da rampa dele.
+    gain: f32,
+    gain_step: f32,
     /// Passagem do anel do deck para a memória.
     tmp: Vec<f32>,
     active: bool,
@@ -377,7 +391,7 @@ struct Vinyl {
 impl Vinyl {
     fn new(rate: u32) -> Self {
         Self {
-            memory: vec![0.0; rate as usize * VINYL_MEMORY_SECS * 2],
+            memory: vec![0.0; (rate as usize * VINYL_MEMORY_SECS).min(VINYL_MEMORY_MAX_FRAMES) * 2],
             filled: 0,
             head: 0,
             pos: 0.0,
@@ -385,6 +399,8 @@ impl Vinyl {
             speed: 1.0,
             step: 1.0 / (rate as f32 * VINYL_RAMP_SECS),
             max: f32::INFINITY,
+            gain: 1.0,
+            gain_step: 1.0 / (rate as f32 * VINYL_GAIN_RAMP_SECS),
             tmp: vec![0.0; BLOCK * 2],
             active: false,
         }
@@ -402,6 +418,7 @@ impl Vinyl {
         self.filled = 0;
         self.speed = 1.0;
         self.target = 1.0;
+        self.gain = 1.0;
     }
 
     /// O mais antigo que a memória ainda guarda.
@@ -451,26 +468,32 @@ impl Vinyl {
         for i in 0..n {
             self.speed += (self.target - self.speed).clamp(-self.step, self.step);
             let need = self.pos as u64 + 1;
-            if self.head <= need && !self.fill_to(slot, need) {
-                // Acabou o que dava para decodificar: a agulha encosta na
-                // beirada e espera ali. Sem isso, um giro muito rápido a
-                // jogaria para um ponto que não existe e ela ficaria presa lá,
-                // muda, mesmo depois de chegar mais áudio.
-                self.pos = self.pos.min(self.head.saturating_sub(1) as f64).max(self.oldest());
-                out[i * 2] = 0.0;
-                out[i * 2 + 1] = 0.0;
-                continue;
+            // Acabou o que dava para decodificar: a agulha encosta na beirada
+            // e espera ali. Sem isso, um giro muito rápido a jogaria para um
+            // ponto que não existe e ela ficaria presa lá mesmo depois de
+            // chegar mais áudio.
+            let dry = self.head <= need && !self.fill_to(slot, need);
+            if dry {
+                self.pos = self.pos.min(self.head.saturating_sub(1) as f64);
             }
             // Puxar do deck joga o mais antigo fora: a agulha não passa disso.
             self.pos = self.pos.max(self.oldest());
+            // Voltando e já no mais antigo que a memória guarda: daqui não dá.
+            // Segurar a mesma amostra daria um zumbido, não som de disco.
+            let wall = self.speed < 0.0 && self.pos <= self.oldest();
+            let want = if dry || wall { 0.0 } else { self.needle() };
+            self.gain += (want - self.gain).clamp(-self.gain_step, self.gain_step);
+
             let whole = self.pos as u64;
             let frac = (self.pos - whole as f64) as f32;
             let a = (whole % cap) as usize * 2;
             let b = ((whole + 1) % cap) as usize * 2;
-            let g = self.needle();
+            let g = self.gain;
             out[i * 2] = (self.memory[a] + (self.memory[b] - self.memory[a]) * frac) * g;
             out[i * 2 + 1] = (self.memory[a + 1] + (self.memory[b + 1] - self.memory[a + 1]) * frac) * g;
-            self.pos = (self.pos + self.speed as f64).max(self.oldest());
+            if !dry {
+                self.pos = (self.pos + self.speed as f64).max(self.oldest());
+            }
         }
         // Com o disco na mão, a posição tocada é onde a agulha está.
         slot.src.shared.consumed.store(self.pos as u64, Ordering::Relaxed);
@@ -1177,6 +1200,12 @@ mod vinyl_tests {
         out
     }
 
+    /// A agulha calou de vez? (o ganho desce em rampa, não de uma vez: o
+    /// silêncio chega alguns frames depois do motivo dele.)
+    fn calou(out: &[f32]) -> bool {
+        out[out.len() - 200..].iter().all(|x| *x == 0.0)
+    }
+
     fn at(v: &Vinyl, slot: &Slot) -> u64 {
         let _ = v;
         slot.src.shared.consumed.load(Ordering::Relaxed)
@@ -1234,11 +1263,11 @@ mod vinyl_tests {
         play(&mut v, &mut slot, 100);
         v.target = 0.0;
         v.speed = 0.0;
-        assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0), "disco parado fez som");
+        assert!(calou(&play(&mut v, &mut slot, 500)), "disco parado fez som");
         v.max = 4.0;
         v.target = v.max;
         v.speed = v.max;
-        assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0), "giro rápido demais fez som");
+        assert!(calou(&play(&mut v, &mut slot, 500)), "giro rápido demais fez som");
     }
 
     #[test]
@@ -1263,7 +1292,7 @@ mod vinyl_tests {
         v.max = 12.0;
         v.target = 12.0;
         v.speed = 12.0;
-        assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0));
+        assert!(calou(&play(&mut v, &mut slot, 500)));
     }
 
     #[test]
@@ -1271,9 +1300,24 @@ mod vinyl_tests {
         let (_p, mut slot) = ramp_slot(10);
         let mut v = Vinyl::new(48000);
         v.grab(0);
-        let out = play(&mut v, &mut slot, 40);
+        let out = play(&mut v, &mut slot, 500);
         assert!(out[0] != 0.0 && out[2] != 0.0);
-        assert!(out[30 * 2..].iter().all(|x| *x == 0.0), "repetiu o que não tinha");
+        assert!(calou(&out), "repetiu o que não tinha");
+    }
+
+    #[test]
+    fn na_parede_da_memoria_a_agulha_cala_em_vez_de_zumbir() {
+        let (_p, mut slot) = ramp_slot(4000);
+        // Memória curta de propósito: 400 frames.
+        let mut v = Vinyl::new(100);
+        v.grab(0);
+        play(&mut v, &mut slot, 1000);
+        v.target = -1.0;
+        v.speed = -1.0;
+        let out = play(&mut v, &mut slot, 2000);
+        assert!(out[0] != 0.0, "devia ter voltado tocando");
+        // Encostou na parede e calou: segurar a mesma amostra seria um zumbido.
+        assert!(calou(&out), "zumbiu na parede da memória");
     }
 
     #[test]

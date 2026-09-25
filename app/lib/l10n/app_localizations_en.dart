@@ -868,6 +868,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'The sound follows the spin, pitch going up and down, and plays backwards when you turn it the other way. Off, the song simply goes quiet while you search.';
 
   @override
+  String get vinylSecondsPerTurn => 'Music per turn of the record';
+
+  @override
+  String get vinylSecondsPerTurnHint =>
+      'How far the song moves on one full turn. The default, 1.8 s, is one turn of a 33⅓ RPM LP: spin it at the pace of a real record and the pitch comes out right. More seconds search faster; fewer, finer.';
+
+  @override
+  String vinylTurnSeconds(double n) {
+    final intl.NumberFormat nNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String nString = nNumberFormat.format(n);
+
+    return '$nString s';
+  }
+
+  @override
   String get vinylSpeedLimit => 'How fast the needle holds on';
 
   @override

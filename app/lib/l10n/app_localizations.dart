@@ -1627,6 +1627,24 @@ abstract class AppLocalizations {
   /// **'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Desligado, a música só emudece enquanto você procura.'**
   String get vinylScratchAudioHint;
 
+  /// No description provided for @vinylSecondsPerTurn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Música por volta do disco'**
+  String get vinylSecondsPerTurn;
+
+  /// No description provided for @vinylSecondsPerTurnHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto a música anda a cada volta inteira do disco. O padrão, 1,8 s, é a volta de um LP de 33⅓ RPM: girando no ritmo de um disco de verdade, o som sai no tom certo. Mais segundos procuram mais rápido; menos, mais fino.'**
+  String get vinylSecondsPerTurnHint;
+
+  /// No description provided for @vinylTurnSeconds.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} s'**
+  String vinylTurnSeconds(double n);
+
   /// No description provided for @vinylSpeedLimit.
   ///
   /// In pt, this message translates to:

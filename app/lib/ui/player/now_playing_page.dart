@@ -51,6 +51,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
           scratch: ui.vinylScratch,
           audio: ui.vinylScratchAudio,
           maxSpeed: ui.vinylMaxSpeed,
+          secondsPerTurn: ui.vinylSecondsPerTurn,
         );
       }
       return Hero(

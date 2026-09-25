@@ -3,26 +3,14 @@ import 'package:player_musica/data/ui_prefs.dart';
 import 'package:player_musica/ui/player/vinyl_disc.dart';
 
 void main() {
-  test('uma volta anda a música inteira em ~6 voltas, com piso e teto', () {
-    expect(vinylSecondsPerTurn(const Duration(minutes: 3)), 30);
-    // Faixa curta: não desce dos 10 s por volta (senão vira um giro sem efeito).
-    expect(vinylSecondsPerTurn(const Duration(seconds: 30)), 10);
-    // Faixa longa (1 h): não passa de 60 s por volta (senão fica grosso demais).
-    expect(vinylSecondsPerTurn(const Duration(hours: 1)), 60);
-    // Sem duração conhecida ainda.
-    expect(vinylSecondsPerTurn(Duration.zero), 30);
-  });
-
-  test('com o som ligado a volta vale menos música, para caber na faixa audível', () {
-    const musica = Duration(minutes: 3);
-    final mudo = vinylSecondsPerTurn(musica);
-    final comSom = vinylSecondsPerTurn(musica, audio: true);
-    expect(comSom, lessThan(mudo));
-    // Uma volta por segundo (giro bem rápido) tem que caber no que o motor
-    // ainda toca com o limite de fábrica; passando disso ele emudece a agulha.
-    expect(comSom, lessThanOrEqualTo(UiPrefs.defaultVinylMaxSpeed * 4));
-    expect(vinylSecondsPerTurn(const Duration(hours: 1), audio: true), 24);
-    expect(vinylSecondsPerTurn(const Duration(seconds: 20), audio: true), 5);
+  test('o padrão é a volta de um LP, e girar nesse ritmo cabe no limite', () {
+    // 33⅓ RPM dá 1,8 s por volta: é o que um disco de verdade anda.
+    expect(UiPrefs.defaultVinylSecondsPerTurn, closeTo(60 / (100 / 3), 0.01));
+    // Girando uma volta por segundo, a agulha vai a 1,8x — dentro do limite
+    // de fábrica, então o som sai em vez de a agulha levantar.
+    expect(UiPrefs.defaultVinylSecondsPerTurn, lessThan(UiPrefs.defaultVinylMaxSpeed));
+    // E mesmo no teto do ajuste ainda cabe.
+    expect(UiPrefs.maxVinylSecondsPerTurn, lessThanOrEqualTo(UiPrefs.defaultVinylMaxSpeed));
   });
 
   test('girar para frente e para trás anda a música na mesma medida', () {

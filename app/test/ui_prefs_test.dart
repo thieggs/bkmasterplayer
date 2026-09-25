@@ -21,7 +21,7 @@ void main() {
     expect(p.mobileTabs, ['home', 'search', 'library']);
     // Só vale no layout vinil, que não é o padrão: nada muda para quem não escolheu.
     expect((p.nowPlayingLayout, p.vinylScratch, p.vinylScratchAudio), ('side', true, true));
-    expect(p.vinylMaxSpeed, 4.0);
+    expect((p.vinylMaxSpeed, p.vinylSecondsPerTurn), (4.0, 1.8));
   });
 
   test('girar o disco: guarda o desligado e ignora lixo', () {
@@ -43,6 +43,13 @@ void main() {
     expect(UiPrefs.fromJson({'vinylMaxSpeed': 'rapido'}).vinylMaxSpeed, 4.0);
     const semLimite = UiPrefs(vinylMaxSpeed: 0);
     expect(UiPrefs.fromJson(semLimite.toJson()).vinylMaxSpeed, 0);
+  });
+
+  test('música por volta do disco fica na faixa do controle', () {
+    expect(UiPrefs.fromJson({'vinylSecondsPerTurn': 0.5}).vinylSecondsPerTurn, 0.5);
+    expect(UiPrefs.fromJson({'vinylSecondsPerTurn': 0}).vinylSecondsPerTurn, UiPrefs.minVinylSecondsPerTurn);
+    expect(UiPrefs.fromJson({'vinylSecondsPerTurn': 90}).vinylSecondsPerTurn, UiPrefs.maxVinylSecondsPerTurn);
+    expect(UiPrefs.fromJson({'vinylSecondsPerTurn': 'devagar'}).vinylSecondsPerTurn, 1.8);
   });
 
   test('migra modo, cor, cor da capa e escala das configurações antigas (e salva)', () async {

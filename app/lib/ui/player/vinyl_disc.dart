@@ -23,35 +23,12 @@ class VinylScrubNotifier extends Notifier<Duration?> {
 
 final vinylScrubProvider = NotifierProvider<VinylScrubNotifier, Duration?>(VinylScrubNotifier.new);
 
-/// Uma volta do disco = a duração dividida por isto, com piso e teto: nem
-/// lento demais numa faixa curta nem grosso demais numa longa.
-///
-/// Com o som ligado a volta vale bem menos música, senão quase todo giro
-/// passaria de [vinylMaxSpeed] e ficaria mudo: o tom só quer dizer alguma
-/// coisa em giro devagar.
-const _turnsPerSong = 6;
-const _minSecondsPerTurn = 10.0;
-const _maxSecondsPerTurn = 60.0;
-const _turnsPerSongAudio = 12;
-const _minSecondsPerTurnAudio = 5.0;
-const _maxSecondsPerTurnAudio = 24.0;
-
 /// Quanto o volume cai ao pegar o disco (e volta ao soltar): o "freio" do
 /// vinil, para quando o som da agulha está desligado.
 const _brakeDuration = Duration(milliseconds: 220);
 
 /// Dedo parado por mais do que isto: o disco está sendo segurado, não girado.
 const _stillAfter = Duration(milliseconds: 40);
-
-/// Quanto de música anda em uma volta do disco.
-@visibleForTesting
-double vinylSecondsPerTurn(Duration total, {bool audio = false}) {
-  if (total <= Duration.zero) return audio ? 12 : 30;
-  final turns = audio ? _turnsPerSongAudio : _turnsPerSong;
-  final min = audio ? _minSecondsPerTurnAudio : _minSecondsPerTurn;
-  final max = audio ? _maxSecondsPerTurnAudio : _maxSecondsPerTurn;
-  return (total.inSeconds / turns).clamp(min, max);
-}
 
 /// Onde [turns] voltas a partir de [from] deixam a música, e quantas voltas
 /// isso valeu de verdade: nas pontas o disco trava, como o fim do sulco, e
@@ -88,6 +65,7 @@ class VinylDisc extends ConsumerStatefulWidget {
     required this.scratch,
     this.audio = false,
     this.maxSpeed = UiPrefs.defaultVinylMaxSpeed,
+    this.secondsPerTurn = UiPrefs.defaultVinylSecondsPerTurn,
   });
 
   final double size;
@@ -97,6 +75,9 @@ class VinylDisc extends ConsumerStatefulWidget {
 
   /// Acima de quantas vezes a velocidade normal a agulha levanta (0 = sem limite).
   final double maxSpeed;
+
+  /// Quanto de música anda numa volta do disco.
+  final double secondsPerTurn;
 
   @override
   ConsumerState<VinylDisc> createState() => _VinylDiscState();
@@ -227,7 +208,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
       from: _from,
       total: total,
       turns: _turns + step / (2 * math.pi) - _turnsAtGrab,
-      secondsPerTurn: vinylSecondsPerTurn(total, audio: _needle),
+      secondsPerTurn: widget.secondsPerTurn,
     );
     _to = turned.at;
     _turns = _turnsAtGrab + turned.turns;

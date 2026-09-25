@@ -523,6 +523,28 @@ class _NowPlayingPage extends StatelessWidget {
             onChanged: ui.vinylScratch ? (v) => set((p) => p.copyWith(vinylScratchAudio: v)) : null,
           ),
         if (ui.nowPlayingLayout == 'vinyl')
+          ListTile(
+            leading: const Icon(Icons.rotate_right),
+            title: Row(children: [
+              Expanded(child: Text(l10n.vinylSecondsPerTurn)),
+              Text(l10n.vinylTurnSeconds(ui.vinylSecondsPerTurn)),
+            ]),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.vinylSecondsPerTurnHint, style: Theme.of(context).textTheme.bodySmall),
+                Slider(
+                  value: ui.vinylSecondsPerTurn,
+                  min: UiPrefs.minVinylSecondsPerTurn,
+                  max: UiPrefs.maxVinylSecondsPerTurn,
+                  divisions: 39,
+                  label: l10n.vinylTurnSeconds(ui.vinylSecondsPerTurn),
+                  onChanged: ui.vinylScratch ? (v) => set((p) => p.copyWith(vinylSecondsPerTurn: v)) : null,
+                ),
+              ],
+            ),
+          ),
+        if (ui.nowPlayingLayout == 'vinyl')
           SwitchListTile(
             secondary: const Icon(Icons.all_inclusive),
             title: Text(l10n.vinylNoLimit),
