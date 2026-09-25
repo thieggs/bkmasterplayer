@@ -12,6 +12,18 @@ void main() {
     expect(vinylSecondsPerTurn(Duration.zero), 30);
   });
 
+  test('com o som ligado a volta vale menos música, para caber na faixa audível', () {
+    const musica = Duration(minutes: 3);
+    final mudo = vinylSecondsPerTurn(musica);
+    final comSom = vinylSecondsPerTurn(musica, audio: true);
+    expect(comSom, lessThan(mudo));
+    // Uma volta por segundo (giro bem rápido) tem que caber no que o motor
+    // ainda toca; passando disso ele emudece a agulha.
+    expect(comSom, lessThanOrEqualTo(vinylMaxSpeed * 4));
+    expect(vinylSecondsPerTurn(const Duration(hours: 1), audio: true), 24);
+    expect(vinylSecondsPerTurn(const Duration(seconds: 20), audio: true), 5);
+  });
+
   test('girar para frente e para trás anda a música na mesma medida', () {
     const from = Duration(minutes: 1);
     const total = Duration(minutes: 3);

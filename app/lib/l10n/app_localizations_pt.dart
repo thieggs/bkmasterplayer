@@ -857,7 +857,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get vinylScratchHint =>
-      'Gire a capa com o dedo, como um vinil, para adiantar e voltar a música. Ela emudece enquanto você procura e volta a tocar ao soltar.';
+      'Gire a capa com o dedo, como um vinil, para adiantar e voltar a música. Ela volta a tocar de onde a agulha ficou ao soltar.';
+
+  @override
+  String get vinylScratchAudio => 'Som do disco girando';
+
+  @override
+  String get vinylScratchAudioHint =>
+      'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Giro rápido demais fica mudo, como uma agulha erguida. Desligado, a música só emudece enquanto você procura.';
 
   @override
   String get backgroundBlur => 'Fundo desfocado da capa';

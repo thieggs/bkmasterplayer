@@ -741,6 +741,12 @@ impl Engine {
         }
     }
 
+    /// Gira o disco de vinil: `speed` é a velocidade da agulha (1 = normal,
+    /// 0 = parado, negativo = para trás). `None` solta o disco.
+    pub fn set_vinyl(&self, speed: Option<f32>) {
+        self.inner.send(MixerCmd::Vinyl(speed));
+    }
+
     pub fn set_notifications(&self, enabled: bool) {
         self.inner.notifications.store(enabled, Ordering::Relaxed);
     }

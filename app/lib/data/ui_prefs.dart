@@ -34,6 +34,7 @@ class UiPrefs {
     this.nowPlayingLayout = 'side',
     this.nowPlayingBlur = 0.6,
     this.vinylScratch = true,
+    this.vinylScratchAudio = true,
     this.sidebar = 'auto',
     this.sidebarTabs = defaultSidebarTabs,
     this.mobileTabs = defaultMobileTabs,
@@ -126,6 +127,10 @@ class UiPrefs {
   /// No layout vinil: girar o disco com o dedo adianta e volta a música.
   /// Quem quer só a capa redonda de vinil, sem a mecânica, desliga aqui.
   final bool vinylScratch;
+
+  /// O som segue o giro (o tom sobe e desce, e volta de trás para frente) em
+  /// vez de a música só emudecer enquanto se procura o ponto.
+  final bool vinylScratchAudio;
 
   // ---- Estrutura ----
 
@@ -234,6 +239,7 @@ class UiPrefs {
     String? nowPlayingLayout,
     double? nowPlayingBlur,
     bool? vinylScratch,
+    bool? vinylScratchAudio,
     String? sidebar,
     List<String>? sidebarTabs,
     List<String>? mobileTabs,
@@ -272,6 +278,7 @@ class UiPrefs {
         nowPlayingLayout: nowPlayingLayout ?? this.nowPlayingLayout,
         nowPlayingBlur: nowPlayingBlur ?? this.nowPlayingBlur,
         vinylScratch: vinylScratch ?? this.vinylScratch,
+        vinylScratchAudio: vinylScratchAudio ?? this.vinylScratchAudio,
         sidebar: sidebar ?? this.sidebar,
         sidebarTabs: sidebarTabs ?? this.sidebarTabs,
         mobileTabs: mobileTabs ?? this.mobileTabs,
@@ -311,6 +318,7 @@ class UiPrefs {
         'nowPlayingLayout': nowPlayingLayout,
         'nowPlayingBlur': nowPlayingBlur,
         'vinylScratch': vinylScratch,
+        'vinylScratchAudio': vinylScratchAudio,
         'sidebar': sidebar,
         'sidebarTabs': sidebarTabs,
         'mobileTabs': mobileTabs,
@@ -396,6 +404,7 @@ class UiPrefs {
       nowPlayingLayout: one('nowPlayingLayout', d.nowPlayingLayout, const ['side', 'lyrics', 'minimal', 'vinyl']),
       nowPlayingBlur: num_('nowPlayingBlur', d.nowPlayingBlur, 0, 1),
       vinylScratch: j['vinylScratch'] is bool ? j['vinylScratch'] as bool : d.vinylScratch,
+      vinylScratchAudio: j['vinylScratchAudio'] is bool ? j['vinylScratchAudio'] as bool : d.vinylScratchAudio,
       sidebar: one('sidebar', d.sidebar, const ['auto', 'expanded', 'rail']),
       sidebarTabs: sidebarTabs.isEmpty ? d.sidebarTabs : sidebarTabs,
       mobileTabs: mobileTabs.length < 2 ? d.mobileTabs : mobileTabs,

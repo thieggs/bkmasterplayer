@@ -155,6 +155,8 @@ pub enum MixerCmd {
     Stop,
     SetVolume(f32),
     SetEq(EqSettings),
+    /// Girar o disco de vinil: velocidade da agulha (`None` = soltou o disco).
+    Vinyl(Option<f32>),
 }
 
 pub enum MixerEvent {
@@ -275,6 +277,14 @@ impl Slot {
 
     /// Lê até `n` frames no `buf` (zera o que faltar). Retorna frames lidos.
     fn pull(&mut self, buf: &mut [f32], n: usize) -> usize {
+        let frames = self.pull_raw(buf, n);
+        self.src.shared.consumed.fetch_add(frames as u64, Ordering::Relaxed);
+        frames
+    }
+
+    /// Igual, sem mexer na posição tocada: com o disco na mão quem manda na
+    /// posição é a agulha do [`Vinyl`], não o que saiu do anel.
+    fn pull_raw(&mut self, buf: &mut [f32], n: usize) -> usize {
         let sh = &self.src.shared;
         if self.skip_lead {
             let lead = sh.lead_in.load(Ordering::Relaxed);
@@ -297,9 +307,143 @@ impl Slot {
         let (got, _) = self.src.ring.pop_partial_slice(&mut buf[..want]);
         let got = got.len();
         buf[got..want].fill(0.0);
-        let frames = got / 2;
-        sh.consumed.fetch_add(frames as u64, Ordering::Relaxed);
-        frames
+        got / 2
+    }
+}
+
+/// Quanto do que já tocou fica guardado, para dar para voltar girando o disco.
+const VINYL_MEMORY_SECS: usize = 4;
+
+/// Acima desta velocidade não é mais som de disco, é chiado: a agulha levanta.
+const VINYL_MAX_SPEED: f32 = 4.0;
+const VINYL_FADE_FROM: f32 = 3.0;
+
+/// Abaixo disto o disco está parado na mão, e disco parado não faz som (a
+/// interpolação seguraria uma amostra só, o que vira um estalo contínuo).
+const VINYL_MIN_SPEED: f32 = 0.05;
+
+/// A velocidade leva este tempo para chegar onde o dedo pediu (degrau estala).
+const VINYL_RAMP_SECS: f32 = 0.015;
+
+/// Leitura do deck com velocidade variável, para girar a capa como um vinil.
+///
+/// A agulha anda num índice **fracionário** e o áudio sai por interpolação
+/// entre dois frames: acelerar sobe o tom, desacelerar desce, e velocidade
+/// negativa toca de trás para frente — o som de um disco de verdade. É por isso
+/// que o time-stretch do AutoMix não serve aqui: ele **segura** o tom, que é
+/// justamente o que tem que se mexer.
+///
+/// O que já saiu do anel do deck fica guardado num anel próprio
+/// ([`VINYL_MEMORY_SECS`]); sem essa memória não haveria como voltar.
+struct Vinyl {
+    /// O que já foi lido do deck (estéreo intercalado), em anel.
+    memory: Vec<f32>,
+    /// Frames válidos na memória.
+    filled: usize,
+    /// Primeiro frame ainda não lido do deck (na contagem do deck).
+    head: u64,
+    /// A agulha, fracionária: é dela que sai o tom.
+    pos: f64,
+    /// Velocidade que o dedo pediu e a que está valendo.
+    target: f32,
+    speed: f32,
+    /// Passo da rampa de velocidade, por frame.
+    step: f32,
+    /// Passagem do anel do deck para a memória.
+    tmp: Vec<f32>,
+    active: bool,
+}
+
+impl Vinyl {
+    fn new(rate: u32) -> Self {
+        Self {
+            memory: vec![0.0; rate as usize * VINYL_MEMORY_SECS * 2],
+            filled: 0,
+            head: 0,
+            pos: 0.0,
+            target: 1.0,
+            speed: 1.0,
+            step: 1.0 / (rate as f32 * VINYL_RAMP_SECS),
+            tmp: vec![0.0; BLOCK * 2],
+            active: false,
+        }
+    }
+
+    fn frames(&self) -> usize {
+        self.memory.len() / 2
+    }
+
+    /// Pega o disco no ponto em que a faixa está agora.
+    fn grab(&mut self, at: u64) {
+        self.active = true;
+        self.head = at;
+        self.pos = at as f64;
+        self.filled = 0;
+        self.speed = 1.0;
+        self.target = 1.0;
+    }
+
+    /// O mais antigo que a memória ainda guarda.
+    fn oldest(&self) -> f64 {
+        self.head.saturating_sub(self.filled as u64) as f64
+    }
+
+    /// Ganho da agulha: some quando o disco está parado na mão ou girando
+    /// rápido demais para o som querer dizer alguma coisa.
+    fn needle(&self) -> f32 {
+        let s = self.speed.abs();
+        let slow = (s / VINYL_MIN_SPEED).clamp(0.0, 1.0);
+        let fast = ((VINYL_MAX_SPEED - s) / (VINYL_MAX_SPEED - VINYL_FADE_FROM)).clamp(0.0, 1.0);
+        slow * fast
+    }
+
+    /// Puxa do deck até ter o frame `upto` na memória. `false` = o deck secou
+    /// (rede atrasada ou fim da faixa).
+    fn fill_to(&mut self, slot: &mut Slot, upto: u64) -> bool {
+        let cap = self.frames();
+        while self.head <= upto {
+            // Em pedaços, não frame a frame: isto roda dentro do callback de
+            // áudio, e o que sobra vai para a memória de qualquer jeito.
+            let want = ((upto + 1 - self.head) as usize).clamp(BLOCK / 4, BLOCK);
+            let got = slot.pull_raw(&mut self.tmp, want);
+            if got == 0 {
+                return false;
+            }
+            for i in 0..got {
+                let w = ((self.head as usize + i) % cap) * 2;
+                self.memory[w] = self.tmp[i * 2];
+                self.memory[w + 1] = self.tmp[i * 2 + 1];
+            }
+            self.head += got as u64;
+            self.filled = (self.filled + got).min(cap);
+        }
+        true
+    }
+
+    /// Escreve `n` frames girados em `out`.
+    fn render(&mut self, slot: &mut Slot, out: &mut [f32], n: usize) {
+        let cap = self.frames() as u64;
+        for i in 0..n {
+            self.speed += (self.target - self.speed).clamp(-self.step, self.step);
+            let need = self.pos as u64 + 1;
+            if self.head <= need && !self.fill_to(slot, need) {
+                out[i * 2] = 0.0;
+                out[i * 2 + 1] = 0.0;
+                continue;
+            }
+            // Puxar do deck joga o mais antigo fora: a agulha não passa disso.
+            self.pos = self.pos.max(self.oldest());
+            let whole = self.pos as u64;
+            let frac = (self.pos - whole as f64) as f32;
+            let a = (whole % cap) as usize * 2;
+            let b = ((whole + 1) % cap) as usize * 2;
+            let g = self.needle();
+            out[i * 2] = (self.memory[a] + (self.memory[b] - self.memory[a]) * frac) * g;
+            out[i * 2 + 1] = (self.memory[a + 1] + (self.memory[b + 1] - self.memory[a + 1]) * frac) * g;
+            self.pos = (self.pos + self.speed as f64).max(self.oldest());
+        }
+        // Com o disco na mão, a posição tocada é onde a agulha está.
+        slot.src.shared.consumed.store(self.pos as u64, Ordering::Relaxed);
     }
 }
 
@@ -324,6 +468,7 @@ pub struct Mixer {
     volume: Ramp,
     buffering: bool,
     scratch: Vec<f32>,
+    vinyl: Vinyl,
     eq: Equalizer,
 }
 
@@ -347,6 +492,7 @@ impl Mixer {
             volume: Ramp::new(1.0),
             buffering: false,
             scratch: vec![0.0; BLOCK * 2],
+            vinyl: Vinyl::new(rate),
             eq: Equalizer::new(),
         }
     }
@@ -359,6 +505,7 @@ impl Mixer {
         self.rate = rate;
         let s = self.eq.settings;
         self.eq.configure(s, rate);
+        self.vinyl = Vinyl::new(rate);
     }
 
     fn ms(&self, ms: u32) -> u32 {
@@ -398,6 +545,7 @@ impl Mixer {
                         self.trash(n);
                     }
                     self.current = Some(Slot::new(src, true, self.ms(5)));
+                    self.vinyl.active = false;
                     self.paused = false;
                     self.run_gain.set(1.0, self.ms(5));
                     self.shared.current.store(token, Ordering::Relaxed);
@@ -413,6 +561,7 @@ impl Mixer {
                         self.fade_out(cur);
                     }
                     self.current = Some(Slot::new(src, true, self.ms(10)));
+                    self.vinyl.active = false;
                     self.shared.current.store(token, Ordering::Relaxed);
                     self.emit(MixerEvent::Replaced(token));
                 }
@@ -444,6 +593,7 @@ impl Mixer {
                     if let Some((n, _)) = self.next.take() {
                         self.trash(n);
                     }
+                    self.vinyl.active = false;
                     self.paused = false;
                     self.run_gain.set(1.0, 0);
                     self.shared.current.store(0, Ordering::Relaxed);
@@ -458,6 +608,23 @@ impl Mixer {
                     let rate = self.rate;
                     self.eq.configure(s, rate);
                 }
+                MixerCmd::Vinyl(speed) => match speed {
+                    Some(v) => {
+                        if !self.vinyl.active {
+                            // Pega o disco onde a faixa está (só depois do
+                            // pré-eco: antes dele a posição ainda não vale).
+                            match self.current.as_ref() {
+                                Some(cur) if !cur.skip_lead => {
+                                    let at = cur.src.shared.consumed.load(Ordering::Relaxed);
+                                    self.vinyl.grab(at);
+                                }
+                                _ => {}
+                            }
+                        }
+                        self.vinyl.target = v.clamp(-VINYL_MAX_SPEED, VINYL_MAX_SPEED);
+                    }
+                    None => self.vinyl.active = false,
+                },
             }
         }
     }
@@ -551,21 +718,26 @@ impl Mixer {
             if self.paused && self.run_gain.settled_at(0.0) {
                 break;
             }
-            if let Some((until, len)) = self.frames_until_transition() {
-                if until == 0 {
-                    self.start_transition(len);
-                } else if (until as usize) < n {
-                    n = until as usize;
+            // Com o disco na mão a faixa não troca nem acaba: a agulha está
+            // onde o dedo deixou, e o anel do deck pode estar seco sem a
+            // música ter terminado.
+            if !self.vinyl.active {
+                if let Some((until, len)) = self.frames_until_transition() {
+                    if until == 0 {
+                        self.start_transition(len);
+                    } else if (until as usize) < n {
+                        n = until as usize;
+                    }
                 }
-            }
-            // Troca sem sobreposição: o bloco termina exatamente no fim da faixa,
-            // pra próxima começar no frame seguinte (sem zeros no meio).
-            if self.transition.is_none() {
-                if let Some(cur) = self.current.as_ref() {
-                    if cur.src.shared.eof.load(Ordering::Acquire) && !cur.skip_lead {
-                        let left = cur.src.ring.slots() / 2;
-                        if left > 0 && left < n {
-                            n = left;
+                // Troca sem sobreposição: o bloco termina exatamente no fim da
+                // faixa, pra próxima começar no frame seguinte (sem zeros no meio).
+                if self.transition.is_none() {
+                    if let Some(cur) = self.current.as_ref() {
+                        if cur.src.shared.eof.load(Ordering::Acquire) && !cur.skip_lead {
+                            let left = cur.src.ring.slots() / 2;
+                            if left > 0 && left < n {
+                                n = left;
+                            }
                         }
                     }
                 }
@@ -582,9 +754,13 @@ impl Mixer {
         let scratch = &mut self.scratch;
 
         if let Some(cur) = self.current.as_mut() {
-            let got = cur.pull(scratch, n);
-            if got < n && !cur.src.shared.eof.load(Ordering::Acquire) {
-                underrun = true;
+            if self.vinyl.active {
+                self.vinyl.render(cur, scratch, n);
+            } else {
+                let got = cur.pull(scratch, n);
+                if got < n && !cur.src.shared.eof.load(Ordering::Acquire) {
+                    underrun = true;
+                }
             }
             let gain = cur.src.gain;
             match &self.transition {
@@ -677,6 +853,23 @@ impl Mixer {
     }
 
     fn after_block(&mut self) {
+        if !self.vinyl.active {
+            self.advance();
+        }
+        for i in 0..self.fading.len() {
+            let done = self.fading[i]
+                .as_ref()
+                .is_some_and(|s| s.fade.settled_at(0.0) || s.src.exhausted());
+            if done {
+                if let Some(s) = self.fading[i].take() {
+                    self.trash(s);
+                }
+            }
+        }
+    }
+
+    /// Fecha a transição que terminou e passa para a próxima faixa.
+    fn advance(&mut self) {
         let transition_done = self
             .transition
             .as_ref()
@@ -716,17 +909,6 @@ impl Mixer {
                 self.shared.current.store(0, Ordering::Relaxed);
                 self.shared.playing.store(false, Ordering::Relaxed);
                 self.emit(MixerEvent::Stopped);
-            }
-        }
-
-        for i in 0..self.fading.len() {
-            let done = self.fading[i]
-                .as_ref()
-                .is_some_and(|s| s.fade.settled_at(0.0) || s.src.exhausted());
-            if done {
-                if let Some(s) = self.fading[i].take() {
-                    self.trash(s);
-                }
             }
         }
     }
@@ -938,5 +1120,118 @@ mod eq_tests {
         assert!(gain_at(1000.0, s).abs() < 1.0);
         let off = EqSettings { enabled: false, ..s };
         assert!(gain_at(125.0, off).abs() < 0.01);
+    }
+}
+
+#[cfg(test)]
+mod vinyl_tests {
+    use super::*;
+    use crate::engine::deck::DeckShared;
+
+    /// Deck de mentira com uma rampa (o frame `i` vale `i + 1`): como a
+    /// interpolação é linear, dá para conferir a agulha na casa decimal.
+    fn ramp_slot(frames: usize) -> (rtrb::Producer<f32>, Slot) {
+        let (mut p, c) = rtrb::RingBuffer::<f32>::new(frames * 2);
+        for i in 0..frames {
+            p.push(i as f32 + 1.0).unwrap();
+            p.push(-(i as f32 + 1.0)).unwrap();
+        }
+        let shared = DeckShared::new(1, 48000);
+        (p, Slot::new(Box::new(DeckSource { shared, ring: c, gain: 1.0 }), false, 0))
+    }
+
+    fn play(v: &mut Vinyl, slot: &mut Slot, n: usize) -> Vec<f32> {
+        let mut out = vec![0.0; n * 2];
+        v.render(slot, &mut out, n);
+        out
+    }
+
+    fn at(v: &Vinyl, slot: &Slot) -> u64 {
+        let _ = v;
+        slot.src.shared.consumed.load(Ordering::Relaxed)
+    }
+
+    #[test]
+    fn na_velocidade_normal_sai_o_mesmo_audio() {
+        let (_p, mut slot) = ramp_slot(2000);
+        let mut v = Vinyl::new(48000);
+        v.grab(0);
+        let out = play(&mut v, &mut slot, 100);
+        for i in 0..100 {
+            assert!((out[i * 2] - (i as f32 + 1.0)).abs() < 1e-3, "frame {i}: {}", out[i * 2]);
+            assert!((out[i * 2 + 1] + (i as f32 + 1.0)).abs() < 1e-3);
+        }
+        assert_eq!(at(&v, &slot), 100);
+    }
+
+    #[test]
+    fn devagar_estica_o_som_e_anda_menos() {
+        let (_p, mut slot) = ramp_slot(2000);
+        let mut v = Vinyl::new(48000);
+        v.grab(0);
+        // Sem a rampa de velocidade, para medir só o passo da agulha.
+        v.target = 0.5;
+        v.speed = 0.5;
+        let out = play(&mut v, &mut slot, 100);
+        for i in 0..100 {
+            assert!((out[i * 2] - (i as f32 * 0.5 + 1.0)).abs() < 1e-3, "frame {i}: {}", out[i * 2]);
+        }
+        assert_eq!(at(&v, &slot), 50);
+    }
+
+    #[test]
+    fn para_tras_toca_de_tras_para_frente_e_a_posicao_volta() {
+        let (_p, mut slot) = ramp_slot(2000);
+        let mut v = Vinyl::new(48000);
+        v.grab(0);
+        play(&mut v, &mut slot, 200);
+        assert_eq!(at(&v, &slot), 200);
+        v.target = -1.0;
+        v.speed = -1.0;
+        let out = play(&mut v, &mut slot, 50);
+        for i in 0..50 {
+            assert!((out[i * 2] - (201.0 - i as f32)).abs() < 1e-3, "frame {i}: {}", out[i * 2]);
+        }
+        assert_eq!(at(&v, &slot), 150);
+    }
+
+    #[test]
+    fn disco_parado_e_giro_rapido_demais_nao_fazem_som() {
+        let (_p, mut slot) = ramp_slot(2000);
+        let mut v = Vinyl::new(48000);
+        v.grab(0);
+        play(&mut v, &mut slot, 100);
+        v.target = 0.0;
+        v.speed = 0.0;
+        assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0), "disco parado fez som");
+        v.target = VINYL_MAX_SPEED;
+        v.speed = VINYL_MAX_SPEED;
+        assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0), "giro rápido demais fez som");
+    }
+
+    #[test]
+    fn sem_audio_decodificado_a_agulha_cala_em_vez_de_repetir() {
+        let (_p, mut slot) = ramp_slot(10);
+        let mut v = Vinyl::new(48000);
+        v.grab(0);
+        let out = play(&mut v, &mut slot, 40);
+        assert!(out[0] != 0.0 && out[2] != 0.0);
+        assert!(out[30 * 2..].iter().all(|x| *x == 0.0), "repetiu o que não tinha");
+    }
+
+    #[test]
+    fn nao_volta_alem_do_que_a_memoria_guarda() {
+        let (_p, mut slot) = ramp_slot(2000);
+        // Memória curta de propósito: 100 frames.
+        let mut v = Vinyl::new(25);
+        v.grab(0);
+        play(&mut v, &mut slot, 300);
+        v.target = -1.0;
+        v.speed = -1.0;
+        play(&mut v, &mut slot, 1000);
+        // Parou no mais antigo que a memória ainda guardava — não voltou ao
+        // começo da faixa nem foi ler lixo.
+        assert_eq!(at(&v, &slot), v.head - v.frames() as u64);
+        assert!(at(&v, &slot) > 300 - v.frames() as u64);
     }
 }

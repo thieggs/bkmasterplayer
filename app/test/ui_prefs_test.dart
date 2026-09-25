@@ -20,14 +20,16 @@ void main() {
     expect(p.sidebarTabs, ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'generate', 'favorites', 'downloads']);
     expect(p.mobileTabs, ['home', 'search', 'library']);
     // Só vale no layout vinil, que não é o padrão: nada muda para quem não escolheu.
-    expect((p.nowPlayingLayout, p.vinylScratch), ('side', true));
+    expect((p.nowPlayingLayout, p.vinylScratch, p.vinylScratchAudio), ('side', true, true));
   });
 
   test('girar o disco: guarda o desligado e ignora lixo', () {
-    const off = UiPrefs(vinylScratch: false);
+    const off = UiPrefs(vinylScratch: false, vinylScratchAudio: false);
     expect(off.themeJson()['vinylScratch'], false);
-    expect(UiPrefs.fromJson(off.toJson()).vinylScratch, isFalse);
-    expect(UiPrefs.fromJson({'vinylScratch': 'sim'}).vinylScratch, isTrue);
+    expect(off.themeJson()['vinylScratchAudio'], false);
+    final back = UiPrefs.fromJson(off.toJson());
+    expect((back.vinylScratch, back.vinylScratchAudio), (false, false));
+    expect(UiPrefs.fromJson({'vinylScratch': 'sim', 'vinylScratchAudio': 1}).vinylScratch, isTrue);
   });
 
   test('migra modo, cor, cor da capa e escala das configurações antigas (e salva)', () async {

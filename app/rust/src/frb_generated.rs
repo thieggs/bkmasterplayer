@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1779097055;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -67897485;
 
 // Section: executor
 
@@ -1271,6 +1271,39 @@ fn wire__crate__api__engine__player_set_output_device_impl(
                     })(),
                 )
             }
+        },
+    )
+}
+fn wire__crate__api__engine__player_set_vinyl_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "player_set_vinyl",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_speed = <f32>::sse_decode(&mut deserializer);
+            let api_active = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                (move || {
+                    let output_ok = crate::api::engine::player_set_vinyl(api_speed, api_active)?;
+                    std::result::Result::Ok(output_ok)
+                })(),
+            )
         },
     )
 }
@@ -2548,13 +2581,13 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__recommend__recommend_count_impl(port, ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__recommend__recommend_knows_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__recommend__recommend_load_impl(port, ptr, rust_vec_len, data_len),
-        47 => {
+        45 => wire__crate__api__recommend__recommend_count_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__recommend__recommend_knows_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__recommend__recommend_load_impl(port, ptr, rust_vec_len, data_len),
+        48 => {
             wire__crate__api__recommend__recommend_similar_impl(port, ptr, rust_vec_len, data_len)
         }
-        48 => wire__crate__api__recommend__recommend_unload_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__recommend__recommend_unload_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2583,13 +2616,14 @@ fn pde_ffi_dispatcher_sync_impl(
         33 => wire__crate__api__engine__player_set_eq_impl(ptr, rust_vec_len, data_len),
         34 => wire__crate__api__engine__player_set_next_impl(ptr, rust_vec_len, data_len),
         35 => wire__crate__api__engine__player_set_notifications_impl(ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__engine__player_set_volume_impl(ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__engine__player_stop_impl(ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__engine__player_toggle_impl(ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__portal__portal_fingerprint_impl(ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__portal__portal_max_bytes_impl(ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__portal__portal_notice_path_impl(ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__portal__portal_read_impl(ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__engine__player_set_vinyl_impl(ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__engine__player_set_volume_impl(ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__engine__player_stop_impl(ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__engine__player_toggle_impl(ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__portal__portal_fingerprint_impl(ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__portal__portal_max_bytes_impl(ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__portal__portal_notice_path_impl(ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__portal__portal_read_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

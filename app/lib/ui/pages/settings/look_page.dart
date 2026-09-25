@@ -514,6 +514,14 @@ class _NowPlayingPage extends StatelessWidget {
             value: ui.vinylScratch,
             onChanged: (v) => set((p) => p.copyWith(vinylScratch: v)),
           ),
+        if (ui.nowPlayingLayout == 'vinyl')
+          SwitchListTile(
+            secondary: const Icon(Icons.graphic_eq),
+            title: Text(l10n.vinylScratchAudio),
+            subtitle: Text(l10n.vinylScratchAudioHint),
+            value: ui.vinylScratchAudio,
+            onChanged: ui.vinylScratch ? (v) => set((p) => p.copyWith(vinylScratchAudio: v)) : null,
+          ),
         ListTile(
           leading: const Icon(Icons.blur_on),
           title: Row(children: [Expanded(child: Text(l10n.backgroundBlur)), Text('${(ui.nowPlayingBlur * 100).round()}%')]),

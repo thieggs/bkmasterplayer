@@ -858,7 +858,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vinylScratchHint =>
-      'Turn the cover with your finger, like a record, to move through the song. It goes quiet while you search and plays again when you let go.';
+      'Turn the cover with your finger, like a record, to move through the song. It plays again from wherever the needle landed when you let go.';
+
+  @override
+  String get vinylScratchAudio => 'Sound of the spinning record';
+
+  @override
+  String get vinylScratchAudioHint =>
+      'The sound follows the spin, pitch going up and down, and plays backwards when you turn it the other way. Spinning too fast goes silent, like a lifted needle. Off, the song simply goes quiet while you search.';
 
   @override
   String get backgroundBlur => 'Blurred cover background';

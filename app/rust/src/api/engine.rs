@@ -256,6 +256,15 @@ pub fn player_set_volume(volume: f32) -> Result<()> {
     Ok(())
 }
 
+/// Gira o disco de vinil da tela "tocando agora": `speed` é a velocidade da
+/// agulha (1 = normal, 0 = parado, negativo = para trás), e é ela que dá o tom.
+/// `active = false` solta o disco e a reprodução volta ao normal.
+#[frb(sync)]
+pub fn player_set_vinyl(speed: f32, active: bool) -> Result<()> {
+    engine()?.set_vinyl(active.then_some(speed));
+    Ok(())
+}
+
 #[frb(sync)]
 pub fn player_set_notifications(enabled: bool) -> Result<()> {
     engine()?.set_notifications(enabled);

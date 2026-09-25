@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
@@ -21,21 +22,39 @@ class VinylScrubNotifier extends Notifier<Duration?> {
 
 final vinylScrubProvider = NotifierProvider<VinylScrubNotifier, Duration?>(VinylScrubNotifier.new);
 
-/// Uma volta do disco = a duração dividida por isto (a música inteira em ~6
-/// voltas), com piso e teto: nem lento demais numa faixa curta nem grosso
-/// demais numa longa.
+/// Uma volta do disco = a duração dividida por isto, com piso e teto: nem
+/// lento demais numa faixa curta nem grosso demais numa longa.
+///
+/// Com o som ligado a volta vale bem menos música, senão quase todo giro
+/// passaria de [vinylMaxSpeed] e ficaria mudo: o tom só quer dizer alguma
+/// coisa em giro devagar.
 const _turnsPerSong = 6;
 const _minSecondsPerTurn = 10.0;
 const _maxSecondsPerTurn = 60.0;
+const _turnsPerSongAudio = 12;
+const _minSecondsPerTurnAudio = 5.0;
+const _maxSecondsPerTurnAudio = 24.0;
 
-/// Quanto o volume cai ao pegar o disco (e volta ao soltar): o "freio" do vinil.
+/// Quanto o volume cai ao pegar o disco (e volta ao soltar): o "freio" do
+/// vinil, para quando o som da agulha está desligado.
 const _brakeDuration = Duration(milliseconds: 220);
+
+/// Acima disto o motor emudece a agulha (não é mais som de disco, é chiado).
+/// Tem que bater com `VINYL_MAX_SPEED` do mixer.
+@visibleForTesting
+const vinylMaxSpeed = 4.0;
+
+/// Dedo parado por mais do que isto: o disco está sendo segurado, não girado.
+const _stillAfter = Duration(milliseconds: 40);
 
 /// Quanto de música anda em uma volta do disco.
 @visibleForTesting
-double vinylSecondsPerTurn(Duration total) {
-  if (total <= Duration.zero) return 30;
-  return (total.inSeconds / _turnsPerSong).clamp(_minSecondsPerTurn, _maxSecondsPerTurn);
+double vinylSecondsPerTurn(Duration total, {bool audio = false}) {
+  if (total <= Duration.zero) return audio ? 12 : 30;
+  final turns = audio ? _turnsPerSongAudio : _turnsPerSong;
+  final min = audio ? _minSecondsPerTurnAudio : _minSecondsPerTurn;
+  final max = audio ? _maxSecondsPerTurnAudio : _maxSecondsPerTurn;
+  return (total.inSeconds / turns).clamp(min, max);
 }
 
 /// Onde [turns] voltas a partir de [from] deixam a música, e quantas voltas
@@ -58,14 +77,20 @@ double vinylSecondsPerTurn(Duration total) {
 /// A capa como um disco de vinil, girando enquanto a música toca.
 ///
 /// Com [scratch], o disco também é o controle: gire com o dedo para adiantar e
-/// voltar a música. Como num vinil de verdade, ele para debaixo do dedo, a
-/// música emudece enquanto você procura o ponto e volta a tocar ao soltar.
+/// voltar a música. Como num vinil de verdade, ele para debaixo do dedo e volta
+/// a tocar de onde a agulha ficou ao soltar.
+///
+/// Com [audio], a velocidade do dedo vira a velocidade da agulha no motor: o
+/// som acompanha o giro, com o tom subindo e descendo, e toca de trás para
+/// frente quando se gira ao contrário. Sem ele, a música só emudece enquanto
+/// você procura o ponto.
 class VinylDisc extends ConsumerStatefulWidget {
-  const VinylDisc({super.key, required this.size, required this.song, required this.scratch});
+  const VinylDisc({super.key, required this.size, required this.song, required this.scratch, this.audio = false});
 
   final double size;
   final Song? song;
   final bool scratch;
+  final bool audio;
 
   @override
   ConsumerState<VinylDisc> createState() => _VinylDiscState();
@@ -87,6 +112,20 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   Duration _from = Duration.zero;
   Duration _to = Duration.zero;
 
+  /// A agulha está no motor (o som segue o giro) em vez de a música pausar.
+  bool _needle = false;
+
+  /// Velocidade da agulha, suavizada: o dedo treme e o motor estala.
+  double _speed = 0;
+  final _clock = Stopwatch();
+  Duration _movedAt = Duration.zero;
+  Duration _measuredAt = Duration.zero;
+  Duration _measuredTo = Duration.zero;
+
+  /// Manda a velocidade para o motor de tempos em tempos (e deixa o disco
+  /// parar sozinho quando o dedo para, sem esperar o próximo movimento).
+  Ticker? _pump;
+
   @override
   void initState() {
     super.initState();
@@ -94,17 +133,32 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     _brake.addStatusListener(_onBrake);
   }
 
+  /// Som da agulha: só com a opção ligada, tocando e no som daqui (num
+  /// aparelho remoto quem toca é o outro).
+  bool get _audible => widget.audio && _wasPlaying && !ref.read(playerProvider.notifier).isRemote;
+
   @override
   void dispose() {
     _brake.removeListener(_applyBrake);
-    // Saiu da tela com o disco na mão: devolve o volume e solta a barra.
+    // Saiu da tela com o disco na mão: solta tudo o que ficou preso nele.
     if (_dragging) {
-      ref.read(playerProvider.notifier).fadeVolume(1);
+      final p = ref.read(playerProvider.notifier);
+      if (_needle) p.vinyl(null);
+      p.fadeVolume(1);
       ref.read(vinylScrubProvider.notifier).set(null);
     }
+    _pump?.dispose();
     _spin.dispose();
     _brake.dispose();
     super.dispose();
+  }
+
+  /// A cada quadro: manda a velocidade atual para a agulha. Sem movimento novo,
+  /// o disco vai parando na mão, como um de verdade.
+  void _pumpNeedle(Duration _) {
+    if (!_needle) return;
+    if (_clock.elapsed - _movedAt > _stillAfter) _speed *= 0.5;
+    ref.read(playerProvider.notifier).vinyl(_speed.clamp(-vinylMaxSpeed, vinylMaxSpeed));
   }
 
   void _applyBrake() => ref.read(playerProvider.notifier).fadeVolume(_brake.value);
@@ -132,7 +186,22 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     _lastAngle = _angleAt(d.localPosition);
     _spin.stop();
     ref.read(vinylScrubProvider.notifier).set(_to);
-    if (_wasPlaying) _brake.reverse();
+    _needle = _audible;
+    if (_needle) {
+      // O motor assume o disco: a agulha começa parada (o dedo ainda não
+      // girou), e essa descida de 1 para 0 já é o freio do vinil.
+      _speed = 0;
+      _clock
+        ..reset()
+        ..start();
+      _movedAt = Duration.zero;
+      _measuredAt = Duration.zero;
+      _measuredTo = _to;
+      ref.read(playerProvider.notifier).vinyl(0);
+      (_pump ??= createTicker(_pumpNeedle)).start();
+    } else if (_wasPlaying) {
+      _brake.reverse();
+    }
     setState(() {});
   }
 
@@ -152,12 +221,27 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
       from: _from,
       total: total,
       turns: _turns + step / (2 * math.pi) - _turnsAtGrab,
-      secondsPerTurn: vinylSecondsPerTurn(total),
+      secondsPerTurn: vinylSecondsPerTurn(total, audio: _needle),
     );
     _to = turned.at;
     _turns = _turnsAtGrab + turned.turns;
     ref.read(vinylScrubProvider.notifier).set(_to);
+    if (_needle) _measure();
     setState(() {});
+  }
+
+  /// Velocidade da agulha = quanta música andou por segundo de relógio. É a
+  /// derivada do que o dedo fez, suavizada: sem isso cada tranco do dedo vira
+  /// um salto de tom.
+  void _measure() {
+    final now = _clock.elapsed;
+    final dt = (now - _measuredAt).inMicroseconds / 1e6;
+    if (dt <= 0) return;
+    final moved = (_to - _measuredTo).inMicroseconds / 1e6;
+    _speed = _speed * 0.55 + (moved / dt) * 0.45;
+    _measuredAt = now;
+    _measuredTo = _to;
+    _movedAt = now;
   }
 
   void _onEnd(DragEndDetails d) {
@@ -165,7 +249,15 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     _dragging = false;
     _lastAngle = null;
     final p = ref.read(playerProvider.notifier);
+    // O seek já devolve o disco ao motor (troca o deck); soltar depois é só
+    // garantia, para o caso de a faixa ter acabado no meio do giro.
     p.seek(_to);
+    if (_needle) {
+      _pump?.stop();
+      _clock.stop();
+      p.vinyl(null);
+      _needle = false;
+    }
     if (_wasPlaying) p.play();
     _brake.forward();
     ref.read(vinylScrubProvider.notifier).set(null);

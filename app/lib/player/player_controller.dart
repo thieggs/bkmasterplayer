@@ -597,6 +597,15 @@ class PlayerController extends Notifier<PlayerState> {
 
   void seekBy(Duration delta) => seek(state.position + delta < Duration.zero ? Duration.zero : state.position + delta);
 
+  /// Gira o disco de vinil (tela tocando agora): [speed] é a velocidade da
+  /// agulha — 1 é o normal, 0 é o disco parado na mão e negativo toca de trás
+  /// para frente. `null` solta o disco. Num aparelho remoto não há o que girar
+  /// daqui: o som sai lá.
+  void vinyl(double? speed) {
+    if (_remote != null) return;
+    engine.playerSetVinyl(speed: speed ?? 1.0, active: speed != null);
+  }
+
   void setVolume(double v) {
     final vol = v.clamp(0.0, 1.0);
     if (_fwd('vol', {'v': vol})) {

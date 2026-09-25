@@ -1612,8 +1612,20 @@ abstract class AppLocalizations {
   /// No description provided for @vinylScratchHint.
   ///
   /// In pt, this message translates to:
-  /// **'Gire a capa com o dedo, como um vinil, para adiantar e voltar a música. Ela emudece enquanto você procura e volta a tocar ao soltar.'**
+  /// **'Gire a capa com o dedo, como um vinil, para adiantar e voltar a música. Ela volta a tocar de onde a agulha ficou ao soltar.'**
   String get vinylScratchHint;
+
+  /// No description provided for @vinylScratchAudio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Som do disco girando'**
+  String get vinylScratchAudio;
+
+  /// No description provided for @vinylScratchAudioHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Giro rápido demais fica mudo, como uma agulha erguida. Desligado, a música só emudece enquanto você procura.'**
+  String get vinylScratchAudioHint;
 
   /// No description provided for @backgroundBlur.
   ///
