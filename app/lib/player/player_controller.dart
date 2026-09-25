@@ -599,12 +599,15 @@ class PlayerController extends Notifier<PlayerState> {
 
   /// Gira o disco de vinil (tela tocando agora): [speed] é a velocidade da
   /// agulha — 1 é o normal, 0 é o disco parado na mão e negativo toca de trás
-  /// para frente. Acima de [maxSpeed] a agulha levanta (0 = sem limite).
-  /// `null` solta o disco. Num aparelho remoto não há o que girar daqui: o som
-  /// sai lá.
-  void vinyl(double? speed, {double maxSpeed = 0}) {
+  /// para frente. Acima de [maxSpeed] a agulha levanta (0 = sem limite), e
+  /// [memorySeconds] é quanto da música tem que dar para voltar girando (0 = a
+  /// faixa inteira). `null` solta o disco. Num aparelho remoto não há o que
+  /// girar daqui: o som sai lá.
+  void vinyl(double? speed, {double maxSpeed = 0, double memorySeconds = 0}) {
     if (_remote != null) return;
-    engine.playerSetVinyl(speed: speed ?? 1.0, maxSpeed: maxSpeed, active: speed != null);
+    // Zero quer dizer a faixa inteira; o motor corta no teto de RAM dele.
+    final secs = memorySeconds > 0 ? memorySeconds : state.duration.inSeconds.toDouble();
+    engine.playerSetVinyl(speed: speed ?? 1.0, maxSpeed: maxSpeed, memorySecs: secs, active: speed != null);
   }
 
   void setVolume(double v) {

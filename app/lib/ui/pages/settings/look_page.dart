@@ -522,6 +522,20 @@ class _NowPlayingPage extends StatelessWidget {
             value: ui.vinylScratchAudio,
             onChanged: ui.vinylScratch ? (v) => set((p) => p.copyWith(vinylScratchAudio: v)) : null,
           ),
+        // Só aparece com o som ligado: sem ele não há o que guardar.
+        if (ui.nowPlayingLayout == 'vinyl' && ui.vinylScratch && ui.vinylScratchAudio)
+          ChoiceTile<double>(
+            title: l10n.vinylMemory,
+            icon: Icons.history,
+            value: ui.vinylMemory,
+            options: {
+              0.0: l10n.vinylMemoryWholeSong,
+              12.0: l10n.vinylTurnSeconds(12),
+              60.0: l10n.minutesShort(1),
+              180.0: l10n.minutesShort(3),
+            },
+            onChanged: (v) => set((p) => p.copyWith(vinylMemory: v)),
+          ),
         if (ui.nowPlayingLayout == 'vinyl')
           ListTile(
             leading: const Icon(Icons.rotate_right),

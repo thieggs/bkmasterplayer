@@ -66,6 +66,7 @@ class VinylDisc extends ConsumerStatefulWidget {
     this.audio = false,
     this.maxSpeed = UiPrefs.defaultVinylMaxSpeed,
     this.secondsPerTurn = UiPrefs.defaultVinylSecondsPerTurn,
+    this.memorySeconds = 0,
   });
 
   final double size;
@@ -78,6 +79,9 @@ class VinylDisc extends ConsumerStatefulWidget {
 
   /// Quanto de música anda numa volta do disco.
   final double secondsPerTurn;
+
+  /// Quanto da música dá para voltar girando (0 = a faixa inteira).
+  final double memorySeconds;
 
   @override
   ConsumerState<VinylDisc> createState() => _VinylDiscState();
@@ -145,7 +149,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   void _pumpNeedle(Duration _) {
     if (!_needle) return;
     if (_clock.elapsed - _movedAt > _stillAfter) _speed *= 0.5;
-    ref.read(playerProvider.notifier).vinyl(_speed, maxSpeed: widget.maxSpeed);
+    ref.read(playerProvider.notifier).vinyl(_speed, maxSpeed: widget.maxSpeed, memorySeconds: widget.memorySeconds);
   }
 
   void _applyBrake() => ref.read(playerProvider.notifier).fadeVolume(_brake.value);
@@ -184,7 +188,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
       _movedAt = Duration.zero;
       _measuredAt = Duration.zero;
       _measuredTo = _to;
-      ref.read(playerProvider.notifier).vinyl(0, maxSpeed: widget.maxSpeed);
+      ref.read(playerProvider.notifier).vinyl(0, maxSpeed: widget.maxSpeed, memorySeconds: widget.memorySeconds);
       (_pump ??= createTicker(_pumpNeedle)).start();
     } else if (_wasPlaying) {
       _brake.reverse();

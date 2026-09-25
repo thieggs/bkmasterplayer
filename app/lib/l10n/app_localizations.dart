@@ -1645,6 +1645,24 @@ abstract class AppLocalizations {
   /// **'{n} s'**
   String vinylTurnSeconds(double n);
 
+  /// No description provided for @vinylMemory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto dá para voltar girando'**
+  String get vinylMemory;
+
+  /// No description provided for @vinylMemoryWholeSong.
+  ///
+  /// In pt, this message translates to:
+  /// **'A música inteira'**
+  String get vinylMemoryWholeSong;
+
+  /// No description provided for @minutesShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n} min'**
+  String minutesShort(int n);
+
   /// No description provided for @vinylSpeedLimit.
   ///
   /// In pt, this message translates to:

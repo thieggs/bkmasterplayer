@@ -37,6 +37,7 @@ class UiPrefs {
     this.vinylScratchAudio = true,
     this.vinylMaxSpeed = defaultVinylMaxSpeed,
     this.vinylSecondsPerTurn = defaultVinylSecondsPerTurn,
+    this.vinylMemory = 0,
     this.sidebar = 'auto',
     this.sidebarTabs = defaultSidebarTabs,
     this.mobileTabs = defaultMobileTabs,
@@ -142,6 +143,11 @@ class UiPrefs {
   /// 33⅓ RPM, então girar no ritmo de um disco de verdade sai no tom certo.
   final double vinylSecondsPerTurn;
 
+  /// Quantos segundos de música dá para voltar girando o disco. Zero = a
+  /// música inteira (até onde o teto de RAM do motor deixa). Guardar custa
+  /// memória: a 48 kHz, cada minuto são uns 11 MB.
+  final double vinylMemory;
+
   // ---- Estrutura ----
 
   /// auto | expanded | rail
@@ -205,6 +211,10 @@ class UiPrefs {
 
   /// Segundos de música por volta do disco: o padrão é a volta de um LP de
   /// 33⅓ RPM (1,8 s), a mesma de um disco de verdade.
+  /// Opções de "quanto dá para voltar girando", em segundos (0 = a música
+  /// inteira).
+  static const vinylMemoryChoices = [0.0, 12.0, 60.0, 180.0];
+
   static const defaultVinylSecondsPerTurn = 1.8;
   static const minVinylSecondsPerTurn = 0.1;
   static const maxVinylSecondsPerTurn = 4.0;
@@ -264,6 +274,7 @@ class UiPrefs {
     bool? vinylScratchAudio,
     double? vinylMaxSpeed,
     double? vinylSecondsPerTurn,
+    double? vinylMemory,
     String? sidebar,
     List<String>? sidebarTabs,
     List<String>? mobileTabs,
@@ -305,6 +316,7 @@ class UiPrefs {
         vinylScratchAudio: vinylScratchAudio ?? this.vinylScratchAudio,
         vinylMaxSpeed: vinylMaxSpeed ?? this.vinylMaxSpeed,
         vinylSecondsPerTurn: vinylSecondsPerTurn ?? this.vinylSecondsPerTurn,
+        vinylMemory: vinylMemory ?? this.vinylMemory,
         sidebar: sidebar ?? this.sidebar,
         sidebarTabs: sidebarTabs ?? this.sidebarTabs,
         mobileTabs: mobileTabs ?? this.mobileTabs,
@@ -347,6 +359,7 @@ class UiPrefs {
         'vinylScratchAudio': vinylScratchAudio,
         'vinylMaxSpeed': vinylMaxSpeed,
         'vinylSecondsPerTurn': vinylSecondsPerTurn,
+        'vinylMemory': vinylMemory,
         'sidebar': sidebar,
         'sidebarTabs': sidebarTabs,
         'mobileTabs': mobileTabs,
@@ -447,6 +460,7 @@ class UiPrefs {
       vinylScratchAudio: j['vinylScratchAudio'] is bool ? j['vinylScratchAudio'] as bool : d.vinylScratchAudio,
       vinylMaxSpeed: vinylSpeed(),
       vinylSecondsPerTurn: num_('vinylSecondsPerTurn', d.vinylSecondsPerTurn, minVinylSecondsPerTurn, maxVinylSecondsPerTurn),
+      vinylMemory: num_('vinylMemory', d.vinylMemory, 0, 600),
       sidebar: one('sidebar', d.sidebar, const ['auto', 'expanded', 'rail']),
       sidebarTabs: sidebarTabs.isEmpty ? d.sidebarTabs : sidebarTabs,
       mobileTabs: mobileTabs.length < 2 ? d.mobileTabs : mobileTabs,

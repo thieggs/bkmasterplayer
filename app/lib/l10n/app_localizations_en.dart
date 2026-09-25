@@ -887,6 +887,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get vinylMemory => 'How far back the spin can go';
+
+  @override
+  String get vinylMemoryWholeSong => 'The whole song';
+
+  @override
+  String minutesShort(int n) {
+    return '$n min';
+  }
+
+  @override
   String get vinylSpeedLimit => 'How fast the needle holds on';
 
   @override

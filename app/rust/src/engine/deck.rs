@@ -157,6 +157,14 @@ impl DeckShared {
         self.start_frame.load(Ordering::Relaxed) + self.played_to_native(consumed.saturating_sub(lead))
     }
 
+    /// Inverso de [`native_position`]: quanto o deck precisa ter consumido
+    /// para a faixa estar neste ponto.
+    pub fn consumed_for(&self, native: u64) -> u64 {
+        let lead = self.lead_in.load(Ordering::Relaxed);
+        let start = self.start_frame.load(Ordering::Relaxed);
+        lead + self.native_to_played(native.saturating_sub(start))
+    }
+
     /// Posição de reprodução em ms (linha do tempo original da faixa).
     pub fn position_ms(&self) -> u64 {
         self.native_position() * 1000 / self.device_rate as u64

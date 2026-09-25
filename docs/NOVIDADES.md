@@ -3,6 +3,25 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.2.0
+
+### Girar o disco: dá para voltar a música inteira
+
+- **A memória do disco agora tem o tamanho da faixa**, e não 12 s fixos: do fim
+  da música dá para voltar girando até o começo. Ela é guardada em 16 bits
+  (metade da RAM, sem diferença audível para scratch) e tem teto de 64 MB, que
+  a 48 kHz dá quase 6 minutos. Em **Personalizar → Tocando agora** dá para
+  limitar (a música inteira, 3 min, 1 min ou 12 s) para quem quer poupar
+  memória.
+- **Soltar e pegar o disco de novo não joga a memória fora.** Soltar dá um
+  seek, o seek troca o deck, e a memória ia junto — na prática só dava para
+  voltar o que tinha tocado desde o último gesto. Agora ela é indexada pelo
+  tempo da **música**, então atravessa os seeks; só é esquecida quando a música
+  muda ou se pula para outra parte dela.
+- **A memória enche mesmo sem ninguém no disco.** Antes ela só era preenchida
+  durante o gesto, então pegar e voltar na hora não tocava nada: só dava som se
+  você adiantasse primeiro.
+
 ## v1.1.0
 
 ### Girar o disco de vinil

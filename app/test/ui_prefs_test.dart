@@ -22,6 +22,8 @@ void main() {
     // Só vale no layout vinil, que não é o padrão: nada muda para quem não escolheu.
     expect((p.nowPlayingLayout, p.vinylScratch, p.vinylScratchAudio), ('side', true, true));
     expect((p.vinylMaxSpeed, p.vinylSecondsPerTurn), (4.0, 1.8));
+    // 0 = a música inteira: voltar girando alcança do fim ao começo.
+    expect(p.vinylMemory, 0);
   });
 
   test('girar o disco: guarda o desligado e ignora lixo', () {
@@ -43,6 +45,13 @@ void main() {
     expect(UiPrefs.fromJson({'vinylMaxSpeed': 'rapido'}).vinylMaxSpeed, 4.0);
     const semLimite = UiPrefs(vinylMaxSpeed: 0);
     expect(UiPrefs.fromJson(semLimite.toJson()).vinylMaxSpeed, 0);
+  });
+
+  test('quanto dá para voltar girando: a música inteira é o padrão', () {
+    expect(UiPrefs.vinylMemoryChoices.first, 0);
+    expect(UiPrefs.fromJson({'vinylMemory': 60}).vinylMemory, 60);
+    expect(UiPrefs.fromJson({'vinylMemory': 9999}).vinylMemory, 600);
+    expect(UiPrefs.fromJson({'vinylMemory': 'tudo'}).vinylMemory, 0);
   });
 
   test('música por volta do disco fica na faixa do controle', () {
