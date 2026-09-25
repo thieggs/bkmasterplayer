@@ -21,7 +21,7 @@ Ready to run — no toolchain, no compiling. Grab it from
 | **Linux** (Debian/Ubuntu) | `.deb` | `sudo apt install ./bkmasterplayer_*.deb` |
 | **Linux** (any) | `.AppImage` | `chmod +x` and run — installs nothing |
 | **Android** | `.apk` | allow "install from unknown sources" |
-| **iPhone** | `.ipa` | unsigned: install through **SideStore** or **AltStore** |
+| **iPhone** | `.ipa` | unsigned — [how to install](docs/IPHONE.md) (Sideloadly or SideStore) |
 
 Want to build it yourself instead? Every command, in order, is in
 [**docs/COMPILAR.md**](docs/COMPILAR.md).
@@ -155,7 +155,7 @@ macOS compila e o iPhone sai por GitHub Actions, sem assinatura.
 **Não precisa compilar:** os
 [releases](https://github.com/thieggs/bkmasterplayer/releases) trazem `.exe`
 (Windows), `.deb` e `.AppImage` (Linux), `.apk` (Android) e `.ipa` (iPhone,
-sem assinatura, para o SideStore). Para compilar mesmo assim, todos os
+sem assinatura — [como instalar](docs/IPHONE.md)). Para compilar mesmo assim, todos os
 comandos em ordem estão em [`docs/COMPILAR.md`](docs/COMPILAR.md).
 
 - Plano, status e roadmap: [`docs/PLANO.md`](docs/PLANO.md)

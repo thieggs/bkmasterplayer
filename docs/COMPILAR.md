@@ -156,9 +156,8 @@ rustup target add aarch64-apple-ios
 **Without a Mac**, let GitHub's macOS machine do it — fork the repository, then
 Actions → **Release** → Run workflow. The `.ipa` comes back as an artifact.
 
-Either way the `.ipa` is **unsigned**. Install it with **SideStore** or
-**AltStore**, which re-sign it with your own Apple ID. With a free Apple ID the
-signature lasts 7 days and SideStore renews it on the device.
+Either way the `.ipa` is **unsigned** — see [IPHONE.md](IPHONE.md) for how to
+install it with Sideloadly or SideStore.
 
 **Connect and Party do not work on iOS.** They find devices over UDP multicast,
 which Apple gates behind an entitlement only paid accounts get.
@@ -316,9 +315,8 @@ rustup target add aarch64-apple-ios
 **Sem Mac**, deixe a máquina macOS do GitHub fazer: faça um fork, depois
 Actions → **Release** → Run workflow. O `.ipa` volta como artefato.
 
-De qualquer jeito o `.ipa` sai **sem assinatura**. Instale pelo **SideStore**
-ou **AltStore**, que reassinam com o seu Apple ID. Com Apple ID gratuito a
-assinatura vale 7 dias e o SideStore renova sozinho no aparelho.
+De qualquer jeito o `.ipa` sai **sem assinatura** — veja
+[IPHONE.md](IPHONE.md) para instalar pelo Sideloadly ou pelo SideStore.
 
 **Connect e Festa não funcionam no iPhone.** Eles acham aparelhos por multicast
 UDP, e a Apple só libera isso para conta paga.
