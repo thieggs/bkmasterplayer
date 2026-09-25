@@ -136,29 +136,27 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { path: baixados }
       - run: ls -lhR baixados
+      # O que mudou nesta versão sai de docs/NOVIDADES.md, da seção com o nome
+      # da tag: assim a descrição do release e o histórico do repositório são a
+      # mesma coisa, escrita uma vez.
+      - name: Montar a descrição
+        run: |
+          awk -v tag="## ${GITHUB_REF_NAME}" '
+            $0 == tag { dentro = 1; next }
+            dentro && /^## / { exit }
+            dentro { print }
+          ' docs/NOVIDADES.md > corpo.md
+          if [ ! -s corpo.md ]; then
+            echo "docs/NOVIDADES.md não tem seção para ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+          cat .github/rodape-release.md >> corpo.md
       - uses: softprops/action-gh-release@v2
         with:
           files: baixados/*/*
           generate_release_notes: true
-          body: |
-            ## Para usar, sem compilar
-
-            | sistema | arquivo | como |
-            |---|---|---|
-            | **Windows** | `.exe` | abre e segue o instalador |
-            | **Linux (Debian/Ubuntu)** | `.deb` | `sudo apt install ./bkmasterplayer_*.deb` |
-            | **Linux (qualquer)** | `.AppImage` | `chmod +x` e abre — não instala nada |
-            | **Android** | `.apk` | libere "instalar de fontes desconhecidas" |
-            | **iPhone** | `.ipa` | sem assinatura — veja [como instalar](docs/IPHONE.md) |
-
-            O `.ipa` não é assinado: o **Sideloadly** (cabo, mais rápido de
-            começar) ou o **SideStore** (renova sozinho no celular) assinam com
-            o seu Apple ID na hora de instalar — o passo a passo dos dois está
-            em [docs/IPHONE.md](docs/IPHONE.md). **Connect e Festa não
-            funcionam no iPhone**: dependem de multicast, e a Apple só libera
-            isso para conta paga.
-
-            Quem prefere compilar: [COMPILAR.md](docs/COMPILAR.md).
+          body_path: corpo.md

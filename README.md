@@ -24,7 +24,8 @@ Ready to run — no toolchain, no compiling. Grab it from
 | **iPhone** | `.ipa` | unsigned — [how to install](docs/IPHONE.md) (Sideloadly or SideStore) |
 
 Want to build it yourself instead? Every command, in order, is in
-[**docs/COMPILAR.md**](docs/COMPILAR.md).
+[**docs/COMPILAR.md**](docs/COMPILAR.md). What changed in each version is in
+[**docs/NOVIDADES.md**](docs/NOVIDADES.md).
 
 ---
 
