@@ -10,6 +10,24 @@ beat-matches the transition, stretching the tempo without touching the pitch.
 
 ---
 
+## Get it
+
+Ready to run — no toolchain, no compiling. Grab it from
+[**Releases**](https://github.com/thieggs/bkmasterplayer/releases):
+
+| | file | how |
+|---|---|---|
+| **Windows** | `.exe` | open it and follow the installer |
+| **Linux** (Debian/Ubuntu) | `.deb` | `sudo apt install ./bkmasterplayer_*.deb` |
+| **Linux** (any) | `.AppImage` | `chmod +x` and run — installs nothing |
+| **Android** | `.apk` | allow "install from unknown sources" |
+| **iPhone** | `.ipa` | unsigned: install through **SideStore** or **AltStore** |
+
+Want to build it yourself instead? Every command, in order, is in
+[**docs/COMPILAR.md**](docs/COMPILAR.md).
+
+---
+
 ## Why this exists
 
 Self-hosted music is a solved problem. Navidrome serves it, dozens of clients
@@ -85,23 +103,18 @@ Three gaps this was built around:
 | **macOS** | builds, `.dmg` script |
 | **iOS** | builds unsigned via GitHub Actions; install through SideStore/AltStore |
 
-## Build and run
+## Build it yourself
 
-Flutter 3.41+, Rust 1.90+, and on Debian/Ubuntu:
+[**docs/COMPILAR.md**](docs/COMPILAR.md) has every command in order, per
+platform, starting from a clean machine — including the traps that cost time
+(the ATL component on Windows, `ld.lld-19` on Debian, the NDK version).
+
+The short version, on Linux:
 
 ```bash
-sudo apt install clang lld-19 cmake ninja-build pkg-config \
-  libgtk-3-dev libasound2-dev libsecret-1-dev libayatana-appindicator3-dev
+cd app && flutter build linux --release && cd ..
+./dev/build_deb.sh        # or ./dev/build_appimage.sh
 ```
-
-```bash
-cd app
-flutter run -d linux                  # development
-flutter build linux --release         # optimised
-../dev/install_linux.sh               # install into the application menu
-```
-
-Android: `./dev/build_apk.sh` · Windows and macOS: see the Portuguese section.
 
 A throwaway test environment — a Navidrome plus synthetic music with a known
 ground truth (exact BPM, key and structure per track) — comes up with
@@ -138,6 +151,12 @@ Player open source para servidores **OpenSubsonic** (Navidrome, Gonic, Ampache�
 com integração ao **AudioMuse-AI**, **AutoMix DJ** (transições sincronizadas por
 BPM, como um DJ) e personalização completa. Linux, Android e Windows prontos;
 macOS compila e o iPhone sai por GitHub Actions, sem assinatura.
+
+**Não precisa compilar:** os
+[releases](https://github.com/thieggs/bkmasterplayer/releases) trazem `.exe`
+(Windows), `.deb` e `.AppImage` (Linux), `.apk` (Android) e `.ipa` (iPhone,
+sem assinatura, para o SideStore). Para compilar mesmo assim, todos os
+comandos em ordem estão em [`docs/COMPILAR.md`](docs/COMPILAR.md).
 
 - Plano, status e roadmap: [`docs/PLANO.md`](docs/PLANO.md)
 - App (Flutter): [`app/`](app/) · Motor de áudio (Rust): [`app/rust/`](app/rust/)
