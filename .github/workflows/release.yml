@@ -1,0 +1,159 @@
+# Publica um release com os programas já compilados, para quem só quer usar.
+#
+# Dispara ao empurrar uma tag de versão:   git tag v1.0.0 && git push origin v1.0.0
+# (ou pela aba Actions, à mão, para testar sem criar release.)
+#
+# Cada sistema compila na máquina dele — o Flutter não faz cruzado:
+#   Linux    .deb e .AppImage
+#   Windows  .exe (instalador Inno Setup)
+#   Android  .apk (arm64)
+#   iPhone   .ipa sem assinatura (para SideStore/AltStore)
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.41.6'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bibliotecas do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld cmake ninja-build pkg-config \
+            libgtk-3-dev libasound2-dev libsecret-1-dev libayatana-appindicator3-dev
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.41.6', channel: stable, cache: true }
+      - run: rustup update stable
+      - working-directory: app
+        run: flutter build linux --release
+      - name: Empacotar
+        run: |
+          ./dev/build_deb.sh
+          ./dev/build_appimage.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.41.6', channel: stable, cache: true }
+      - name: Rust para Android
+        run: |
+          rustup update stable
+          rustup target add aarch64-linux-android
+      - name: NDK
+        run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.2.13676358"
+      # Sem os segredos o APK sai assinado com a chave de depuração: instala,
+      # mas não atualiza por cima de um instalado com a chave de verdade.
+      - name: Chave de assinatura (se houver)
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        if: env.KEYSTORE != ''
+        run: |
+          echo "$KEYSTORE" | base64 -d > app/android/release.jks
+          cat > app/android/key.properties <<PROPS
+          storeFile=release.jks
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          PROPS
+      - run: ./dev/build_apk.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: dist/*.apk }
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.41.6', channel: stable, cache: true }
+      - run: rustup update stable
+      # O signalsmith-stretch usa bindgen, que precisa da libclang.dll.
+      - name: LLVM e Inno Setup
+        run: |
+          choco install llvm innosetup -y --no-progress
+          echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+      - working-directory: app
+        run: flutter build windows --release
+      - name: Instalador
+        run: |
+          $v = (Select-String -Path app\pubspec.yaml -Pattern '^version:\s*([0-9.]+)').Matches[0].Groups[1].Value
+          & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" "/DVersao=$v" dev\windows\bkmasterplayer.iss
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: dist/*.exe }
+
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.41.6', channel: stable, cache: true }
+      - name: Rust para iPhone
+        run: |
+          rustup update stable
+          rustup target add aarch64-apple-ios
+      - working-directory: app
+        run: flutter build ios --release --no-codesign
+      - name: Empacotar o .ipa
+        working-directory: app
+        run: |
+          mkdir -p ../dist Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          v=$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          zip -qry "../dist/BKmasterplayer-$v.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with: { name: ios, path: dist/*.ipa }
+
+  publicar:
+    needs: [linux, android, windows, ios]
+    runs-on: ubuntu-latest
+    # Só cria release quando veio de uma tag; à mão, fica só nos artefatos.
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: baixados }
+      - run: ls -lhR baixados
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: baixados/*/*
+          generate_release_notes: true
+          body: |
+            ## Para usar, sem compilar
+
+            | sistema | arquivo | como |
+            |---|---|---|
+            | **Windows** | `.exe` | abre e segue o instalador |
+            | **Linux (Debian/Ubuntu)** | `.deb` | `sudo apt install ./bkmasterplayer_*.deb` |
+            | **Linux (qualquer)** | `.AppImage` | `chmod +x` e abre — não instala nada |
+            | **Android** | `.apk` | libere "instalar de fontes desconhecidas" |
+            | **iPhone** | `.ipa` | sem assinatura — veja [como instalar](docs/IPHONE.md) |
+
+            O `.ipa` não é assinado: o **Sideloadly** (cabo, mais rápido de
+            começar) ou o **SideStore** (renova sozinho no celular) assinam com
+            o seu Apple ID na hora de instalar — o passo a passo dos dois está
+            em [docs/IPHONE.md](docs/IPHONE.md). **Connect e Festa não
+            funcionam no iPhone**: dependem de multicast, e a Apple só libera
+            isso para conta paga.
+
+            Quem prefere compilar: [COMPILAR.md](docs/COMPILAR.md).

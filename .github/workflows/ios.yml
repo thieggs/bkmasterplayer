@@ -1,0 +1,76 @@
+# Gera o .ipa do BKmasterplayer sem precisar de Mac.
+#
+# O Flutter exige o Xcode para compilar iOS, e o Xcode só roda em macOS. Este
+# workflow usa a máquina macOS do próprio GitHub: o código sobe, compila lá e
+# o .ipa volta como artefato para baixar.
+#
+# Sai **sem assinatura** — é o que o SideStore/AltStore espera, porque eles
+# reassinam com o seu Apple ID na hora de instalar.
+#
+# Roda só quando pedido (Actions → Compilar para iPhone → Run workflow):
+# minuto de macOS conta 10x no plano grátis, então nada de rodar a cada push.
+name: Compilar para iPhone
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # A mesma versão do PC, para não descobrir diferença de versão aqui.
+          flutter-version: '3.41.6'
+          channel: stable
+          cache: true
+
+      - name: Rust para iPhone
+        run: |
+          rustup update stable
+          rustup target add aarch64-apple-ios
+
+      - name: Dependências
+        working-directory: app
+        run: flutter pub get
+
+      - name: Conferir antes de compilar
+        working-directory: app
+        run: |
+          flutter analyze --no-pub
+          flutter test
+
+      - name: Compilar
+        working-directory: app
+        run: flutter build ios --release --no-codesign
+
+      - name: Empacotar o .ipa
+        working-directory: app
+        run: |
+          APP=build/ios/iphoneos/Runner.app
+          test -d "$APP" || { echo "não achei $APP"; exit 1; }
+          mkdir -p ../dist Payload
+          cp -R "$APP" Payload/
+          VER=$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          zip -qry "../dist/BKmasterplayer-$VER.ipa" Payload
+          ls -lh ../dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa
+          path: dist/*.ipa
+          # O artefato é o produto; 90 dias é mais do que o suficiente.
+          retention-days: 90
+
+      # Quando algo quebra na primeira compilação em iOS, o log do Xcode diz
+      # muito mais que a saída do flutter.
+      - name: Log do Xcode (só quando falha)
+        if: failure()
+        run: |
+          find ~/Library/Developer/Xcode/DerivedData -name '*.xcactivitylog' -print 2>/dev/null | tail -3
+          tail -200 app/build/ios/*.log 2>/dev/null || true
