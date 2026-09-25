@@ -1508,6 +1508,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String get jamEnded => 'A Festa acabou.';
 
   @override
+  String get jamCopyAddress => 'Copiar';
+
+  @override
+  String get jamAddressCopied => 'Copiado';
+
+  @override
+  String get jamJoinByAddress => 'Entrar por endereço';
+
+  @override
+  String get jamJoinByAddressHint =>
+      'Quando a Festa não aparece sozinha — no iPhone, ou em Wi-Fi que filtra. Peça o endereço a quem abriu.';
+
+  @override
+  String get jamMyAddress => 'Seu endereço, para quem digitar à mão';
+
+  @override
+  String get jamAddressBad => 'Não entendi esse endereço.';
+
+  @override
   String get jamsNearby => 'Festas por perto';
 
   @override

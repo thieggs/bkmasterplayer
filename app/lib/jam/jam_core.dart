@@ -221,6 +221,21 @@ class _LanLink implements JamLink {
 }
 
 /// Entra numa Jam da rede local.
+/// Lê "192.168.1.10", "192.168.1.10:47802" ou "ws://192.168.1.10:47802".
+///
+/// Devolve null se não der para entender. Sem porta, usa a padrão da Jam.
+LanJamOffer? offerFromText(String texto, {required int portaPadrao}) {
+  var s = texto.trim();
+  if (s.isEmpty) return null;
+  s = s.replaceFirst(RegExp(r'^(ws|wss|http|https)://'), '').split('/').first;
+  final partes = s.split(':');
+  final host = partes.first.trim();
+  if (host.isEmpty) return null;
+  final porta = partes.length > 1 ? int.tryParse(partes[1].trim()) : portaPadrao;
+  if (porta == null || porta < 1 || porta > 65535) return null;
+  return LanJamOffer.byAddress(host, porta);
+}
+
 Future<JamLink> joinLan(LanJamOffer offer, String myId, String myName, String? pass) async {
   final ws = await WebSocket.connect('ws://${offer.host}:${offer.port}/jam').timeout(const Duration(seconds: 6));
   ws.pingInterval = const Duration(seconds: 8);
@@ -907,6 +922,23 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     final all = _passes()..remove(hostId);
     final kept = Map.fromEntries([...all.entries].skip(all.length >= 50 ? all.length - 49 : 0));
     ref.read(prefsProvider).setString(_kPasses, jsonEncode({...kept, hostId: pass}));
+  }
+
+  /// Entrar numa Festa cujo endereço foi digitado.
+  ///
+  /// Devolve false quando o texto não dá para entender. O resto (senha,
+  /// espera pelo dono aceitar) segue igual a entrar pela lista.
+  Future<bool> joinByAddress(String texto) async {
+    final lan = offerFromText(texto, portaPadrao: connectTcpPort);
+    if (lan == null) return false;
+    await join(JamOffer(
+      key: 'wifi:${lan.deviceId}',
+      hostId: lan.deviceId,
+      hostName: lan.name,
+      via: 'wifi',
+      join: (id, name, pass) => joinLan(lan, id, name, pass),
+    ));
+    return true;
   }
 
   Future<void> join(JamOffer offer) async {

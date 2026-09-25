@@ -1,10 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/format.dart';
+import '../connect/connect_service.dart';
 import '../core/providers.dart';
 import '../domain/models.dart';
 import '../l10n/l10n.dart';
@@ -177,6 +179,16 @@ class _OffersView extends ConsumerWidget {
             ),
           ],
         ),
+        // Onde a descoberta não passa — iPhone, Wi-Fi de hotel — ainda dá
+        // para entrar digitando o endereço que o dono mostra na tela dele.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            icon: const Icon(Icons.keyboard, size: 18),
+            label: Text(l10n.jamJoinByAddress),
+            onPressed: () => _perguntarEndereco(context, ref),
+          ),
+        ),
         if (guest.offers.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -226,6 +238,7 @@ class _HostView extends ConsumerWidget {
             trailing: TextButton(onPressed: notifier.stop, child: Text(l10n.endJam)),
           ),
         ),
+        const _MeuEndereco(),
         if (current != null)
           ListTile(
             leading: CoverArt(coverArtId: current.song.coverArt, size: 44),
@@ -566,3 +579,79 @@ class _MySongsState extends ConsumerState<_MySongs> {
 
 /// Abre a Jam (usado pelo menu de aparelhos e pela biblioteca).
 void openJam(BuildContext context) => context.push('/jam');
+
+
+/// Pergunta o endereço da Festa e tenta entrar.
+Future<void> _perguntarEndereco(BuildContext context, WidgetRef ref) async {
+  final l10n = context.l10n;
+  final campo = TextEditingController();
+  final texto = await showDialog<String>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: Text(l10n.jamJoinByAddress),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.jamJoinByAddressHint, style: Theme.of(d).textTheme.bodySmall),
+          const SizedBox(height: 12),
+          TextField(
+            controller: campo,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(hintText: '192.168.1.10', border: OutlineInputBorder()),
+            onSubmitted: (v) => Navigator.pop(d, v),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(d), child: Text(l10n.cancel)),
+        FilledButton(onPressed: () => Navigator.pop(d, campo.text), child: Text(l10n.join)),
+      ],
+    ),
+  );
+  campo.dispose();
+  if (texto == null || !context.mounted) return;
+  final deu = await ref.read(jamGuestProvider.notifier).joinByAddress(texto);
+  if (!deu && context.mounted) showSnack(context, l10n.jamAddressBad);
+}
+
+/// O endereço desta máquina, para quem vai digitar do outro lado.
+class _MeuEndereco extends ConsumerStatefulWidget {
+  const _MeuEndereco();
+
+  @override
+  ConsumerState<_MeuEndereco> createState() => _MeuEnderecoState();
+}
+
+class _MeuEnderecoState extends ConsumerState<_MeuEndereco> {
+  List<String> _enderecos = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    jamAddressesFor(connectTcpPort).then((e) {
+      if (mounted) setState(() => _enderecos = e);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_enderecos.isEmpty) return const SizedBox.shrink();
+    final l10n = context.l10n;
+    final texto = _enderecos.join('   ');
+    return ListTile(
+      leading: const Icon(Icons.keyboard),
+      title: Text(l10n.jamMyAddress),
+      subtitle: Text(texto, style: Theme.of(context).textTheme.bodySmall),
+      trailing: IconButton(
+        tooltip: l10n.jamCopyAddress,
+        icon: const Icon(Icons.copy),
+        onPressed: () async {
+          await Clipboard.setData(ClipboardData(text: _enderecos.first));
+          if (context.mounted) showSnack(context, l10n.jamAddressCopied);
+        },
+      ),
+    );
+  }
+}

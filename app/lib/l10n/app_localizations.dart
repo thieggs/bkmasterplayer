@@ -2731,6 +2731,42 @@ abstract class AppLocalizations {
   /// **'A Festa acabou.'**
   String get jamEnded;
 
+  /// No description provided for @jamCopyAddress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar'**
+  String get jamCopyAddress;
+
+  /// No description provided for @jamAddressCopied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiado'**
+  String get jamAddressCopied;
+
+  /// No description provided for @jamJoinByAddress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar por endereço'**
+  String get jamJoinByAddress;
+
+  /// No description provided for @jamJoinByAddressHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando a Festa não aparece sozinha — no iPhone, ou em Wi-Fi que filtra. Peça o endereço a quem abriu.'**
+  String get jamJoinByAddressHint;
+
+  /// No description provided for @jamMyAddress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu endereço, para quem digitar à mão'**
+  String get jamMyAddress;
+
+  /// No description provided for @jamAddressBad.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não entendi esse endereço.'**
+  String get jamAddressBad;
+
   /// No description provided for @jamsNearby.
   ///
   /// In pt, this message translates to:

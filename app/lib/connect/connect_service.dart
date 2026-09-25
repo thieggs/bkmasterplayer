@@ -144,12 +144,44 @@ abstract class JamLanRoutes {
 /// Jam anunciada por outro aparelho na rede local (de qualquer conta).
 class LanJamOffer {
   const LanJamOffer({required this.deviceId, required this.jamId, required this.name, required this.host, required this.port, required this.seen});
+
+  /// Festa que a pessoa digitou o endereço, em vez de achar sozinha.
+  ///
+  /// Para entrar basta host e porta; o resto do anúncio só serve para mostrar
+  /// na lista. É por isso que dá para entrar em rede onde a descoberta não
+  /// passa — no iPhone, onde a Apple barra o broadcast, e em Wi-Fi de hotel
+  /// ou empresa, que costuma filtrar.
+  factory LanJamOffer.byAddress(String host, int port) => LanJamOffer(
+        deviceId: 'manual:$host:$port',
+        jamId: 'manual',
+        name: host,
+        host: host,
+        port: port,
+        seen: DateTime.now(),
+      );
+
   final String deviceId;
   final String jamId;
   final String name;
   final String host;
   final int port;
   final DateTime seen;
+
+  bool get manual => jamId == 'manual';
+}
+
+/// Endereço que o dono mostra para quem vai digitar à mão: o IP desta máquina
+/// na rede local, com a porta da Jam.
+Future<List<String>> jamAddressesFor(int port) async {
+  final saida = <String>[];
+  try {
+    for (final nic in await NetworkInterface.list(type: InternetAddressType.IPv4, includeLoopback: false)) {
+      for (final a in nic.addresses) {
+        if (!a.isLoopback) saida.add('${a.address}:$port');
+      }
+    }
+  } catch (_) {}
+  return saida;
 }
 
 String deviceIdFor(SharedPreferences prefs) => _deviceId(prefs);

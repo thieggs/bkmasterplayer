@@ -1508,6 +1508,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get jamEnded => 'The Party ended.';
 
   @override
+  String get jamCopyAddress => 'Copy';
+
+  @override
+  String get jamAddressCopied => 'Copied';
+
+  @override
+  String get jamJoinByAddress => 'Join by address';
+
+  @override
+  String get jamJoinByAddressHint =>
+      'For when the party does not show up on its own — on iPhone, or on Wi-Fi that filters. Ask whoever started it for the address.';
+
+  @override
+  String get jamMyAddress => 'Your address, for anyone typing it in';
+
+  @override
+  String get jamAddressBad => 'I could not make sense of that address.';
+
+  @override
   String get jamsNearby => 'Parties nearby';
 
   @override
