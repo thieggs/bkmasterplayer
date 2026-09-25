@@ -21,6 +21,7 @@ void main() {
     expect(p.mobileTabs, ['home', 'search', 'library']);
     // Só vale no layout vinil, que não é o padrão: nada muda para quem não escolheu.
     expect((p.nowPlayingLayout, p.vinylScratch, p.vinylScratchAudio), ('side', true, true));
+    expect(p.vinylMaxSpeed, 4.0);
   });
 
   test('girar o disco: guarda o desligado e ignora lixo', () {
@@ -30,6 +31,18 @@ void main() {
     final back = UiPrefs.fromJson(off.toJson());
     expect((back.vinylScratch, back.vinylScratchAudio), (false, false));
     expect(UiPrefs.fromJson({'vinylScratch': 'sim', 'vinylScratchAudio': 1}).vinylScratch, isTrue);
+  });
+
+  test('limite da agulha: zero é sem limite, o resto cai na faixa', () {
+    // Zero não é um valor da faixa (o mínimo é 2): quer dizer sem limite.
+    expect(UiPrefs.fromJson({'vinylMaxSpeed': 0}).vinylMaxSpeed, 0);
+    expect(UiPrefs.fromJson({'vinylMaxSpeed': 12}).vinylMaxSpeed, 12);
+    expect(UiPrefs.fromJson({'vinylMaxSpeed': 999}).vinylMaxSpeed, UiPrefs.maxVinylMaxSpeed);
+    expect(UiPrefs.fromJson({'vinylMaxSpeed': 0.5}).vinylMaxSpeed, UiPrefs.minVinylMaxSpeed);
+    expect(UiPrefs.fromJson({'vinylMaxSpeed': -3}).vinylMaxSpeed, 0);
+    expect(UiPrefs.fromJson({'vinylMaxSpeed': 'rapido'}).vinylMaxSpeed, 4.0);
+    const semLimite = UiPrefs(vinylMaxSpeed: 0);
+    expect(UiPrefs.fromJson(semLimite.toJson()).vinylMaxSpeed, 0);
   });
 
   test('migra modo, cor, cor da capa e escala das configurações antigas (e salva)', () async {
@@ -60,6 +73,7 @@ void main() {
       'backgroundImage': '../../etc/passwd',
       'radius': 999,
       'uiScale': -3,
+      'nowPlayingBlur': 'muito',
       'variant': 'evil',
       'themeMode': 42,
       'colors': {'primary': 'red', 'bogus': 1, 'text': 0xFFFFFFFF},
@@ -69,6 +83,8 @@ void main() {
       'playerButtonsVersion': 2,
     });
     expect(p.backgroundImage, isNull);
+    // Número escrito como texto cai no padrão em vez de estourar.
+    expect(p.nowPlayingBlur, const UiPrefs().nowPlayingBlur);
     for (final bad in ['..', '.hidden', '/etc/passwd', 'a/b.jpg', r'..\x', 'x' * 200]) {
       expect(UiPrefs.fromJson({'backgroundImage': bad}).backgroundImage, isNull, reason: bad);
     }

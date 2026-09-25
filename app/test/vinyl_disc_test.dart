@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:player_musica/data/ui_prefs.dart';
 import 'package:player_musica/ui/player/vinyl_disc.dart';
 
 void main() {
@@ -18,8 +19,8 @@ void main() {
     final comSom = vinylSecondsPerTurn(musica, audio: true);
     expect(comSom, lessThan(mudo));
     // Uma volta por segundo (giro bem rápido) tem que caber no que o motor
-    // ainda toca; passando disso ele emudece a agulha.
-    expect(comSom, lessThanOrEqualTo(vinylMaxSpeed * 4));
+    // ainda toca com o limite de fábrica; passando disso ele emudece a agulha.
+    expect(comSom, lessThanOrEqualTo(UiPrefs.defaultVinylMaxSpeed * 4));
     expect(vinylSecondsPerTurn(const Duration(hours: 1), audio: true), 24);
     expect(vinylSecondsPerTurn(const Duration(seconds: 20), audio: true), 5);
   });

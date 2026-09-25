@@ -1296,11 +1296,13 @@ fn wire__crate__api__engine__player_set_vinyl_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_speed = <f32>::sse_decode(&mut deserializer);
+            let api_max_speed = <f32>::sse_decode(&mut deserializer);
             let api_active = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                 (move || {
-                    let output_ok = crate::api::engine::player_set_vinyl(api_speed, api_active)?;
+                    let output_ok =
+                        crate::api::engine::player_set_vinyl(api_speed, api_max_speed, api_active)?;
                     std::result::Result::Ok(output_ok)
                 })(),
             )

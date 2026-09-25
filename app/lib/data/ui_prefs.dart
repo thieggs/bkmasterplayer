@@ -35,6 +35,7 @@ class UiPrefs {
     this.nowPlayingBlur = 0.6,
     this.vinylScratch = true,
     this.vinylScratchAudio = true,
+    this.vinylMaxSpeed = defaultVinylMaxSpeed,
     this.sidebar = 'auto',
     this.sidebarTabs = defaultSidebarTabs,
     this.mobileTabs = defaultMobileTabs,
@@ -132,6 +133,10 @@ class UiPrefs {
   /// vez de a música só emudecer enquanto se procura o ponto.
   final bool vinylScratchAudio;
 
+  /// Acima de quantas vezes a velocidade normal a agulha levanta (vira
+  /// chiado). Zero = sem limite, para quem quiser ouvir o giro inteiro.
+  final double vinylMaxSpeed;
+
   // ---- Estrutura ----
 
   /// auto | expanded | rail
@@ -187,6 +192,12 @@ class UiPrefs {
   /// No celular: de 2 a 4 abas além de Ajustes.
   static const maxMobileTabs = 4;
 
+  /// Limite da agulha do vinil: o padrão e a faixa do controle. Zero, fora
+  /// dela, quer dizer sem limite.
+  static const defaultVinylMaxSpeed = 4.0;
+  static const minVinylMaxSpeed = 2.0;
+  static const maxVinylMaxSpeed = 16.0;
+
   /// Família da fonte (null = a do sistema).
   static String? fontFamily(String font) => switch (font) {
         'nunito' => 'Nunito',
@@ -240,6 +251,7 @@ class UiPrefs {
     double? nowPlayingBlur,
     bool? vinylScratch,
     bool? vinylScratchAudio,
+    double? vinylMaxSpeed,
     String? sidebar,
     List<String>? sidebarTabs,
     List<String>? mobileTabs,
@@ -279,6 +291,7 @@ class UiPrefs {
         nowPlayingBlur: nowPlayingBlur ?? this.nowPlayingBlur,
         vinylScratch: vinylScratch ?? this.vinylScratch,
         vinylScratchAudio: vinylScratchAudio ?? this.vinylScratchAudio,
+        vinylMaxSpeed: vinylMaxSpeed ?? this.vinylMaxSpeed,
         sidebar: sidebar ?? this.sidebar,
         sidebarTabs: sidebarTabs ?? this.sidebarTabs,
         mobileTabs: mobileTabs ?? this.mobileTabs,
@@ -319,6 +332,7 @@ class UiPrefs {
         'nowPlayingBlur': nowPlayingBlur,
         'vinylScratch': vinylScratch,
         'vinylScratchAudio': vinylScratchAudio,
+        'vinylMaxSpeed': vinylMaxSpeed,
         'sidebar': sidebar,
         'sidebarTabs': sidebarTabs,
         'mobileTabs': mobileTabs,
@@ -358,7 +372,12 @@ class UiPrefs {
       return v is String && allowed.contains(v) ? v : def;
     }
 
-    double num_(String k, double def, double min, double max) => (j[k] as num?)?.toDouble().clamp(min, max) ?? def;
+    // Sem `as num?`: num tema escrito à mão o campo pode vir como texto, e o
+    // molde estouraria em vez de cair no padrão.
+    double num_(String k, double def, double min, double max) {
+      final v = j[k];
+      return v is num ? v.toDouble().clamp(min, max) : def;
+    }
     List<String> strings(String k, List<String> def, List<String> allowed) {
       final v = j[k];
       if (v is! List) return def;
@@ -375,6 +394,13 @@ class UiPrefs {
         if (k is String && colorKeys.contains(k) && v is int) colors[k] = v;
       });
     }
+    // Zero é "sem limite" e não cabe na faixa do controle: passa direto.
+    double vinylSpeed() {
+      final v = j['vinylMaxSpeed'];
+      if (v is! num) return d.vinylMaxSpeed;
+      return v <= 0 ? 0 : v.toDouble().clamp(minVinylMaxSpeed, maxVinylMaxSpeed);
+    }
+
     final sidebarTabs = strings('sidebarTabs', d.sidebarTabs, allTabs.where((t) => t != 'library').toList());
     final mobileTabs = strings('mobileTabs', d.mobileTabs, allTabs).take(maxMobileTabs).toList();
     final bg = j['backgroundImage'];
@@ -405,6 +431,7 @@ class UiPrefs {
       nowPlayingBlur: num_('nowPlayingBlur', d.nowPlayingBlur, 0, 1),
       vinylScratch: j['vinylScratch'] is bool ? j['vinylScratch'] as bool : d.vinylScratch,
       vinylScratchAudio: j['vinylScratchAudio'] is bool ? j['vinylScratchAudio'] as bool : d.vinylScratchAudio,
+      vinylMaxSpeed: vinylSpeed(),
       sidebar: one('sidebar', d.sidebar, const ['auto', 'expanded', 'rail']),
       sidebarTabs: sidebarTabs.isEmpty ? d.sidebarTabs : sidebarTabs,
       mobileTabs: mobileTabs.length < 2 ? d.mobileTabs : mobileTabs,

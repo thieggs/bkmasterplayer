@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../data/ui_prefs.dart';
 import '../../domain/models.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
@@ -38,11 +39,6 @@ const _maxSecondsPerTurnAudio = 24.0;
 /// Quanto o volume cai ao pegar o disco (e volta ao soltar): o "freio" do
 /// vinil, para quando o som da agulha está desligado.
 const _brakeDuration = Duration(milliseconds: 220);
-
-/// Acima disto o motor emudece a agulha (não é mais som de disco, é chiado).
-/// Tem que bater com `VINYL_MAX_SPEED` do mixer.
-@visibleForTesting
-const vinylMaxSpeed = 4.0;
 
 /// Dedo parado por mais do que isto: o disco está sendo segurado, não girado.
 const _stillAfter = Duration(milliseconds: 40);
@@ -85,12 +81,22 @@ double vinylSecondsPerTurn(Duration total, {bool audio = false}) {
 /// frente quando se gira ao contrário. Sem ele, a música só emudece enquanto
 /// você procura o ponto.
 class VinylDisc extends ConsumerStatefulWidget {
-  const VinylDisc({super.key, required this.size, required this.song, required this.scratch, this.audio = false});
+  const VinylDisc({
+    super.key,
+    required this.size,
+    required this.song,
+    required this.scratch,
+    this.audio = false,
+    this.maxSpeed = UiPrefs.defaultVinylMaxSpeed,
+  });
 
   final double size;
   final Song? song;
   final bool scratch;
   final bool audio;
+
+  /// Acima de quantas vezes a velocidade normal a agulha levanta (0 = sem limite).
+  final double maxSpeed;
 
   @override
   ConsumerState<VinylDisc> createState() => _VinylDiscState();
@@ -158,7 +164,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   void _pumpNeedle(Duration _) {
     if (!_needle) return;
     if (_clock.elapsed - _movedAt > _stillAfter) _speed *= 0.5;
-    ref.read(playerProvider.notifier).vinyl(_speed.clamp(-vinylMaxSpeed, vinylMaxSpeed));
+    ref.read(playerProvider.notifier).vinyl(_speed, maxSpeed: widget.maxSpeed);
   }
 
   void _applyBrake() => ref.read(playerProvider.notifier).fadeVolume(_brake.value);
@@ -197,7 +203,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
       _movedAt = Duration.zero;
       _measuredAt = Duration.zero;
       _measuredTo = _to;
-      ref.read(playerProvider.notifier).vinyl(0);
+      ref.read(playerProvider.notifier).vinyl(0, maxSpeed: widget.maxSpeed);
       (_pump ??= createTicker(_pumpNeedle)).start();
     } else if (_wasPlaying) {
       _brake.reverse();

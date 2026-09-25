@@ -180,6 +180,7 @@ abstract class RustLibApi extends BaseApi {
 
   void crateApiEnginePlayerSetVinyl({
     required double speed,
+    required double maxSpeed,
     required bool active,
   });
 
@@ -1255,6 +1256,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @override
   void crateApiEnginePlayerSetVinyl({
     required double speed,
+    required double maxSpeed,
     required bool active,
   }) {
     return handler.executeSync(
@@ -1262,6 +1264,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_f_32(speed, serializer);
+          sse_encode_f_32(maxSpeed, serializer);
           sse_encode_bool(active, serializer);
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
         },
@@ -1270,7 +1273,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiEnginePlayerSetVinylConstMeta,
-        argValues: [speed, active],
+        argValues: [speed, maxSpeed, active],
         apiImpl: this,
       ),
     );
@@ -1279,7 +1282,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiEnginePlayerSetVinylConstMeta =>
       const TaskConstMeta(
         debugName: "player_set_vinyl",
-        argNames: ["speed", "active"],
+        argNames: ["speed", "maxSpeed", "active"],
       );
 
   @override

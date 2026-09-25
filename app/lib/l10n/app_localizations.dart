@@ -1624,8 +1624,26 @@ abstract class AppLocalizations {
   /// No description provided for @vinylScratchAudioHint.
   ///
   /// In pt, this message translates to:
-  /// **'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Giro rápido demais fica mudo, como uma agulha erguida. Desligado, a música só emudece enquanto você procura.'**
+  /// **'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Desligado, a música só emudece enquanto você procura.'**
   String get vinylScratchAudioHint;
+
+  /// No description provided for @vinylSpeedLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Até onde a agulha aguenta'**
+  String get vinylSpeedLimit;
+
+  /// No description provided for @vinylNoLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem limite'**
+  String get vinylNoLimit;
+
+  /// No description provided for @vinylNoLimitHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'A agulha nunca levanta: o giro inteiro sai no som, por mais rápido que seja. O que segura passa a ser só o que já foi decodificado.'**
+  String get vinylNoLimitHint;
 
   /// No description provided for @backgroundBlur.
   ///

@@ -44,7 +44,15 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
     final vinyl = layout == 'vinyl';
 
     Widget cover(double size) {
-      if (vinyl) return VinylDisc(size: size, song: song, scratch: ui.vinylScratch, audio: ui.vinylScratchAudio);
+      if (vinyl) {
+        return VinylDisc(
+          size: size,
+          song: song,
+          scratch: ui.vinylScratch,
+          audio: ui.vinylScratchAudio,
+          maxSpeed: ui.vinylMaxSpeed,
+        );
+      }
       return Hero(
         tag: 'now-cover',
         child: Material(

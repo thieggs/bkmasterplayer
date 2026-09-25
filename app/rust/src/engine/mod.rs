@@ -34,6 +34,7 @@ use decoder::Decoder;
 use mixer::{AutomixExec, Mixer, MixerCmd, MixerEvent, MixerShared, Transition};
 use output::Output;
 
+pub use mixer::VinylSpin;
 pub use output::DeviceInfo;
 
 #[derive(Clone, Debug)]
@@ -741,10 +742,9 @@ impl Engine {
         }
     }
 
-    /// Gira o disco de vinil: `speed` é a velocidade da agulha (1 = normal,
-    /// 0 = parado, negativo = para trás). `None` solta o disco.
-    pub fn set_vinyl(&self, speed: Option<f32>) {
-        self.inner.send(MixerCmd::Vinyl(speed));
+    /// Gira o disco de vinil. `None` solta o disco.
+    pub fn set_vinyl(&self, spin: Option<VinylSpin>) {
+        self.inner.send(MixerCmd::Vinyl(spin));
     }
 
     pub fn set_notifications(&self, enabled: bool) {

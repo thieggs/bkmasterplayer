@@ -864,7 +864,17 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get vinylScratchAudioHint =>
-      'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Giro rápido demais fica mudo, como uma agulha erguida. Desligado, a música só emudece enquanto você procura.';
+      'O som acompanha o giro, com o tom subindo e descendo, e toca de trás para frente quando você gira ao contrário. Desligado, a música só emudece enquanto você procura.';
+
+  @override
+  String get vinylSpeedLimit => 'Até onde a agulha aguenta';
+
+  @override
+  String get vinylNoLimit => 'Sem limite';
+
+  @override
+  String get vinylNoLimitHint =>
+      'A agulha nunca levanta: o giro inteiro sai no som, por mais rápido que seja. O que segura passa a ser só o que já foi decodificado.';
 
   @override
   String get backgroundBlur => 'Fundo desfocado da capa';

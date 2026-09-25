@@ -865,7 +865,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vinylScratchAudioHint =>
-      'The sound follows the spin, pitch going up and down, and plays backwards when you turn it the other way. Spinning too fast goes silent, like a lifted needle. Off, the song simply goes quiet while you search.';
+      'The sound follows the spin, pitch going up and down, and plays backwards when you turn it the other way. Off, the song simply goes quiet while you search.';
+
+  @override
+  String get vinylSpeedLimit => 'How fast the needle holds on';
+
+  @override
+  String get vinylNoLimit => 'No limit';
+
+  @override
+  String get vinylNoLimitHint =>
+      'The needle never lifts: the whole spin comes out as sound, however fast. The only thing holding it back is what has already been decoded.';
 
   @override
   String get backgroundBlur => 'Blurred cover background';

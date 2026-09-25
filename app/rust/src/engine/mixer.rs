@@ -155,8 +155,26 @@ pub enum MixerCmd {
     Stop,
     SetVolume(f32),
     SetEq(EqSettings),
-    /// Girar o disco de vinil: velocidade da agulha (`None` = soltou o disco).
-    Vinyl(Option<f32>),
+    /// Girar o disco de vinil (`None` = soltou o disco).
+    Vinyl(Option<VinylSpin>),
+}
+
+/// Como o disco está sendo girado agora.
+#[derive(Clone, Copy, Debug)]
+pub struct VinylSpin {
+    /// Velocidade da agulha: 1 é o normal, 0 é o disco parado na mão e
+    /// negativo toca de trás para frente.
+    pub speed: f32,
+    /// Acima disto a agulha levanta (vira chiado). Zero ou infinito = sem
+    /// limite, escolha de quem quiser ouvir o giro inteiro.
+    pub max: f32,
+}
+
+impl VinylSpin {
+    /// Sem limite é guardado como infinito, que passa pelas contas sozinho.
+    fn limit(&self) -> f32 {
+        if self.max > 0.0 { self.max } else { f32::INFINITY }
+    }
 }
 
 pub enum MixerEvent {
@@ -314,9 +332,9 @@ impl Slot {
 /// Quanto do que já tocou fica guardado, para dar para voltar girando o disco.
 const VINYL_MEMORY_SECS: usize = 4;
 
-/// Acima desta velocidade não é mais som de disco, é chiado: a agulha levanta.
-const VINYL_MAX_SPEED: f32 = 4.0;
-const VINYL_FADE_FROM: f32 = 3.0;
+/// Acima do limite não é mais som de disco, é chiado: a agulha levanta. O
+/// limite é escolhido nos ajustes; a agulha começa a sumir nesta fração dele.
+const VINYL_FADE_AT: f32 = 0.75;
 
 /// Abaixo disto o disco está parado na mão, e disco parado não faz som (a
 /// interpolação seguraria uma amostra só, o que vira um estalo contínuo).
@@ -349,6 +367,8 @@ struct Vinyl {
     speed: f32,
     /// Passo da rampa de velocidade, por frame.
     step: f32,
+    /// Acima disto a agulha levanta (infinito = sem limite).
+    max: f32,
     /// Passagem do anel do deck para a memória.
     tmp: Vec<f32>,
     active: bool,
@@ -364,6 +384,7 @@ impl Vinyl {
             target: 1.0,
             speed: 1.0,
             step: 1.0 / (rate as f32 * VINYL_RAMP_SECS),
+            max: f32::INFINITY,
             tmp: vec![0.0; BLOCK * 2],
             active: false,
         }
@@ -393,7 +414,11 @@ impl Vinyl {
     fn needle(&self) -> f32 {
         let s = self.speed.abs();
         let slow = (s / VINYL_MIN_SPEED).clamp(0.0, 1.0);
-        let fast = ((VINYL_MAX_SPEED - s) / (VINYL_MAX_SPEED - VINYL_FADE_FROM)).clamp(0.0, 1.0);
+        if !self.max.is_finite() {
+            return slow;
+        }
+        let from = self.max * VINYL_FADE_AT;
+        let fast = ((self.max - s) / (self.max - from)).clamp(0.0, 1.0);
         slow * fast
     }
 
@@ -427,6 +452,11 @@ impl Vinyl {
             self.speed += (self.target - self.speed).clamp(-self.step, self.step);
             let need = self.pos as u64 + 1;
             if self.head <= need && !self.fill_to(slot, need) {
+                // Acabou o que dava para decodificar: a agulha encosta na
+                // beirada e espera ali. Sem isso, um giro muito rápido a
+                // jogaria para um ponto que não existe e ela ficaria presa lá,
+                // muda, mesmo depois de chegar mais áudio.
+                self.pos = self.pos.min(self.head.saturating_sub(1) as f64).max(self.oldest());
                 out[i * 2] = 0.0;
                 out[i * 2 + 1] = 0.0;
                 continue;
@@ -608,8 +638,8 @@ impl Mixer {
                     let rate = self.rate;
                     self.eq.configure(s, rate);
                 }
-                MixerCmd::Vinyl(speed) => match speed {
-                    Some(v) => {
+                MixerCmd::Vinyl(spin) => match spin {
+                    Some(spin) => {
                         if !self.vinyl.active {
                             // Pega o disco onde a faixa está (só depois do
                             // pré-eco: antes dele a posição ainda não vale).
@@ -621,7 +651,8 @@ impl Mixer {
                                 _ => {}
                             }
                         }
-                        self.vinyl.target = v.clamp(-VINYL_MAX_SPEED, VINYL_MAX_SPEED);
+                        self.vinyl.max = spin.limit();
+                        self.vinyl.target = spin.speed.clamp(-self.vinyl.max, self.vinyl.max);
                     }
                     None => self.vinyl.active = false,
                 },
@@ -1204,9 +1235,35 @@ mod vinyl_tests {
         v.target = 0.0;
         v.speed = 0.0;
         assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0), "disco parado fez som");
-        v.target = VINYL_MAX_SPEED;
-        v.speed = VINYL_MAX_SPEED;
+        v.max = 4.0;
+        v.target = v.max;
+        v.speed = v.max;
         assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0), "giro rápido demais fez som");
+    }
+
+    #[test]
+    fn sem_limite_a_agulha_nao_levanta_por_velocidade() {
+        let (_p, mut slot) = ramp_slot(4000);
+        let mut v = Vinyl::new(48000);
+        v.grab(0);
+        v.max = f32::INFINITY;
+        v.target = 20.0;
+        v.speed = 20.0;
+        let out = play(&mut v, &mut slot, 50);
+        assert!(out.iter().any(|x| *x != 0.0), "sem limite ficou mudo assim mesmo");
+        // E continua andando 20 frames de música por frame tocado.
+        assert_eq!(at(&v, &slot), 50 * 20);
+    }
+
+    #[test]
+    fn com_limite_alto_ainda_ha_limite() {
+        let (_p, mut slot) = ramp_slot(4000);
+        let mut v = Vinyl::new(48000);
+        v.grab(0);
+        v.max = 12.0;
+        v.target = 12.0;
+        v.speed = 12.0;
+        assert!(play(&mut v, &mut slot, 20).iter().all(|x| *x == 0.0));
     }
 
     #[test]

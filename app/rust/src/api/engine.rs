@@ -9,7 +9,7 @@ use flutter_rust_bridge::frb;
 
 use crate::engine::analysis::{self as an, BeatModel};
 use crate::engine::automix::{AutomixSettings, MixStyle};
-use crate::engine::{self, Engine, EngineConfig};
+use crate::engine::{self, Engine, EngineConfig, VinylSpin};
 use crate::frb_generated::StreamSink;
 
 static ENGINE: OnceLock<Engine> = OnceLock::new();
@@ -258,10 +258,11 @@ pub fn player_set_volume(volume: f32) -> Result<()> {
 
 /// Gira o disco de vinil da tela "tocando agora": `speed` é a velocidade da
 /// agulha (1 = normal, 0 = parado, negativo = para trás), e é ela que dá o tom.
-/// `active = false` solta o disco e a reprodução volta ao normal.
+/// Acima de `max_speed` a agulha levanta (0 = sem limite). `active = false`
+/// solta o disco e a reprodução volta ao normal.
 #[frb(sync)]
-pub fn player_set_vinyl(speed: f32, active: bool) -> Result<()> {
-    engine()?.set_vinyl(active.then_some(speed));
+pub fn player_set_vinyl(speed: f32, max_speed: f32, active: bool) -> Result<()> {
+    engine()?.set_vinyl(active.then_some(VinylSpin { speed, max: max_speed }));
     Ok(())
 }
 

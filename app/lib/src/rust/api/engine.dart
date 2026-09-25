@@ -47,11 +47,17 @@ void playerSetVolume({required double volume}) =>
 
 /// Gira o disco de vinil da tela "tocando agora": `speed` é a velocidade da
 /// agulha (1 = normal, 0 = parado, negativo = para trás), e é ela que dá o tom.
-/// `active = false` solta o disco e a reprodução volta ao normal.
-void playerSetVinyl({required double speed, required bool active}) => RustLib
-    .instance
-    .api
-    .crateApiEnginePlayerSetVinyl(speed: speed, active: active);
+/// Acima de `max_speed` a agulha levanta (0 = sem limite). `active = false`
+/// solta o disco e a reprodução volta ao normal.
+void playerSetVinyl({
+  required double speed,
+  required double maxSpeed,
+  required bool active,
+}) => RustLib.instance.api.crateApiEnginePlayerSetVinyl(
+  speed: speed,
+  maxSpeed: maxSpeed,
+  active: active,
+);
 
 void playerSetNotifications({required bool enabled}) =>
     RustLib.instance.api.crateApiEnginePlayerSetNotifications(enabled: enabled);

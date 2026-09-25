@@ -522,6 +522,34 @@ class _NowPlayingPage extends StatelessWidget {
             value: ui.vinylScratchAudio,
             onChanged: ui.vinylScratch ? (v) => set((p) => p.copyWith(vinylScratchAudio: v)) : null,
           ),
+        if (ui.nowPlayingLayout == 'vinyl')
+          SwitchListTile(
+            secondary: const Icon(Icons.all_inclusive),
+            title: Text(l10n.vinylNoLimit),
+            subtitle: Text(l10n.vinylNoLimitHint),
+            value: ui.vinylMaxSpeed == 0,
+            onChanged: ui.vinylScratch && ui.vinylScratchAudio
+                ? (v) => set((p) => p.copyWith(vinylMaxSpeed: v ? 0 : UiPrefs.defaultVinylMaxSpeed))
+                : null,
+          ),
+        if (ui.nowPlayingLayout == 'vinyl' && ui.vinylMaxSpeed > 0)
+          ListTile(
+            leading: const Icon(Icons.speed),
+            title: Row(children: [
+              Expanded(child: Text(l10n.vinylSpeedLimit)),
+              Text('${ui.vinylMaxSpeed.round()}×'),
+            ]),
+            subtitle: Slider(
+              value: ui.vinylMaxSpeed,
+              min: UiPrefs.minVinylMaxSpeed,
+              max: UiPrefs.maxVinylMaxSpeed,
+              divisions: (UiPrefs.maxVinylMaxSpeed - UiPrefs.minVinylMaxSpeed).round(),
+              label: '${ui.vinylMaxSpeed.round()}×',
+              onChanged: ui.vinylScratch && ui.vinylScratchAudio
+                  ? (v) => set((p) => p.copyWith(vinylMaxSpeed: v))
+                  : null,
+            ),
+          ),
         ListTile(
           leading: const Icon(Icons.blur_on),
           title: Row(children: [Expanded(child: Text(l10n.backgroundBlur)), Text('${(ui.nowPlayingBlur * 100).round()}%')]),
