@@ -94,7 +94,7 @@ void main() {
   });
 
   group('análise seguindo o portal', () {
-    const portal = 'https://thieggs-pc.tail573c59.ts.net';
+    const portal = 'https://maquina-de-casa.tailnet-exemplo.ts.net';
     const tunelVelho = 'https://velho-nome-sorteado.trycloudflare.com';
 
     test('endereço de casa dá lugar ao portal (não funciona na rua)', () {

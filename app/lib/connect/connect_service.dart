@@ -100,7 +100,7 @@ class ConnectInfo {
 
 String _systemName = '';
 
-/// Nome do aparelho no sistema ("Galaxy M35 5G", "thieggs-pc").
+/// Nome do aparelho no sistema ("Galaxy M35 5G", "pc-da-sala").
 Future<String> systemDeviceName() async {
   if (_systemName.isNotEmpty) return _systemName;
   if (Platform.isAndroid) {

@@ -8,3 +8,13 @@ dev/navidrome-data/
 # Python
 __pycache__/
 dist/
+
+# Sobras de build que entraram sem querer (o .gitignore do app não alcança
+# third_party/ nem o build do Gradle na raiz do módulo Android).
+**/build/
+**/.gradle/
+**/.dart_tool/
+app/rust/target/
+
+# Ajudante local de uma vez só; leva a chave pública desta máquina.
+dev/windows_ssh_setup.ps1

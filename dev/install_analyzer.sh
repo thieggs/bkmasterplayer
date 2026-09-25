@@ -7,7 +7,7 @@
 #
 #   ./dev/install_analyzer.sh worker <ssh-destino> <endereço do coordenador> [jobs]
 #       trabalhador em outra máquina, por SSH, ex.:
-#       ./dev/install_analyzer.sh worker thieggs@192.168.1.67 http://thieggs-pc.local:4540
+#       ./dev/install_analyzer.sh worker usuario@192.168.1.67 http://maquina-de-casa.local:4540
 #       (sem jobs: 1 análise a cada 3 threads da CPU, até 4)
 #       O token vem do coordenador desta máquina e fica num arquivo 0600 lá.
 #       SSH_OPTS="-i ~/.ssh/chave" para escolher a chave.

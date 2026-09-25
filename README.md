@@ -1,15 +1,149 @@
 # BKmasterplayer 🎵
 
+**A music player that mixes your own library like a DJ does.**
+
+Most Subsonic clients play one track, then the next. This one listens to the
+music first — a neural net finds the beats, the bars and the key — and then
+beat-matches the transition, stretching the tempo without touching the pitch.
+
+> 🇧🇷 [Versão em português](#português) mais abaixo.
+
+---
+
+## Why this exists
+
+Self-hosted music is a solved problem. Navidrome serves it, dozens of clients
+play it. What none of them do is make it *flow*.
+
+Three gaps this was built around:
+
+- **Transitions.** Crossfade is a volume ramp; it does not care that one song
+  is 128 BPM in A minor and the next is 140 BPM in F. AutoMix does, and it
+  mixes on the bar, the way a DJ would.
+- **Doing the expensive part once.** Analysing a library with a neural net is
+  slow on a phone and pointless to repeat on every device. Here one machine
+  analyses everything — other machines can join as workers — and the app just
+  downloads the result.
+- **Working without the internet.** "Songs like this one" normally means a
+  round trip to the server. The AudioMuse analysis is packed into a ~20 MB file
+  the phone keeps, so recommendations are instant, offline, and cost less
+  battery than waking the radio.
+
+## What it does
+
+**Mixing and playback**
+
+- **AutoMix DJ** — beat-matched transitions on the bar, with time-stretch that
+  keeps the pitch. Handles played-by-hand drumming, where the tempo drifts.
+  Styles: bass swap, filter, echo, blend or cut.
+- **Gapless** that is actually sample-exact, even across sample-rate changes.
+  Crossfade, ReplayGain, 10-band equaliser.
+- **Streaming with cache** — seek instantly while still downloading; LRU cache;
+  downloads for offline listening.
+
+**Choosing what comes next**
+
+- **AudioMuse-AI** — instant mix, sonic radio, a sonic path between two songs,
+  endless radio.
+- **Offline recommendations** — seven ways to measure "similar": sound, mood,
+  genre, era, lyrics, mix-friendly (tempo + Camelot key), or the server's own
+  formula. Works with no connection.
+- **Playlist generator** — pick a starting song, how it should be guided,
+  genre, era, length, favourites only, downloaded only.
+
+**Together and across devices**
+
+- **Party** — people nearby join your music, add to it and control it, over the
+  local network or Bluetooth/Wi-Fi Direct on Android. Each person needs your
+  approval.
+- **Connect** — choose which of your devices plays, and control it. Protected
+  by challenge-response with a key derived from your password: the server token
+  never leaves the device.
+- **Queue** saved to disk and synced with the server, to carry on elsewhere.
+
+**Everything else**
+
+- **Total visual customisation** — colours (from the cover art or fixed, nine
+  palette styles, contrast, hand-picked colours), title and body fonts, shapes,
+  background, screen structure and animations. Eight ready-made themes, your
+  own themes, export/import and full backup.
+- **Missing lyrics and artwork** filled in from LRCLIB, Musixmatch, Cover Art
+  Archive and Deezer, with the source shown.
+- **Accessibility** — screen-reader labels, 48 dp touch targets and contrast,
+  all checked by tests.
+- Sleep timer, mobile-data quality, share links, Android Auto, MPRIS, system
+  tray, mini player, keyboard shortcuts.
+- **Languages:** Portuguese and English.
+
+## Platforms
+
+| | status |
+|---|---|
+| **Linux** | works; `.deb` and an install script |
+| **Android** | works; APK, Android Auto |
+| **Windows** | works; `.exe` installer |
+| **macOS** | builds, `.dmg` script |
+| **iOS** | builds unsigned via GitHub Actions; install through SideStore/AltStore |
+
+## Build and run
+
+Flutter 3.41+, Rust 1.90+, and on Debian/Ubuntu:
+
+```bash
+sudo apt install clang lld-19 cmake ninja-build pkg-config \
+  libgtk-3-dev libasound2-dev libsecret-1-dev libayatana-appindicator3-dev
+```
+
+```bash
+cd app
+flutter run -d linux                  # development
+flutter build linux --release         # optimised
+../dev/install_linux.sh               # install into the application menu
+```
+
+Android: `./dev/build_apk.sh` · Windows and macOS: see the Portuguese section.
+
+A throwaway test environment — a Navidrome plus synthetic music with a known
+ground truth (exact BPM, key and structure per track) — comes up with
+`./dev/setup_navidrome.sh` on <http://localhost:4534> (dev/dev). The AutoMix
+analysis is measured against that ground truth.
+
+## Housekeeping tools
+
+```bash
+./dev/limpa_repetidas.py    # duplicate songs (same audio, or same recording)
+./dev/separa_artistas.py    # "Mandragora,420" in one tag -> two artists
+./dev/limpa_audiomuse.py    # dead links and repeated analyses in the database
+```
+
+All three only print what they would do until given `--aplicar`, move rather
+than delete, and keep a way back.
+
+## Security
+
+The threat model, what is stored where, and what never leaves the device are
+in [`docs/SEGURANCA.md`](docs/SEGURANCA.md); `./dev/auditoria.sh` checks it.
+The diagnostics report carries no password, token, server address or username.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). Third-party credits are in the Portuguese
+section below.
+
+---
+
+## Português
+
 Player open source para servidores **OpenSubsonic** (Navidrome, Gonic, Ampache…),
 com integração ao **AudioMuse-AI**, **AutoMix DJ** (transições sincronizadas por
-BPM, como um DJ) e personalização completa. Linux e Android; Windows e iOS a
-seguir.
+BPM, como um DJ) e personalização completa. Linux, Android e Windows prontos;
+macOS compila e o iPhone sai por GitHub Actions, sem assinatura.
 
 - Plano, status e roadmap: [`docs/PLANO.md`](docs/PLANO.md)
 - App (Flutter): [`app/`](app/) · Motor de áudio (Rust): [`app/rust/`](app/rust/)
 - Ambiente de teste (Navidrome + músicas sintéticas com gabarito): [`dev/`](dev/)
 
-## O que tem
+### O que tem
 
 - **Streaming com cache:** seek imediato mesmo baixando, cache LRU, downloads para ouvir offline.
 - **Gapless:** perfeito, amostra por amostra, mesmo com conversão de taxa. Crossfade, ReplayGain, equalizador de 10 bandas.
@@ -42,7 +176,7 @@ seguir.
 - **Ajustes em telas por categoria**, com idioma (português/inglês).
 - **Idiomas:** português e inglês.
 
-## Compilar e rodar no Linux
+### Compilar e rodar no Linux
 
 Pré-requisitos: Flutter 3.41+, Rust 1.90+ e
 `clang lld-19 cmake ninja-build pkg-config libgtk-3-dev libasound2-dev libsecret-1-dev libayatana-appindicator3-dev`.
@@ -58,7 +192,7 @@ Se o CMake não achar o `ld.lld` (Debian só instala `ld.lld-19`), compile com `
 
 Ambiente de teste (opcional): `./dev/setup_navidrome.sh` gera as músicas e sobe um Navidrome em http://localhost:4534 (dev/dev).
 
-## Android
+### Android
 
 Pré-requisitos: Android SDK com NDK 28.2 (`ANDROID_HOME`, padrão `~/android-sdk`) e
 `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`.
@@ -70,7 +204,7 @@ cd app && flutter run -d <aparelho>   # desenvolvimento (celular ou emulador)
 
 A assinatura de release vem de `app/android/key.properties` (fora do git); sem ele o APK sai com a chave de debug.
 
-## Windows
+### Windows
 
 O Flutter só compila app de Windows em host Windows
 ([flutter#110585](https://github.com/flutter/flutter/issues/110585)), então o
@@ -99,7 +233,7 @@ a saída no console e guarde o log do outro lado. E **não baixe nada com
 `Invoke-WebRequest`**: medi 0,85 Mbps contra 237 Mbps do `curl.exe`, que já vem
 no Windows.
 
-## Análise no servidor (BK Analyzer)
+### Análise no servidor (BK Analyzer)
 
 O AutoMix precisa de uma análise de cada música (batidas, compassos, tom). O
 aparelho faz sozinho, mas no celular é lento e usa o modelo pequeno. Com o
@@ -125,7 +259,7 @@ A análise do servidor só é usada quando o app toca o mesmo arquivo analisado
 (o original, sem limite de qualidade); fora de casa, sem o servidor, o aparelho
 analisa como antes.
 
-## Recomendação sem internet (vetores do AudioMuse)
+### Recomendação sem internet (vetores do AudioMuse)
 
 O AudioMuse analisa cada música com uma rede neural e guarda os vetores no
 Postgres dele. `dev/exporta_audiomuse.py` lê — só lê — e empacota tudo num
@@ -161,7 +295,7 @@ acompanhar a biblioteca. A mesma faixa costuma existir em vários arquivos
 (single, álbum, coletânea): o vetor vai uma vez e os ids apontam para ele,
 senão a mesma música apareceria repetida nas sugestões.
 
-## Limpeza: repetidas e lixo do banco
+### Limpeza: repetidas e lixo do banco
 
 No PC, o atalho **"Limpar biblioteca"** na área de trabalho faz tudo de uma
 vez: mostra o que faria, pede confirmação e só então mexe. Por baixo é
@@ -211,7 +345,7 @@ apagar só obrigaria a rede neural a refazer o trabalho (`--orfas` força).
 Depois da limpeza, vale reexportar os vetores (`./dev/exporta_audiomuse.py`)
 para o aparelho não sugerir música que não existe mais.
 
-## Um endereço só, de qualquer lugar (BK Portal)
+### Um endereço só, de qualquer lugar (BK Portal)
 
 Servidor de casa exposto por túnel grátis (Cloudflare) ganha um endereço novo a
 cada reinício, e o endereço guardado no aparelho para de valer. O **BK Portal**
@@ -245,7 +379,7 @@ Do BK Analyzer só saem para a internet `/api/hello`, `/api/summary` e
 `/api/analysis/`; o painel e a API dos trabalhadores ficam para quem entra pela
 rede de casa.
 
-## Testes
+### Testes
 
 ```bash
 cd app/rust && cargo test --release   # streaming, gapless bit-exato, mixer, análise, AutoMix, EQ
@@ -253,7 +387,7 @@ cd app/rust && cargo test --release --test engine_automix -- --ignored   # orque
 cd app && flutter test                 # app (inclui segurança e acessibilidade)
 ```
 
-## Segurança
+### Segurança
 
 `./dev/auditoria.sh` roda o checkup inteiro: dependências com vulnerabilidade
 conhecida (cargo-audit, osv-scanner), licenças (cargo-deny), segredos no
@@ -263,13 +397,13 @@ testes, fuzzing do decodificador de áudio e checagens do Android. Com
 na auditoria de 15/09/2026, e os riscos que ficam, estão em
 [`docs/SEGURANCA.md`](docs/SEGURANCA.md).
 
-## Créditos
+### Créditos
 
 - Beat This! (CPJKU/JKU Linz, pesos MIT) via [beat-this-rs](https://github.com/danigb/beat-this-rs).
 - [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) (MIT).
 - [symphonia](https://github.com/pdeljanov/Symphonia), [cpal](https://github.com/RustAudio/cpal), [rubato](https://github.com/HEnquist/rubato).
 - Fontes dos temas (SIL Open Font License): Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue (licenças em `app/assets/fonts/`).
 
-## Licença
+### Licença
 
 MIT (ver [`LICENSE`](LICENSE)). As bibliotecas, fontes e o modelo de análise usados têm licenças próprias, todas compatíveis (ver [`docs/JURIDICO.md`](docs/JURIDICO.md) e Ajustes → Sobre → Licenças no app).

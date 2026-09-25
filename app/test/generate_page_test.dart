@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:player_musica/core/providers.dart';
-import 'package:player_musica/data/playlist_gen.dart';
 import 'package:player_musica/l10n/l10n.dart';
 import 'package:player_musica/ui/pages/generate_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
