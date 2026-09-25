@@ -61,6 +61,8 @@ dependencies:
   url_launcher: ^6.3.2
   package_info_plus: ^10.2.1
   bonsoir: ^7.1.4
+  qr_flutter: ^4.1.0
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:

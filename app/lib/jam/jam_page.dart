@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -187,6 +188,17 @@ class _OffersView extends ConsumerWidget {
             icon: const Icon(Icons.keyboard, size: 18),
             label: Text(l10n.jamJoinByAddress),
             onPressed: () => _perguntarEndereco(context, ref),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.qr_code_2, size: 18, color: theme.colorScheme.outline),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.jamJoinByQr, style: theme.textTheme.bodySmall)),
+            ],
           ),
         ),
         if (guest.offers.isEmpty)
@@ -640,18 +652,70 @@ class _MeuEnderecoState extends ConsumerState<_MeuEndereco> {
     if (_enderecos.isEmpty) return const SizedBox.shrink();
     final l10n = context.l10n;
     final texto = _enderecos.join('   ');
-    return ListTile(
-      leading: const Icon(Icons.keyboard),
-      title: Text(l10n.jamMyAddress),
-      subtitle: Text(texto, style: Theme.of(context).textTheme.bodySmall),
-      trailing: IconButton(
-        tooltip: l10n.jamCopyAddress,
-        icon: const Icon(Icons.copy),
-        onPressed: () async {
-          await Clipboard.setData(ClipboardData(text: _enderecos.first));
-          if (context.mounted) showSnack(context, l10n.jamAddressCopied);
-        },
-      ),
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.keyboard),
+          title: Text(l10n.jamMyAddress),
+          subtitle: Text(texto, style: Theme.of(context).textTheme.bodySmall),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: l10n.jamShowQr,
+                icon: const Icon(Icons.qr_code_2),
+                onPressed: () => _mostrarQr(context, _enderecos.first),
+              ),
+              IconButton(
+                tooltip: l10n.jamCopyAddress,
+                icon: const Icon(Icons.copy),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: _enderecos.first));
+                  if (context.mounted) showSnack(context, l10n.jamAddressCopied);
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
+}
+
+
+/// Mostra o endereço em QR, para o convidado apontar a câmera **do próprio
+/// celular** — o app não precisa de câmera nem de permissão para isso.
+///
+/// O QR leva um link `bkplayer://jam?...`, que o Android e o iOS sabem abrir
+/// no app. Quem não tiver o app instalado ainda vê o endereço escrito
+/// embaixo e pode digitar.
+Future<void> _mostrarQr(BuildContext context, String endereco) {
+  final l10n = context.l10n;
+  return showDialog<void>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: Text(l10n.jamShowQr),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            // O leitor precisa de fundo claro; no tema escuro ficaria ilegível.
+            color: Colors.white,
+            child: QrImageView(
+              data: 'bkplayer://jam?h=${Uri.encodeComponent(endereco.split(':').first)}'
+                  '&p=${endereco.split(':').last}',
+              size: 220,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(l10n.jamQrHint, textAlign: TextAlign.center, style: Theme.of(d).textTheme.bodySmall),
+          const SizedBox(height: 8),
+          SelectableText(endereco, style: Theme.of(d).textTheme.bodyMedium),
+        ],
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(d), child: Text(l10n.jamClose))],
+    ),
+  );
 }

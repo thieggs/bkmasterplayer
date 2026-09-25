@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'jam/jam_core.dart';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -159,6 +162,24 @@ class PlayerApp extends ConsumerStatefulWidget {
 
 class _PlayerAppState extends ConsumerState<PlayerApp> {
   static const _system = MethodChannel('bkplayer/system');
+  AppLinks? _links;
+  StreamSubscription<Uri>? _linkSub;
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
+
+  /// Link de fora: por enquanto só o da Festa.
+  void _abrirLink(Uri u) {
+    if (u.scheme != 'bkplayer' || u.host != 'jam') return;
+    final h = u.queryParameters['h'];
+    if (h == null || h.isEmpty) return;
+    final porta = u.queryParameters['p'];
+    ref.read(_routerProvider).go('/jam');
+    unawaited(ref.read(jamGuestProvider.notifier).joinByAddress(porta == null ? h : '$h:$porta'));
+  }
 
   @override
   void initState() {
@@ -175,6 +196,13 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
         if (route != null) ref.read(_routerProvider).push(route);
       } catch (_) {}
     });
+    // QR da Festa: a câmera do celular lê `bkplayer://jam?h=…&p=…` e abre
+    // aqui. Assim o app não precisa de câmera nem de permissão para isso.
+    _links = AppLinks();
+    _linkSub = _links?.uriLinkStream.listen(_abrirLink, onError: (_) {});
+    unawaited(_links?.getInitialLink().then((u) {
+      if (u != null) _abrirLink(u);
+    }).catchError((_) {}));
   }
 
   @override

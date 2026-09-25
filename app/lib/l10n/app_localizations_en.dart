@@ -1514,6 +1514,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get jamAddressCopied => 'Copied';
 
   @override
+  String get jamClose => 'Close';
+
+  @override
+  String get jamScanQr => 'Scan QR';
+
+  @override
+  String get jamQrHint =>
+      'Point your phone\'s camera at this code — it opens the app and joins the party.';
+
+  @override
+  String get jamShowQr => 'Show QR';
+
+  @override
+  String get jamJoinByQr =>
+      'By QR: point your phone\'s camera at the code shown on the device that started the party. No scanner app, no permission needed.';
+
+  @override
   String get jamJoinByAddress => 'Join by address';
 
   @override

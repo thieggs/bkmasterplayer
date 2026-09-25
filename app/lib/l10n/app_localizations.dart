@@ -2743,6 +2743,36 @@ abstract class AppLocalizations {
   /// **'Copiado'**
   String get jamAddressCopied;
 
+  /// No description provided for @jamClose.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar'**
+  String get jamClose;
+
+  /// No description provided for @jamScanQr.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ler QR'**
+  String get jamScanQr;
+
+  /// No description provided for @jamQrHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aponte a câmera do celular para este código — ele abre o app e entra na Festa.'**
+  String get jamQrHint;
+
+  /// No description provided for @jamShowQr.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mostrar QR'**
+  String get jamShowQr;
+
+  /// No description provided for @jamJoinByQr.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por QR: aponte a câmera do celular para o código que aparece no aparelho de quem abriu a Festa. Não precisa de leitor nem de permissão.'**
+  String get jamJoinByQr;
+
   /// No description provided for @jamJoinByAddress.
   ///
   /// In pt, this message translates to:
