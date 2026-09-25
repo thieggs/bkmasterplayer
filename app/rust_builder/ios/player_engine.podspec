@@ -20,7 +20,8 @@ A new Flutter FFI plugin project.
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '11.0'
+  # Igual ao app: o file_picker_darwin exige iOS 14.
+  s.platform = :ios, '14.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
@@ -36,6 +37,18 @@ A new Flutter FFI plugin project.
     # created by this build step.
     :output_files => ["${BUILT_PRODUCTS_DIR}/libplayer_engine.a"],
   }
+
+  # O motor em Rust vira uma biblioteca **estática**, e quem faz o link final é
+  # o Xcode — que não lê as diretivas `cargo:rustc-link-lib=framework=...` das
+  # crates. Então o que elas pedem tem que ser declarado aqui, senão o link
+  # quebra com dezenas de símbolos indefinidos:
+  #
+  #   _AudioUnit*, _AudioComponent*   -> AudioToolbox (no iOS o AudioUnit vive lá dentro)
+  #   _AVAudioSession*                -> AVFoundation (o cpal observa troca de saída)
+  #   std::*, ___cxa_*, operator new  -> libc++ (o signalsmith-stretch é C++)
+  s.frameworks = 'AudioToolbox', 'AVFoundation', 'CoreAudio'
+  s.libraries  = 'c++'
+
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     # Flutter.framework does not contain a i386 slice.

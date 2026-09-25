@@ -35,6 +35,18 @@ A new Flutter FFI plugin project.
     # created by this build step.
     :output_files => ["${BUILT_PRODUCTS_DIR}/libplayer_engine.a"],
   }
+
+  # O motor em Rust vira uma biblioteca **estática**, e quem faz o link final é
+  # o Xcode — que não lê as diretivas `cargo:rustc-link-lib=framework=...` das
+  # crates. Então o que elas pedem tem que ser declarado aqui, senão o link
+  # quebra com dezenas de símbolos indefinidos:
+  #
+  #   _AudioUnit*, _AudioComponent*   -> AudioToolbox (no macOS o AudioUnit é separado)
+  #   _AVAudioSession*                -> AVFoundation (o cpal observa troca de saída)
+  #   std::*, ___cxa_*, operator new  -> libc++ (o signalsmith-stretch é C++)
+  s.frameworks = 'AudioUnit', 'AudioToolbox', 'CoreAudio', 'AVFoundation'
+  s.libraries  = 'c++'
+
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     # Flutter.framework does not contain a i386 slice.
