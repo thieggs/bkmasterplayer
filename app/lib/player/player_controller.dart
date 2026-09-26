@@ -599,15 +599,23 @@ class PlayerController extends Notifier<PlayerState> {
 
   /// Gira o disco de vinil (tela tocando agora): [speed] é a velocidade da
   /// agulha — 1 é o normal, 0 é o disco parado na mão e negativo toca de trás
-  /// para frente. Acima de [maxSpeed] a agulha levanta (0 = sem limite), e
-  /// [memorySeconds] é quanto da música tem que dar para voltar girando (0 = a
-  /// faixa inteira). `null` solta o disco. Num aparelho remoto não há o que
-  /// girar daqui: o som sai lá.
-  void vinyl(double? speed, {double maxSpeed = 0, double memorySeconds = 0}) {
+  /// para frente. Acima de [maxSpeed] a agulha levanta (0 = sem limite).
+  /// `null` solta o disco. Num aparelho remoto não há o que girar daqui: o som
+  /// sai lá.
+  void vinyl(double? speed, {double maxSpeed = 0}) {
     if (_remote != null) return;
-    // Zero quer dizer a faixa inteira; o motor corta no teto de RAM dele.
+    engine.playerSetVinyl(speed: speed ?? 1.0, maxSpeed: maxSpeed, active: speed != null);
+  }
+
+  /// Prepara a memória do disco de vinil: daqui em diante o motor guarda o que
+  /// toca, e é esse passado que dá para voltar girando. Tem que ser **antes**
+  /// do gesto — memória que chega junto com a mão nasce vazia, e aí voltar o
+  /// disco não toca nada. [memorySeconds] em 0 = a faixa inteira.
+  void prepareVinyl(double memorySeconds) {
+    if (_remote != null) return;
     final secs = memorySeconds > 0 ? memorySeconds : state.duration.inSeconds.toDouble();
-    engine.playerSetVinyl(speed: speed ?? 1.0, maxSpeed: maxSpeed, memorySecs: secs, active: speed != null);
+    if (secs <= 0) return;
+    engine.playerPrepareVinyl(memorySecs: secs);
   }
 
   void setVolume(double v) {

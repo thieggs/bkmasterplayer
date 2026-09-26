@@ -47,20 +47,23 @@ void playerSetVolume({required double volume}) =>
 
 /// Gira o disco de vinil da tela "tocando agora": `speed` é a velocidade da
 /// agulha (1 = normal, 0 = parado, negativo = para trás), e é ela que dá o tom.
-/// Acima de `max_speed` a agulha levanta (0 = sem limite). `memory_secs` é
-/// quanto da música dá para voltar girando (o motor dimensiona o buffer, com
-/// teto de RAM). `active = false` solta o disco e a reprodução volta ao normal.
+/// Acima de `max_speed` a agulha levanta (0 = sem limite). `active = false`
+/// solta o disco e a reprodução volta ao normal.
 void playerSetVinyl({
   required double speed,
   required double maxSpeed,
-  required double memorySecs,
   required bool active,
 }) => RustLib.instance.api.crateApiEnginePlayerSetVinyl(
   speed: speed,
   maxSpeed: maxSpeed,
-  memorySecs: memorySecs,
   active: active,
 );
+
+/// Prepara a memória do disco para `memory_secs` de música. Tem que vir antes
+/// do gesto: é a partir daqui que o motor guarda o que toca, e é esse passado
+/// que dá para voltar girando.
+void playerPrepareVinyl({required double memorySecs}) => RustLib.instance.api
+    .crateApiEnginePlayerPrepareVinyl(memorySecs: memorySecs);
 
 /// Teto de RAM da memória do disco, para o app dizer na tela o que cabe.
 BigInt playerVinylMaxBytes() =>

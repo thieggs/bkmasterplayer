@@ -172,11 +172,19 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   /// não o automático).
   bool get _busy => _dragging || _gliding;
 
+  /// Duração para a qual a memória do disco já foi pedida.
+  Duration _prepared = Duration.zero;
+
   @override
   void initState() {
     super.initState();
     _brake.addListener(_applyBrake);
     _brake.addStatusListener(_onBrake);
+    // Já com a tela aberta o motor começa a guardar o que toca, para o disco
+    // ter passado quando a mão chegar nele.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _prepare(ref.read(playerProvider).duration);
+    });
   }
 
   /// Som da agulha: só com a opção ligada, tocando e no som daqui (num
@@ -371,14 +379,24 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     setState(() {});
   }
 
-  void _push(double speed) => ref
-      .read(playerProvider.notifier)
-      .vinyl(speed, maxSpeed: widget.maxSpeed, memorySeconds: widget.memorySeconds);
+  void _push(double speed) => ref.read(playerProvider.notifier).vinyl(speed, maxSpeed: widget.maxSpeed);
+
+  /// Pede ao motor a memória do disco. Tem que ser antes do gesto: memória que
+  /// chega junto com a mão nasce vazia, e aí voltar o disco não toca nada — só
+  /// dá som o que a própria mão adiantar. Como ela só cresce, pedir de novo
+  /// numa faixa maior não joga o passado fora.
+  void _prepare(Duration duration) {
+    if (!widget.scratch || !widget.audio || duration <= _prepared) return;
+    _prepared = duration;
+    ref.read(playerProvider.notifier).prepareVinyl(widget.memorySeconds);
+  }
 
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
     final playing = ref.watch(playerProvider.select((s) => s.playing));
+    // Faixa nova (ou maior): a memória cresce para caber a música inteira.
+    ref.listen(playerProvider.select((s) => s.duration), (_, d) => _prepare(d));
     // Gira só enquanto toca e ninguém está segurando.
     if (playing && !_busy && !_spin.isAnimating) {
       _spin.repeat();

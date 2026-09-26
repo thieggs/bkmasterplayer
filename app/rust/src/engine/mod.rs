@@ -745,25 +745,29 @@ impl Engine {
         }
     }
 
-    /// Gira o disco de vinil. `None` solta o disco. `memory_secs` diz quanto
-    /// da música tem que dar para voltar girando: quando o tamanho pedido
-    /// cresce, a memória nova é alocada **aqui**, fora do callback de áudio, e
-    /// vai junto com o comando.
-    pub fn set_vinyl(&self, spin: Option<(f32, f32, f32)>) {
-        let Some((speed, max, secs)) = spin else {
-            self.inner.send(MixerCmd::Vinyl(None));
-            return;
-        };
+    /// Prepara a memória do disco de vinil para `secs` segundos de música.
+    ///
+    /// Tem que ser chamado **antes** do gesto — ao abrir a tela do vinil, por
+    /// exemplo. O mixer só guarda o que toca depois de ter a memória, e
+    /// memória que chega junto com a mão nasce vazia: aí voltar o disco não
+    /// toca nada, que foi exatamente o defeito.
+    pub fn prepare_vinyl(&self, secs: f32) {
         let rate = self.inner.mixer.lock().rate() as usize;
         let teto = VINYL_MEMORY_MAX_BYTES / (2 * std::mem::size_of::<i16>());
         let quer = ((secs.max(1.0) as usize) * rate).min(teto);
         let mut tem = self.inner.vinyl_frames.lock();
-        // Só cresce: encolher a cada faixa curta seria alocar à toa.
-        let memory = (quer > *tem).then(|| {
+        // Só cresce: encolher a cada faixa curta seria alocar à toa (e jogar
+        // fora o passado guardado).
+        if quer > *tem {
             *tem = quer;
-            Box::new(vec![0i16; quer * 2])
-        });
-        self.inner.send(MixerCmd::Vinyl(Some(VinylSpin { speed, max, memory })));
+            self.inner.send(MixerCmd::VinylMemory(Box::new(vec![0i16; quer * 2])));
+        }
+    }
+
+    /// Gira o disco de vinil. `None` solta o disco.
+    pub fn set_vinyl(&self, spin: Option<(f32, f32)>) {
+        self.inner
+            .send(MixerCmd::Vinyl(spin.map(|(speed, max)| VinylSpin { speed, max })));
     }
 
     pub fn set_notifications(&self, enabled: bool) {

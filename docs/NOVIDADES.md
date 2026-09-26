@@ -39,9 +39,12 @@ freio no fim.
   voltar o que tinha tocado desde o último gesto. Agora ela é indexada pelo
   tempo da **música**, então atravessa os seeks; só é esquecida quando a música
   muda ou se pula para outra parte dela.
-- **A memória enche mesmo sem ninguém no disco.** Antes ela só era preenchida
-  durante o gesto, então pegar e voltar na hora não tocava nada: só dava som se
-  você adiantasse primeiro.
+- **A memória enche mesmo sem ninguém no disco**, e desde o momento em que a
+  tela do vinil abre. Antes ela chegava junto com a mão — ou seja, nascia vazia
+  justo na hora do gesto, e voltar o disco não tocava nada: só dava som o que a
+  própria mão tivesse adiantado antes de virar.
+- Vale saber: o que dá para voltar é o que **já tocou** desde que a tela abriu.
+  Pular para o fim de uma música que não rodou não deixa passado atrás.
 
 ## v1.1.0
 

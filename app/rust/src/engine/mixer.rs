@@ -157,10 +157,14 @@ pub enum MixerCmd {
     SetEq(EqSettings),
     /// Girar o disco de vinil (`None` = soltou o disco).
     Vinyl(Option<VinylSpin>),
+    /// Memória do disco, do tamanho pedido. Vem pronta de fora (aqui dentro
+    /// não se aloca) e tem que chegar **antes** do gesto: é a partir dela que
+    /// o mixer guarda o que toca, e sem passado guardado não há como voltar.
+    VinylMemory(Box<Vec<i16>>),
 }
 
 /// Como o disco está sendo girado agora.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct VinylSpin {
     /// Velocidade da agulha: 1 é o normal, 0 é o disco parado na mão e
     /// negativo toca de trás para frente.
@@ -168,9 +172,6 @@ pub struct VinylSpin {
     /// Acima disto a agulha levanta (vira chiado). Zero ou infinito = sem
     /// limite, escolha de quem quiser ouvir o giro inteiro.
     pub max: f32,
-    /// Memória nova para o disco, quando o tamanho pedido mudou. Vem pronta de
-    /// fora: dentro do callback de áudio não se aloca.
-    pub memory: Option<Box<Vec<i16>>>,
 }
 
 impl VinylSpin {
@@ -738,17 +739,17 @@ impl Mixer {
                     let rate = self.rate;
                     self.eq.configure(s, rate);
                 }
+                MixerCmd::VinylMemory(nova) => {
+                    // O buffer velho vai embora pela fila de lixo: no callback
+                    // de áudio não se libera memória.
+                    let velha = std::mem::replace(&mut self.vinyl.memory, *nova);
+                    self.vinyl.filled = 0;
+                    if !velha.is_empty() {
+                        self.emit(MixerEvent::VinylTrash(velha));
+                    }
+                }
                 MixerCmd::Vinyl(spin) => match spin {
-                    Some(mut spin) => {
-                        if let Some(nova) = spin.memory.take() {
-                            // O buffer velho vai embora pela fila de lixo: no
-                            // callback de áudio não se libera memória.
-                            let velha = std::mem::replace(&mut self.vinyl.memory, *nova);
-                            self.vinyl.filled = 0;
-                            if !velha.is_empty() {
-                                self.emit(MixerEvent::VinylTrash(velha));
-                            }
-                        }
+                    Some(spin) => {
                         if !self.vinyl.active {
                             // Pega o disco onde a faixa está (só depois do
                             // pré-eco: antes dele a posição ainda não vale).
