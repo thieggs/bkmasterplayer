@@ -887,11 +887,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get vinylGlide => 'Coasting when you let go';
+  String get vinylGlide => 'How the record\'s bearing runs';
 
   @override
   String get vinylGlideHint =>
-      'How long the record takes to settle back to normal speed after you let go. A harder throw carries it further — so where you land depends on the spin, not on where you let go. At zero it stops dead and you land where you released it.';
+      'How long a hard throw (4×) coasts after you let go. What this sets is the deceleration, not the time: throw it twice as fast and it spins twice as long, while a nudge stops almost at once — a stiff bearing barely coasts, a smooth one runs for ages. Where you land now depends on the spin, not on where you let go. At zero it stops dead.';
 
   @override
   String get vinylGlideOff => 'Stops dead';
@@ -903,7 +903,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get curveVinyl => 'Vinyl (brakes, then eases in)';
 
   @override
-  String get curveLinear => 'Constant';
+  String get curveLinear => 'Bearing (constant)';
 
   @override
   String get curveBrake => 'Brake at the end';

@@ -584,7 +584,7 @@ class _NowPlayingPage extends StatelessWidget {
             title: l10n.vinylCurve,
             icon: Icons.show_chart,
             value: ui.vinylGlideCurve,
-            options: {'vinyl': l10n.curveVinyl, 'linear': l10n.curveLinear, 'brake': l10n.curveBrake},
+            options: {'linear': l10n.curveLinear, 'vinyl': l10n.curveVinyl, 'brake': l10n.curveBrake},
             onChanged: (v) => set((p) => p.copyWith(vinylGlideCurve: v)),
           ),
         if (ui.nowPlayingLayout == 'vinyl')

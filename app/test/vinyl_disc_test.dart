@@ -35,13 +35,32 @@ void main() {
     expect(vinylGlideCurve('brake', 0.5), lessThan(0.5));
   });
 
+  test('o tempo do deslize vem da força do arremesso, não do relógio', () {
+    const rolamento = 0.6; // o ajuste: quanto desliza um arremesso forte (4x)
+    final forte = vinylGlideSpan(rolamento, 4);
+    final metade = vinylGlideSpan(rolamento, 2.5);
+    final leve = vinylGlideSpan(rolamento, 1.1);
+    // O ajuste é medido justo no arremesso de 4x.
+    expect(forte, closeTo(rolamento, 1e-9));
+    // Metade da velocidade, metade do tempo: a desaceleração é a mesma.
+    expect(metade, closeTo(forte / 2, 1e-9));
+    // Um empurrãozinho para quase na hora.
+    expect(leve, lessThan(forte / 10));
+    // Solto na velocidade normal não desliza nada.
+    expect(vinylGlideSpan(rolamento, 1), 0);
+    // Para trás vale o mesmo, pela distância até a velocidade normal.
+    expect(vinylGlideSpan(rolamento, -2), closeTo(vinylGlideSpan(rolamento, 4), 1e-9));
+    // Rolamento em zero: para na hora, por mais forte que seja o giro.
+    expect(vinylGlideSpan(0, 4), 0);
+  });
+
   test('deslize de fábrica é curto, e zero quer dizer parar na hora', () {
     expect(UiPrefs.defaultVinylGlide, 0.6);
-    expect(const UiPrefs().vinylGlideCurve, 'vinyl');
+    expect(const UiPrefs().vinylGlideCurve, 'linear');
     expect(UiPrefs.fromJson({'vinylGlide': 9}).vinylGlide, UiPrefs.maxVinylGlide);
     expect(UiPrefs.fromJson({'vinylGlide': -1}).vinylGlide, 0);
     expect(UiPrefs.fromJson({'vinylGlide': 'muito'}).vinylGlide, UiPrefs.defaultVinylGlide);
-    expect(UiPrefs.fromJson({'vinylGlideCurve': 'foguete'}).vinylGlideCurve, 'vinyl');
+    expect(UiPrefs.fromJson({'vinylGlideCurve': 'foguete'}).vinylGlideCurve, 'linear');
   });
 
   test('girar para frente e para trás anda a música na mesma medida', () {

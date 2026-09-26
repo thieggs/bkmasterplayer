@@ -30,6 +30,21 @@ const _brakeDuration = Duration(milliseconds: 220);
 /// Dedo parado por mais do que isto: o disco está sendo segurado, não girado.
 const _stillAfter = Duration(milliseconds: 40);
 
+/// Arremesso de referência para o ajuste do rolamento: o disco solto a 4× está
+/// a 3 de distância da velocidade normal. O ajuste diz quanto ESSE arremesso
+/// desliza, e os outros saem proporcionais.
+const vinylGlideReference = 3.0;
+
+/// Quanto tempo o disco desliza, soltando a [releaseSpeed].
+///
+/// É aqui que o rolamento aparece: o que o ajuste fixa é a **desaceleração**
+/// (velocidade perdida por segundo), não o tempo. Então jogar o dobro mais
+/// rápido roda o dobro do tempo, e um empurrãozinho para quase na hora — como
+/// num rolamento de verdade. Duro = pouco tempo; liso = roda à beça.
+@visibleForTesting
+double vinylGlideSpan(double glide, double releaseSpeed) =>
+    glide * (releaseSpeed - 1).abs() / vinylGlideReference;
+
 /// A curva do deslize: quanto do caminho até a velocidade normal já foi andado,
 /// com `t` de 0 (soltou agora) a 1 (acabou o deslize).
 ///
@@ -102,8 +117,9 @@ class VinylDisc extends ConsumerStatefulWidget {
   /// Quanto da música dá para voltar girando (0 = a faixa inteira).
   final double memorySeconds;
 
-  /// Segundos até o disco voltar à velocidade normal depois de soltar o dedo
-  /// (0 = para na hora), e a curva dessa desaceleração.
+  /// Quanto um arremesso forte (4×) desliza, em segundos (0 = para na hora).
+  /// Quem manda no tempo de cada giro é a desaceleração que isto define — ver
+  /// [vinylGlideSpan]. E a curva é a forma dessa desaceleração.
   final double glide;
   final String glideCurve;
 
@@ -146,6 +162,9 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   /// que o ponto de chegada depende do arremesso, e não de onde se soltou.
   bool _gliding = false;
   double _glideFrom = 0;
+
+  /// Quanto tempo este deslize dura (sai da velocidade em que foi solto).
+  double _glideSpan = 0;
   Duration _glideStart = Duration.zero;
   Duration _glideAt = Duration.zero;
 
@@ -288,10 +307,13 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     _dragging = false;
     _lastAngle = null;
     // Quem solta um disco de verdade não para ele: larga. O disco segue no
-    // embalo e vai perdendo velocidade pela curva escolhida.
-    if (_needle && widget.glide > 0) {
+    // embalo e vai perdendo velocidade pela curva escolhida — e quanto mais
+    // forte o arremesso, mais tempo isso leva.
+    final span = vinylGlideSpan(widget.glide, _speed);
+    if (_needle && span > 0.01) {
       _gliding = true;
       _glideFrom = _speed;
+      _glideSpan = span;
       _glideStart = _clock.elapsed;
       _glideAt = _clock.elapsed;
       setState(() {});
@@ -325,7 +347,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     final now = _clock.elapsed;
     final dt = (now - _glideAt).inMicroseconds / 1e6;
     _glideAt = now;
-    final t = (now - _glideStart).inMicroseconds / 1e6 / widget.glide;
+    final t = (now - _glideStart).inMicroseconds / 1e6 / _glideSpan;
     _speed = _glideFrom + (1.0 - _glideFrom) * vinylGlideCurve(widget.glideCurve, t);
 
     final total = ref.read(playerProvider).duration;

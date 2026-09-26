@@ -886,11 +886,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get vinylGlide => 'Deslize ao soltar o dedo';
+  String get vinylGlide => 'Rolamento do disco';
 
   @override
   String get vinylGlideHint =>
-      'Quanto o disco leva para voltar à velocidade normal depois que você solta. Quanto mais forte o arremesso, mais longe ele carrega — então o ponto de chegada depende do giro, não de onde você soltou. Em zero, o disco para na hora e você cai onde soltou.';
+      'Quanto um arremesso forte (4×) desliza depois que você solta. O que isto fixa é a desaceleração, não o tempo: jogando o dobro mais rápido ele roda o dobro, e um empurrãozinho para quase na hora — rolamento duro desliza pouco, rolamento liso roda à beça. O ponto de chegada passa a depender do giro, não de onde você soltou. Em zero, o disco para na hora.';
 
   @override
   String get vinylGlideOff => 'Para na hora';
@@ -902,7 +902,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get curveVinyl => 'Vinil (freia e vai encostando)';
 
   @override
-  String get curveLinear => 'Constante';
+  String get curveLinear => 'Rolamento (constante)';
 
   @override
   String get curveBrake => 'Freio no fim';

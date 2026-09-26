@@ -5,21 +5,26 @@ tirada daqui pelo `.github/workflows/release.yml`.
 
 ## v1.2.0
 
-### O disco desliza quando você solta o dedo
+### O disco tem rolamento
 
 Como um disco de verdade: soltar não para o disco, **larga** ele. Ele segue no
-embalo e vai perdendo velocidade até voltar ao normal — então **quanto mais
-forte o arremesso, mais longe ele carrega**, e o ponto de chegada depende do
-giro, não de onde você soltou. A imagem desliza junto com o som, e a barra de
-progresso acompanha.
+embalo e vai perdendo velocidade até voltar ao normal — então o ponto de chegada
+depende do giro, não de onde você soltou. A imagem desliza junto com o som, e a
+barra de progresso acompanha.
+
+O ajuste é a **desaceleração**, não o tempo: jogando o dobro mais rápido ele roda
+o dobro, e um empurrãozinho para quase na hora. Rolamento duro desliza pouco,
+rolamento liso roda à beça.
 
 Vale nos dois sentidos: soltar girando para trás continua voltando, desacelera,
 passa pelo zero e sobe até o normal; soltar com o disco quase parado faz ele
-ganhar rotação, como o prato de um toca-discos.
+ganhar rotação, como o prato de um toca-discos. E pegar o disco no meio do
+deslize continua de onde ele estava.
 
-Em **Personalizar → Tocando agora**: **Deslize ao soltar o dedo** (0 = para na
-hora, como antes, até 3 s) e a **curva da desaceleração** — vinil (freia forte e
-vai encostando, que é o atrito de um prato), constante, ou freio no fim.
+Em **Personalizar → Tocando agora**: **Rolamento do disco** (0 = para na hora,
+como antes; o número é quanto desliza um arremesso forte) e a **forma da
+desaceleração** — rolamento (constante), vinil (freia forte e vai encostando) ou
+freio no fim.
 
 ### Girar o disco: dá para voltar a música inteira
 

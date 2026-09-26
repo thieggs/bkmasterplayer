@@ -39,7 +39,7 @@ class UiPrefs {
     this.vinylSecondsPerTurn = defaultVinylSecondsPerTurn,
     this.vinylMemory = 0,
     this.vinylGlide = defaultVinylGlide,
-    this.vinylGlideCurve = 'vinyl',
+    this.vinylGlideCurve = 'linear',
     this.sidebar = 'auto',
     this.sidebarTabs = defaultSidebarTabs,
     this.mobileTabs = defaultMobileTabs,
@@ -155,8 +155,9 @@ class UiPrefs {
   /// longe ele carrega — como num disco de verdade.
   final double vinylGlide;
 
-  /// Curva da desaceleração: vinyl (freia forte e vai encostando) | linear |
-  /// brake (desliza solto e trava no fim).
+  /// Forma da desaceleração: linear (rolamento — perde velocidade na mesma
+  /// taxa, e é o padrão) | vinyl (freia forte e vai encostando) | brake
+  /// (desliza solto e trava no fim).
   final String vinylGlideCurve;
 
   // ---- Estrutura ----
@@ -229,7 +230,7 @@ class UiPrefs {
   /// Deslize do disco ao soltar o dedo, em segundos (0 = para na hora).
   static const defaultVinylGlide = 0.6;
   static const maxVinylGlide = 3.0;
-  static const glideCurves = ['vinyl', 'linear', 'brake'];
+  static const glideCurves = ['linear', 'vinyl', 'brake'];
 
   static const defaultVinylSecondsPerTurn = 1.8;
   static const minVinylSecondsPerTurn = 0.1;
