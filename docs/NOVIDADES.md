@@ -5,46 +5,44 @@ tirada daqui pelo `.github/workflows/release.yml`.
 
 ## v1.2.0
 
-### O disco tem rolamento
+Tudo nesta versão é do **disco de vinil** (modo de capa Vinil, em
+Personalizar → Tocando agora).
 
-Como um disco de verdade: soltar não para o disco, **larga** ele. Ele segue no
-embalo e vai perdendo velocidade até voltar ao normal — então o ponto de chegada
-depende do giro, não de onde você soltou. A imagem desliza junto com o som, e a
-barra de progresso acompanha.
+### Mudou
 
-O ajuste é a **desaceleração**, não o tempo: jogando o dobro mais rápido ele roda
-o dobro, e um empurrãozinho para quase na hora. Rolamento duro desliza pouco,
-rolamento liso roda à beça.
-
-Vale nos dois sentidos: soltar girando para trás continua voltando, desacelera,
-passa pelo zero e sobe até o normal; soltar com o disco quase parado faz ele
-ganhar rotação, como o prato de um toca-discos. E pegar o disco no meio do
-deslize continua de onde ele estava.
-
-Em **Personalizar → Tocando agora**: **Rolamento do disco** (0 = para na hora,
-como antes; o número é quanto desliza um arremesso forte) e a **forma da
-desaceleração** — rolamento (constante), vinil (freia forte e vai encostando) ou
-freio no fim.
-
-### Girar o disco: dá para voltar a música inteira
-
+- **O disco tem rolamento.** Soltar o dedo não para mais o disco: **larga** ele.
+  Ele segue no embalo e vai perdendo velocidade até voltar ao normal, então o
+  ponto de chegada depende do giro e não de onde você soltou. Vale nos dois
+  sentidos, e soltar com ele quase parado faz ganhar rotação, como um prato.
+  Pegar o disco no meio do deslize continua de onde ele estava.
+  - Novo ajuste **Rolamento do disco** (0 = para na hora, como antes) e **forma
+    da desaceleração**: rolamento (constante), vinil (freia forte e vai
+    encostando) ou freio no fim.
 - **A memória do disco agora tem o tamanho da faixa**, e não 12 s fixos: do fim
-  da música dá para voltar girando até o começo. Ela é guardada em 16 bits
-  (metade da RAM, sem diferença audível para scratch) e tem teto de 64 MB, que
-  a 48 kHz dá quase 6 minutos. Em **Personalizar → Tocando agora** dá para
-  limitar (a música inteira, 3 min, 1 min ou 12 s) para quem quer poupar
-  memória.
-- **Soltar e pegar o disco de novo não joga a memória fora.** Soltar dá um
-  seek, o seek troca o deck, e a memória ia junto — na prática só dava para
-  voltar o que tinha tocado desde o último gesto. Agora ela é indexada pelo
-  tempo da **música**, então atravessa os seeks; só é esquecida quando a música
-  muda ou se pula para outra parte dela.
-- **A memória enche mesmo sem ninguém no disco**, e desde o momento em que a
-  tela do vinil abre. Antes ela chegava junto com a mão — ou seja, nascia vazia
-  justo na hora do gesto, e voltar o disco não tocava nada: só dava som o que a
-  própria mão tivesse adiantado antes de virar.
-- Vale saber: o que dá para voltar é o que **já tocou** desde que a tela abriu.
-  Pular para o fim de uma música que não rodou não deixa passado atrás.
+  da música dá para voltar girando até o começo. É guardada em 16 bits (metade
+  da RAM, sem diferença audível) com teto de 64 MB — quase 6 minutos a 48 kHz.
+  - Novo ajuste **Quanto dá para voltar girando**: a música inteira, 3 min,
+    1 min ou 12 s, para quem quer poupar memória.
+- **A memória passa a encher desde que a tela do vinil abre**, e não só durante
+  o gesto.
+
+### Corrigido
+
+- **Voltar o disco não tocava nada.** A memória chegava junto com a mão — ou
+  seja, nascia vazia justo no instante do gesto. Só dava som o que a própria mão
+  tivesse adiantado antes de virar. Para frente funcionava porque ali quem serve
+  é o decodificador, não a memória.
+- **Voltar só alcançava uns 2 segundos.** Soltar o disco dá um seek, o seek
+  troca o deck, e a memória era indexada pelo contador do deck: cada gesto
+  começava do zero. Agora o índice é o tempo da música e atravessa os seeks.
+- **O deslize tinha duração fixa**: jogar o disco com força ou de leve levava os
+  mesmos 0,6 s, o que não é rolamento nenhum. Agora o ajuste fixa a
+  desaceleração e o tempo sai da força do arremesso.
+
+### Limite que continua valendo
+
+O que dá para voltar é o que **já tocou** desde que a tela do vinil abriu. Pular
+para o fim de uma música que não rodou não deixa passado atrás dela.
 
 ## v1.1.0
 
