@@ -38,6 +38,8 @@ class UiPrefs {
     this.vinylMaxSpeed = defaultVinylMaxSpeed,
     this.vinylSecondsPerTurn = defaultVinylSecondsPerTurn,
     this.vinylMemory = 0,
+    this.vinylGlide = defaultVinylGlide,
+    this.vinylGlideCurve = 'vinyl',
     this.sidebar = 'auto',
     this.sidebarTabs = defaultSidebarTabs,
     this.mobileTabs = defaultMobileTabs,
@@ -148,6 +150,15 @@ class UiPrefs {
   /// memória: a 48 kHz, cada minuto são uns 11 MB.
   final double vinylMemory;
 
+  /// Quantos segundos o disco leva para voltar à velocidade normal depois que
+  /// o dedo sai. Zero = para na hora. Quanto mais forte o arremesso, mais
+  /// longe ele carrega — como num disco de verdade.
+  final double vinylGlide;
+
+  /// Curva da desaceleração: vinyl (freia forte e vai encostando) | linear |
+  /// brake (desliza solto e trava no fim).
+  final String vinylGlideCurve;
+
   // ---- Estrutura ----
 
   /// auto | expanded | rail
@@ -215,6 +226,11 @@ class UiPrefs {
   /// inteira).
   static const vinylMemoryChoices = [0.0, 12.0, 60.0, 180.0];
 
+  /// Deslize do disco ao soltar o dedo, em segundos (0 = para na hora).
+  static const defaultVinylGlide = 0.6;
+  static const maxVinylGlide = 3.0;
+  static const glideCurves = ['vinyl', 'linear', 'brake'];
+
   static const defaultVinylSecondsPerTurn = 1.8;
   static const minVinylSecondsPerTurn = 0.1;
   static const maxVinylSecondsPerTurn = 4.0;
@@ -275,6 +291,8 @@ class UiPrefs {
     double? vinylMaxSpeed,
     double? vinylSecondsPerTurn,
     double? vinylMemory,
+    double? vinylGlide,
+    String? vinylGlideCurve,
     String? sidebar,
     List<String>? sidebarTabs,
     List<String>? mobileTabs,
@@ -317,6 +335,8 @@ class UiPrefs {
         vinylMaxSpeed: vinylMaxSpeed ?? this.vinylMaxSpeed,
         vinylSecondsPerTurn: vinylSecondsPerTurn ?? this.vinylSecondsPerTurn,
         vinylMemory: vinylMemory ?? this.vinylMemory,
+        vinylGlide: vinylGlide ?? this.vinylGlide,
+        vinylGlideCurve: vinylGlideCurve ?? this.vinylGlideCurve,
         sidebar: sidebar ?? this.sidebar,
         sidebarTabs: sidebarTabs ?? this.sidebarTabs,
         mobileTabs: mobileTabs ?? this.mobileTabs,
@@ -360,6 +380,8 @@ class UiPrefs {
         'vinylMaxSpeed': vinylMaxSpeed,
         'vinylSecondsPerTurn': vinylSecondsPerTurn,
         'vinylMemory': vinylMemory,
+        'vinylGlide': vinylGlide,
+        'vinylGlideCurve': vinylGlideCurve,
         'sidebar': sidebar,
         'sidebarTabs': sidebarTabs,
         'mobileTabs': mobileTabs,
@@ -461,6 +483,8 @@ class UiPrefs {
       vinylMaxSpeed: vinylSpeed(),
       vinylSecondsPerTurn: num_('vinylSecondsPerTurn', d.vinylSecondsPerTurn, minVinylSecondsPerTurn, maxVinylSecondsPerTurn),
       vinylMemory: num_('vinylMemory', d.vinylMemory, 0, 600),
+      vinylGlide: num_('vinylGlide', d.vinylGlide, 0, maxVinylGlide),
+      vinylGlideCurve: one('vinylGlideCurve', d.vinylGlideCurve, glideCurves),
       sidebar: one('sidebar', d.sidebar, const ['auto', 'expanded', 'rail']),
       sidebarTabs: sidebarTabs.isEmpty ? d.sidebarTabs : sidebarTabs,
       mobileTabs: mobileTabs.length < 2 ? d.mobileTabs : mobileTabs,

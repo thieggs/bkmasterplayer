@@ -559,6 +559,35 @@ class _NowPlayingPage extends StatelessWidget {
             ),
           ),
         if (ui.nowPlayingLayout == 'vinyl')
+          ListTile(
+            leading: const Icon(Icons.slow_motion_video),
+            title: Row(children: [
+              Expanded(child: Text(l10n.vinylGlide)),
+              Text(ui.vinylGlide == 0 ? l10n.vinylGlideOff : l10n.vinylTurnSeconds(ui.vinylGlide)),
+            ]),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.vinylGlideHint, style: Theme.of(context).textTheme.bodySmall),
+                Slider(
+                  value: ui.vinylGlide,
+                  max: UiPrefs.maxVinylGlide,
+                  divisions: (UiPrefs.maxVinylGlide * 4).round(),
+                  label: ui.vinylGlide == 0 ? l10n.vinylGlideOff : l10n.vinylTurnSeconds(ui.vinylGlide),
+                  onChanged: ui.vinylScratch ? (v) => set((p) => p.copyWith(vinylGlide: v)) : null,
+                ),
+              ],
+            ),
+          ),
+        if (ui.nowPlayingLayout == 'vinyl' && ui.vinylScratch && ui.vinylGlide > 0)
+          ChoiceTile<String>(
+            title: l10n.vinylCurve,
+            icon: Icons.show_chart,
+            value: ui.vinylGlideCurve,
+            options: {'vinyl': l10n.curveVinyl, 'linear': l10n.curveLinear, 'brake': l10n.curveBrake},
+            onChanged: (v) => set((p) => p.copyWith(vinylGlideCurve: v)),
+          ),
+        if (ui.nowPlayingLayout == 'vinyl')
           SwitchListTile(
             secondary: const Icon(Icons.all_inclusive),
             title: Text(l10n.vinylNoLimit),

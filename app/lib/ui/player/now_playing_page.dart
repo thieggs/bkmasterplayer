@@ -53,6 +53,8 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
           maxSpeed: ui.vinylMaxSpeed,
           secondsPerTurn: ui.vinylSecondsPerTurn,
           memorySeconds: ui.vinylMemory,
+          glide: ui.vinylGlide,
+          glideCurve: ui.vinylGlideCurve,
         );
       }
       return Hero(

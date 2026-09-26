@@ -1645,6 +1645,48 @@ abstract class AppLocalizations {
   /// **'{n} s'**
   String vinylTurnSeconds(double n);
 
+  /// No description provided for @vinylGlide.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deslize ao soltar o dedo'**
+  String get vinylGlide;
+
+  /// No description provided for @vinylGlideHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto o disco leva para voltar à velocidade normal depois que você solta. Quanto mais forte o arremesso, mais longe ele carrega — então o ponto de chegada depende do giro, não de onde você soltou. Em zero, o disco para na hora e você cai onde soltou.'**
+  String get vinylGlideHint;
+
+  /// No description provided for @vinylGlideOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para na hora'**
+  String get vinylGlideOff;
+
+  /// No description provided for @vinylCurve.
+  ///
+  /// In pt, this message translates to:
+  /// **'Curva da desaceleração'**
+  String get vinylCurve;
+
+  /// No description provided for @curveVinyl.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vinil (freia e vai encostando)'**
+  String get curveVinyl;
+
+  /// No description provided for @curveLinear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Constante'**
+  String get curveLinear;
+
+  /// No description provided for @curveBrake.
+  ///
+  /// In pt, this message translates to:
+  /// **'Freio no fim'**
+  String get curveBrake;
+
   /// No description provided for @vinylMemory.
   ///
   /// In pt, this message translates to:

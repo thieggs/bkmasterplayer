@@ -30,6 +30,23 @@ const _brakeDuration = Duration(milliseconds: 220);
 /// Dedo parado por mais do que isto: o disco está sendo segurado, não girado.
 const _stillAfter = Duration(milliseconds: 40);
 
+/// A curva do deslize: quanto do caminho até a velocidade normal já foi andado,
+/// com `t` de 0 (soltou agora) a 1 (acabou o deslize).
+///
+/// - `vinyl`: freia forte no começo e vai encostando de leve — é o atrito de um
+///   prato de verdade;
+/// - `linear`: perde velocidade na mesma taxa do começo ao fim;
+/// - `brake`: desliza solto e trava no fim.
+@visibleForTesting
+double vinylGlideCurve(String curve, double t) {
+  final x = t.clamp(0.0, 1.0);
+  return switch (curve) {
+    'linear' => x,
+    'brake' => x * x * x,
+    _ => 1 - math.pow(1 - x, 3).toDouble(),
+  };
+}
+
 /// Onde [turns] voltas a partir de [from] deixam a música, e quantas voltas
 /// isso valeu de verdade: nas pontas o disco trava, como o fim do sulco, e
 /// girar mais não conta (senão o caminho de volta ficaria torto).
@@ -67,6 +84,8 @@ class VinylDisc extends ConsumerStatefulWidget {
     this.maxSpeed = UiPrefs.defaultVinylMaxSpeed,
     this.secondsPerTurn = UiPrefs.defaultVinylSecondsPerTurn,
     this.memorySeconds = 0,
+    this.glide = UiPrefs.defaultVinylGlide,
+    this.glideCurve = 'vinyl',
   });
 
   final double size;
@@ -82,6 +101,11 @@ class VinylDisc extends ConsumerStatefulWidget {
 
   /// Quanto da música dá para voltar girando (0 = a faixa inteira).
   final double memorySeconds;
+
+  /// Segundos até o disco voltar à velocidade normal depois de soltar o dedo
+  /// (0 = para na hora), e a curva dessa desaceleração.
+  final double glide;
+  final String glideCurve;
 
   @override
   ConsumerState<VinylDisc> createState() => _VinylDiscState();
@@ -117,6 +141,18 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   /// parar sozinho quando o dedo para, sem esperar o próximo movimento).
   Ticker? _pump;
 
+  /// Deslizando depois de soltar o dedo: o disco ainda gira, perdendo
+  /// velocidade pela curva, e só no fim a reprodução normal assume. É por isso
+  /// que o ponto de chegada depende do arremesso, e não de onde se soltou.
+  bool _gliding = false;
+  double _glideFrom = 0;
+  Duration _glideStart = Duration.zero;
+  Duration _glideAt = Duration.zero;
+
+  /// O disco está na mão ou ainda deslizando (nos dois casos o giro é nosso,
+  /// não o automático).
+  bool get _busy => _dragging || _gliding;
+
   @override
   void initState() {
     super.initState();
@@ -132,7 +168,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   void dispose() {
     _brake.removeListener(_applyBrake);
     // Saiu da tela com o disco na mão: solta tudo o que ficou preso nele.
-    if (_dragging) {
+    if (_busy) {
       final p = ref.read(playerProvider.notifier);
       if (_needle) p.vinyl(null);
       p.fadeVolume(1);
@@ -148,8 +184,12 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
   /// o disco vai parando na mão, como um de verdade.
   void _pumpNeedle(Duration _) {
     if (!_needle) return;
+    if (_gliding) {
+      _slide();
+      return;
+    }
     if (_clock.elapsed - _movedAt > _stillAfter) _speed *= 0.5;
-    ref.read(playerProvider.notifier).vinyl(_speed, maxSpeed: widget.maxSpeed, memorySeconds: widget.memorySeconds);
+    _push(_speed);
   }
 
   void _applyBrake() => ref.read(playerProvider.notifier).fadeVolume(_brake.value);
@@ -171,8 +211,15 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     if (p.current == null) return;
     _dragging = true;
     _wasPlaying = p.playing;
-    _from = p.position;
-    _to = p.position;
+    // Pegou o disco que ainda deslizava: continua de onde ele estava, sem
+    // pular para a posição do motor (que pode estar alguns frames atrás).
+    if (!_gliding) {
+      _from = p.position;
+      _to = p.position;
+    } else {
+      _gliding = false;
+      _from = _to;
+    }
     _turnsAtGrab = _turns;
     _lastAngle = _angleAt(d.localPosition);
     _spin.stop();
@@ -188,8 +235,9 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
       _movedAt = Duration.zero;
       _measuredAt = Duration.zero;
       _measuredTo = _to;
-      ref.read(playerProvider.notifier).vinyl(0, maxSpeed: widget.maxSpeed, memorySeconds: widget.memorySeconds);
-      (_pump ??= createTicker(_pumpNeedle)).start();
+      _push(0);
+      final pump = _pump ??= createTicker(_pumpNeedle);
+      if (!pump.isActive) pump.start();
     } else if (_wasPlaying) {
       _brake.reverse();
     }
@@ -239,6 +287,22 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     if (!_dragging) return;
     _dragging = false;
     _lastAngle = null;
+    // Quem solta um disco de verdade não para ele: larga. O disco segue no
+    // embalo e vai perdendo velocidade pela curva escolhida.
+    if (_needle && widget.glide > 0) {
+      _gliding = true;
+      _glideFrom = _speed;
+      _glideStart = _clock.elapsed;
+      _glideAt = _clock.elapsed;
+      setState(() {});
+      return;
+    }
+    _land();
+  }
+
+  /// Fim do gesto: a reprodução normal assume no ponto onde o disco parou.
+  void _land() {
+    _gliding = false;
     final p = ref.read(playerProvider.notifier);
     // O seek já devolve o disco ao motor (troca o deck); soltar depois é só
     // garantia, para o caso de a faixa ter acabado no meio do giro.
@@ -252,17 +316,51 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
     if (_wasPlaying) p.play();
     _brake.forward();
     ref.read(vinylScrubProvider.notifier).set(null);
+    if (mounted) setState(() {});
+  }
+
+  /// Um quadro do deslize: a velocidade cai pela curva até o 1× normal e a
+  /// música anda junto, no disco e na barra de progresso.
+  void _slide() {
+    final now = _clock.elapsed;
+    final dt = (now - _glideAt).inMicroseconds / 1e6;
+    _glideAt = now;
+    final t = (now - _glideStart).inMicroseconds / 1e6 / widget.glide;
+    _speed = _glideFrom + (1.0 - _glideFrom) * vinylGlideCurve(widget.glideCurve, t);
+
+    final total = ref.read(playerProvider).duration;
+    final turned = vinylSeek(
+      from: _to,
+      total: total,
+      turns: _speed * dt / widget.secondsPerTurn,
+      secondsPerTurn: widget.secondsPerTurn,
+    );
+    final ponta = turned.at == _to && _speed != 0;
+    _to = turned.at;
+    _turns += turned.turns;
+    ref.read(vinylScrubProvider.notifier).set(_to);
+    _push(_speed);
+    // Chegou na velocidade normal, ou encostou na ponta da música (fim do
+    // sulco): a reprodução assume dali.
+    if (t >= 1 || ponta) {
+      _land();
+      return;
+    }
     setState(() {});
   }
+
+  void _push(double speed) => ref
+      .read(playerProvider.notifier)
+      .vinyl(speed, maxSpeed: widget.maxSpeed, memorySeconds: widget.memorySeconds);
 
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
     final playing = ref.watch(playerProvider.select((s) => s.playing));
     // Gira só enquanto toca e ninguém está segurando.
-    if (playing && !_dragging && !_spin.isAnimating) {
+    if (playing && !_busy && !_spin.isAnimating) {
       _spin.repeat();
-    } else if ((!playing || _dragging) && _spin.isAnimating) {
+    } else if ((!playing || _busy) && _spin.isAnimating) {
       _spin.stop();
     }
 
@@ -316,7 +414,7 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
             },
             child: hero,
           ),
-          if (_dragging)
+          if (_busy)
             Positioned.fill(
               child: IgnorePointer(
                 child: Align(alignment: const Alignment(0, 0.62), child: _ScrubLabel(from: _from, to: _to)),

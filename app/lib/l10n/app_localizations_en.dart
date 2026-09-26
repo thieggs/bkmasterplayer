@@ -887,6 +887,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get vinylGlide => 'Coasting when you let go';
+
+  @override
+  String get vinylGlideHint =>
+      'How long the record takes to settle back to normal speed after you let go. A harder throw carries it further — so where you land depends on the spin, not on where you let go. At zero it stops dead and you land where you released it.';
+
+  @override
+  String get vinylGlideOff => 'Stops dead';
+
+  @override
+  String get vinylCurve => 'Deceleration curve';
+
+  @override
+  String get curveVinyl => 'Vinyl (brakes, then eases in)';
+
+  @override
+  String get curveLinear => 'Constant';
+
+  @override
+  String get curveBrake => 'Brake at the end';
+
+  @override
   String get vinylMemory => 'How far back the spin can go';
 
   @override

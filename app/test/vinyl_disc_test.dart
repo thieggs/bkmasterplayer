@@ -13,6 +13,37 @@ void main() {
     expect(UiPrefs.maxVinylSecondsPerTurn, lessThanOrEqualTo(UiPrefs.defaultVinylMaxSpeed));
   });
 
+  test('a curva do deslize sai de 0 e chega em 1, e cada forma tem seu jeito', () {
+    for (final curva in UiPrefs.glideCurves) {
+      expect(vinylGlideCurve(curva, 0), 0, reason: curva);
+      expect(vinylGlideCurve(curva, 1), 1, reason: curva);
+      // Nunca volta atrás: a velocidade só caminha para a normal.
+      var antes = 0.0;
+      for (var t = 0.0; t <= 1.0; t += 0.05) {
+        final agora = vinylGlideCurve(curva, t);
+        expect(agora, greaterThanOrEqualTo(antes - 1e-9), reason: '$curva em $t');
+        antes = agora;
+      }
+      // Fora da faixa fica preso nas pontas (o deslize acabou).
+      expect(vinylGlideCurve(curva, 2), 1, reason: curva);
+      expect(vinylGlideCurve(curva, -1), 0, reason: curva);
+    }
+    // No meio do caminho: o vinil já andou mais da metade (freou forte no
+    // começo) e o freio no fim ainda andou pouco.
+    expect(vinylGlideCurve('vinyl', 0.5), greaterThan(0.5));
+    expect(vinylGlideCurve('linear', 0.5), 0.5);
+    expect(vinylGlideCurve('brake', 0.5), lessThan(0.5));
+  });
+
+  test('deslize de fábrica é curto, e zero quer dizer parar na hora', () {
+    expect(UiPrefs.defaultVinylGlide, 0.6);
+    expect(const UiPrefs().vinylGlideCurve, 'vinyl');
+    expect(UiPrefs.fromJson({'vinylGlide': 9}).vinylGlide, UiPrefs.maxVinylGlide);
+    expect(UiPrefs.fromJson({'vinylGlide': -1}).vinylGlide, 0);
+    expect(UiPrefs.fromJson({'vinylGlide': 'muito'}).vinylGlide, UiPrefs.defaultVinylGlide);
+    expect(UiPrefs.fromJson({'vinylGlideCurve': 'foguete'}).vinylGlideCurve, 'vinyl');
+  });
+
   test('girar para frente e para trás anda a música na mesma medida', () {
     const from = Duration(minutes: 1);
     const total = Duration(minutes: 3);
