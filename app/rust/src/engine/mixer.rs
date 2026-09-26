@@ -1583,3 +1583,109 @@ mod vinyl_tests {
         assert!(at(&v, &slot) > 300 - v.frames() as u64);
     }
 }
+
+/// Testes pelo mixer de verdade: os de cima chamam a agulha direto, então a
+/// fiação (comandos, quem guarda o que toca, quem pega o disco) ficava sem
+/// rede — e foi nela que os defeitos de voltar o disco moraram.
+#[cfg(test)]
+mod mixer_vinyl_tests {
+    use super::*;
+    use crate::engine::deck::DeckShared;
+
+    fn sample(i: u64) -> f32 {
+        (i % 1000) as f32 / 1000.0 - 0.5
+    }
+
+    struct Bancada {
+        mixer: Mixer,
+        cmd: rtrb::Producer<MixerCmd>,
+        _ev: rtrb::Consumer<MixerEvent>,
+        _p: rtrb::Producer<f32>,
+    }
+
+    fn bancada(frames: usize, memoria: usize) -> Bancada {
+        let (cmd_tx, cmd_rx) = rtrb::RingBuffer::<MixerCmd>::new(32);
+        let (ev_tx, ev_rx) = rtrb::RingBuffer::<MixerEvent>::new(64);
+        let mut mixer = Mixer::new(48000, cmd_rx, ev_tx);
+        let (mut p, c) = rtrb::RingBuffer::<f32>::new(frames * 2);
+        for i in 0..frames {
+            p.push(sample(i as u64)).unwrap();
+            p.push(-sample(i as u64)).unwrap();
+        }
+        let shared = DeckShared::new(1, 48000);
+        shared.total_frames.store(frames as u64, Ordering::Relaxed);
+        let mut b = Bancada {
+            mixer: std::mem::replace(&mut mixer, Mixer::new(48000, rtrb::RingBuffer::new(1).1, rtrb::RingBuffer::new(1).0)),
+            cmd: cmd_tx,
+            _ev: ev_rx,
+            _p: p,
+        };
+        b.cmd
+            .push(MixerCmd::Play(Box::new(DeckSource { shared, ring: c, gain: 1.0 })))
+            .unwrap();
+        // A tela do vinil abriu: daqui em diante o mixer guarda o que toca.
+        b.cmd.push(MixerCmd::VinylMemory(Box::new(vec![0i16; memoria * 2]))).unwrap();
+        b
+    }
+
+    fn toca(b: &mut Bancada, n: usize) -> Vec<f32> {
+        let mut out = vec![0.0; n * 2];
+        b.mixer.render(&mut out);
+        out
+    }
+
+    fn gira(b: &mut Bancada, speed: f32) {
+        b.cmd
+            .push(MixerCmd::Vinyl(Some(VinylSpin { speed, max: f32::INFINITY })))
+            .unwrap();
+    }
+
+    #[test]
+    fn voltar_o_disco_toca_o_que_ja_tocou() {
+        let mut b = bancada(40000, 20000);
+        // Tocou normal um pedaço: é isso que dá para voltar.
+        toca(&mut b, 4000);
+        let guardado = b.mixer.vinyl.filled;
+        assert!(guardado > 3000, "o mixer não guardou o que tocou: {guardado}");
+
+        // Pegou o disco e girou para trás.
+        gira(&mut b, -1.0);
+        let out = toca(&mut b, 2000);
+        assert!(b.mixer.vinyl.active, "o disco não ficou na mão");
+        let ultimo = out[out.len() - 400..].iter().fold(0.0f32, |m, x| m.max(x.abs()));
+        assert!(ultimo > 0.01, "voltar o disco não tocou nada (pico {ultimo})");
+    }
+
+    #[test]
+    fn soltar_e_pegar_de_novo_continua_dando_som_para_tras() {
+        let mut b = bancada(40000, 20000);
+        toca(&mut b, 4000);
+        gira(&mut b, -1.0);
+        toca(&mut b, 1000);
+
+        // Soltou: o app dá um seek, que no mixer é ReplaceCurrent na mesma
+        // música, e depois solta o disco.
+        let pos = b.mixer.current.as_ref().unwrap().src.shared.native_position();
+        let (mut p2, c2) = rtrb::RingBuffer::<f32>::new(40000 * 2);
+        for i in 0..20000u64 {
+            p2.push(sample(pos + i)).unwrap();
+            p2.push(-sample(pos + i)).unwrap();
+        }
+        let sh2 = DeckShared::new(2, 48000);
+        sh2.start_frame.store(pos, Ordering::Relaxed);
+        b.cmd
+            .push(MixerCmd::ReplaceCurrent(Box::new(DeckSource { shared: sh2, ring: c2, gain: 1.0 })))
+            .unwrap();
+        b.cmd.push(MixerCmd::Vinyl(None)).unwrap();
+        toca(&mut b, 1000);
+        let guardado = b.mixer.vinyl.filled;
+        assert!(guardado > 3000, "o seek de soltar jogou a memória fora: {guardado}");
+
+        // Pegou de novo e voltou: tem que tocar.
+        gira(&mut b, -1.0);
+        let out = toca(&mut b, 2000);
+        let ultimo = out[out.len() - 400..].iter().fold(0.0f32, |m, x| m.max(x.abs()));
+        assert!(ultimo > 0.01, "no segundo gesto voltar não tocou (pico {ultimo})");
+        std::mem::drop(p2);
+    }
+}
