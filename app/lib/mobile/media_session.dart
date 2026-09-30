@@ -12,7 +12,6 @@ import '../data/recommend.dart';
 import '../data/similar.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
-import '../ui/widgets/cover_art.dart';
 import 'auto_browser.dart';
 
 /// Celular (Android): notificação de mídia, tela de bloqueio, botões do fone e
@@ -52,6 +51,8 @@ class _BkAudioHandler extends BaseAudioHandler {
           },
           artDir: '${_container.read(cacheDirProvider).path}/aa_art',
           pt: Platform.localeName.startsWith('pt'),
+          // As abas escolhidas no app valem no carro também.
+          tabs: () => _container.read(uiPrefsProvider).sidebarTabs,
         ) {
     _session.interruptionEventStream.listen(_onInterruption);
     // Fone desconectado / Bluetooth caiu: pausa em vez de sair no alto-falante.
@@ -181,25 +182,21 @@ class _BkAudioHandler extends BaseAudioHandler {
     ]);
   }
 
-  /// Capa da notificação a partir do cache local: a URL do servidor leva o
-  /// token do login, e os metadados da sessão de mídia são visíveis a outros apps.
+  /// Capa do que está tocando, pelo provedor de capas do app (`content://`).
+  ///
+  /// Não pode ser `file://`: quem desenha a tela do carro é o Android Auto, que
+  /// é **outro app** e não enxerga o cache privado daqui — a capa saía cinza lá.
+  /// Pelo provedor os dois leem, e a URI leva só uma chave: a URL do servidor
+  /// (que carrega o token do login) não vai parar nos metadados da sessão, que
+  /// qualquer app instalado consegue ler.
   Future<void> _loadArt(QueueItem item) async {
     try {
-      if (isFileCover(item.song.coverArt)) {
-        final cur = mediaItem.value;
-        if (cur != null && cur.id == item.uid) mediaItem.add(cur.copyWith(artUri: Uri.file(item.song.coverArt!)));
-        return;
-      }
-      final p = _container.read(musicProvider);
-      final uri = p.coverUri(item.song.coverArt, size: 600);
-      final key = p.coverCacheKey(item.song.coverArt, size: 600);
-      if (uri == null || key == null) return;
-      final dir = '${_container.read(cacheDirProvider).path}/ui_covers';
-      final file = await CoverImageProvider.fetchFile(url: uri.toString(), cacheKey: key, cacheDir: dir);
+      final uri = _auto.art(item.song.coverArt, size: 600);
+      if (uri == null) return;
       final cur = mediaItem.value;
-      if (cur != null && cur.id == item.uid) mediaItem.add(cur.copyWith(artUri: Uri.file(file.path)));
+      if (cur != null && cur.id == item.uid) mediaItem.add(cur.copyWith(artUri: uri));
     } catch (e) {
-      debugPrint('capa da notificação: $e');
+      debugPrint('capa do que está tocando: $e');
     }
   }
 

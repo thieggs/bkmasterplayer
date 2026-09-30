@@ -53,15 +53,20 @@ pub struct Config {
 
 /// O anúncio de agora, trocado pela thread que cuida do túnel.
 #[derive(Default)]
-pub struct Board(RwLock<Option<Vec<u8>>>);
+pub struct Board(RwLock<Option<(Vec<u8>, String)>>);
 
 impl Board {
     pub fn post(&self, n: &Notice) {
-        *self.0.write() = serde_json::to_vec(n).ok();
+        *self.0.write() = serde_json::to_vec(n).ok().map(|b| (b, n.music.clone()));
     }
 
     fn read(&self) -> Option<Vec<u8>> {
-        self.0.read().clone()
+        self.0.read().as_ref().map(|(b, _)| b.clone())
+    }
+
+    /// O endereço rápido que o anúncio aponta agora.
+    fn music(&self) -> Option<String> {
+        self.0.read().as_ref().map(|(_, m)| m.clone())
     }
 }
 
@@ -154,13 +159,22 @@ impl App {
                     }
                 }
             }
-            None => format!("{}{}", self.cfg.navidrome, raw),
+            None => {
+                if let Some(to) = self.board.music().and_then(|m| browser_detour(&req, &raw, &m)) {
+                    let _ = req.respond(redirect(&to));
+                    return;
+                }
+                format!("{}{}", self.cfg.navidrome, raw)
+            }
         };
         match self.forward(&mut req, &target) {
-            Ok(resp) => {
+            Ok(Answer::Whole(resp)) => {
                 // A conexão cai no meio de uma música o tempo todo (pular
                 // faixa, tela desligada): é rotina, não erro.
                 let _ = req.respond(resp);
+            }
+            Ok(Answer::Live(live)) => {
+                let _ = live.send(req.into_writer());
             }
             Err(e) => {
                 eprintln!("{path}: {e:#}");
@@ -169,7 +183,7 @@ impl App {
         }
     }
 
-    fn forward(&self, req: &mut Request, target: &str) -> Result<Resp> {
+    fn forward(&self, req: &mut Request, target: &str) -> Result<Answer> {
         let method = req.method().clone();
         let mut out = ureq::http::Request::builder().method(method.as_str()).uri(target);
         for h in req.headers() {
@@ -189,6 +203,11 @@ impl App {
             self.agent.run(out.body(ureq::SendBody::none())?)?
         };
         let status = resp.status().as_u16();
+        let live = resp
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|v| v.trim_start().to_ascii_lowercase().starts_with("text/event-stream"));
         let mut headers = Vec::new();
         let mut length = None;
         for (name, value) in resp.headers() {
@@ -207,8 +226,88 @@ impl App {
             }
         }
         let reader: Box<dyn Read + Send> = Box::new(resp.into_body().into_reader());
-        Ok(Response::new(StatusCode(status), headers, reader, length, None))
+        if live {
+            return Ok(Answer::Live(Live { status, headers, reader }));
+        }
+        Ok(Answer::Whole(Response::new(StatusCode(status), headers, reader, length, None)))
     }
+}
+
+enum Answer {
+    Whole(Resp),
+    Live(Live),
+}
+
+/// Resposta que chega aos pouquinhos e não pode esperar: os eventos do
+/// Navidrome (`/api/events`), que a interface web usa para saber se o
+/// servidor está vivo.
+///
+/// O tiny_http junta 8 KB antes de mandar um pedaço de resposta sem
+/// tamanho; um evento tem poucos bytes, então nada saía, e a página
+/// mostrava "Server Uptime: OFFLINE". Aqui o corpo vai direto ao soquete,
+/// cada leitura empurrada na hora, e a conexão fecha no fim.
+struct Live {
+    status: u16,
+    headers: Vec<Header>,
+    reader: Box<dyn Read + Send>,
+}
+
+impl Live {
+    fn send(mut self, mut out: Box<dyn std::io::Write + Send>) -> std::io::Result<()> {
+        use std::io::Write as _;
+        let mut head = format!("HTTP/1.1 {} {}\r\n", self.status, StatusCode(self.status).default_reason_phrase());
+        for h in &self.headers {
+            if h.field.equiv("connection") {
+                continue;
+            }
+            head.push_str(&format!("{}: {}\r\n", h.field, h.value));
+        }
+        head.push_str("Connection: close\r\n\r\n");
+        out.write_all(head.as_bytes())?;
+        out.flush()?;
+        let mut buf = [0u8; 8192];
+        loop {
+            let n = self.reader.read(&mut buf)?;
+            if n == 0 || stopping() {
+                return out.flush();
+            }
+            out.write_all(&buf[..n])?;
+            out.flush()?;
+        }
+    }
+}
+
+/// Para onde mandar um navegador que chegou pelo Funnel.
+///
+/// O Funnel passa por Nova York (~8 Mbps); o túnel da Cloudflare fica
+/// perto (~100 Mbps). O app já pula sozinho lendo o anúncio, mas o
+/// navegador não sabe fazer isso — então quem abre uma página pelo link
+/// fixo é mandado para o mesmo caminho no túnel. Só páginas (navegação de
+/// verdade): o app e os clientes Subsonic não pedem HTML, e um pedido que
+/// já veio pela Cloudflare não traz a marca do Funnel, então não há volta.
+fn browser_detour(req: &Request, raw: &str, music: &str) -> Option<String> {
+    let header = |n: &str| req.headers().iter().find(|h| h.field.as_str().as_str().eq_ignore_ascii_case(n)).map(|h| h.value.as_str().to_string());
+    detour(*req.method() == Method::Get, header, raw, music)
+}
+
+fn detour(get: bool, header: impl Fn(&str) -> Option<String>, raw: &str, music: &str) -> Option<String> {
+    if !get {
+        return None;
+    }
+    header("Tailscale-Funnel-Request")?;
+    let page = match header("Sec-Fetch-Mode") {
+        Some(mode) => mode == "navigate",
+        None => header("Accept").is_some_and(|a| a.contains("text/html")),
+    };
+    let music = music.trim_end_matches('/');
+    let same_place = header("Host").is_some_and(|h| music.strip_prefix("https://").or(music.strip_prefix("http://")) == Some(h.as_str()));
+    (page && !same_place && music.starts_with("https://")).then(|| format!("{music}{raw}"))
+}
+
+fn redirect(to: &str) -> Resp {
+    // 302 e sem cache: o nome do túnel muda a cada reinício do portal.
+    let loc = Header::from_bytes(&b"Location"[..], to.as_bytes()).expect("endereço vem do anúncio");
+    text(302, "a música mudou de endereço").with_header(loc).with_header(no_store()).boxed()
 }
 
 /// Caminho sem truque: nenhum trecho `.` ou `..`, nem contrabandeados em
@@ -317,6 +416,30 @@ mod tests {
         ] {
             assert!(plain_path(ok), "barrou à toa: {ok}");
         }
+    }
+
+    fn ask(get: bool, hs: &[(&str, &str)]) -> Option<String> {
+        let header = |n: &str| hs.iter().find(|(k, _)| k.eq_ignore_ascii_case(n)).map(|(_, v)| v.to_string());
+        detour(get, header, "/app/?x=1", "https://rapido.trycloudflare.com")
+    }
+
+    #[test]
+    fn a_browser_on_the_funnel_goes_to_the_fast_tunnel() {
+        let funnel = ("Tailscale-Funnel-Request", "?1");
+        let host = ("Host", "pc.ts.net");
+        assert_eq!(
+            ask(true, &[funnel, host, ("Sec-Fetch-Mode", "navigate"), ("Accept", "text/html")]).as_deref(),
+            Some("https://rapido.trycloudflare.com/app/?x=1")
+        );
+        // Navegador velho, sem Sec-Fetch.
+        assert!(ask(true, &[funnel, host, ("Accept", "text/html,*/*")]).is_some());
+        // Script da página, o app e clientes Subsonic ficam onde estão.
+        assert!(ask(true, &[funnel, host, ("Sec-Fetch-Mode", "cors"), ("Accept", "text/html")]).is_none());
+        assert!(ask(true, &[funnel, host, ("Accept", "application/json")]).is_none());
+        assert!(ask(false, &[funnel, host, ("Sec-Fetch-Mode", "navigate")]).is_none());
+        // Já veio pela Cloudflare (sem a marca do Funnel): não volta em círculo.
+        assert!(ask(true, &[host, ("Sec-Fetch-Mode", "navigate")]).is_none());
+        assert!(ask(true, &[funnel, ("Host", "rapido.trycloudflare.com"), ("Sec-Fetch-Mode", "navigate")]).is_none());
     }
 
     #[test]

@@ -56,11 +56,45 @@ void main() {
 
   test('raiz com 4 abas e álbuns em grade', () async {
     final root = await auto.children('root');
-    expect(root.map((m) => m.id), ['tab:home', 'tab:recent', 'tab:albums', 'tab:playlists']);
-    expect(root[1].extras![AutoBrowser.browsableHint], 2);
+    expect(root.map((m) => m.id), ['tab:home', 'tab:albums', 'tab:artists', 'tab:playlists']);
+    expect(root[1].extras![AutoBrowser.browsableHint], AutoBrowser.styleGrid);
     final albums = await auto.children('tab:albums');
     expect(albums.single.id, 'album:a1');
     expect(albums.single.playable, isFalse);
+  });
+
+  test('as abas do carro saem das que o usuário escolheu no app', () async {
+    final meu = AutoBrowser(
+      provider: () => fake,
+      artDir: dir.path,
+      pt: true,
+      // Ordem e conteúdo do app; buscar e gerar playlist não servem dirigindo.
+      tabs: () => const ['home', 'search', 'genres', 'favorites', 'generate', 'albums'],
+    );
+    final root = await meu.children('root');
+    // Início sempre na frente, e só o que cabe no carro, na ordem do app.
+    expect(root.map((m) => m.id), ['tab:home', 'tab:albums', 'tab:genres', 'list:starred']);
+    expect(root.length, AutoBrowser.maxTabs);
+  });
+
+  test('escolha sem nada que sirva no carro cai no padrão', () async {
+    final meu = AutoBrowser(
+      provider: () => fake,
+      artDir: dir.path,
+      pt: true,
+      tabs: () => const ['search', 'generate', 'downloads'],
+    );
+    expect((await meu.children('root')).map((m) => m.id), ['tab:home', 'tab:albums', 'tab:artists', 'tab:playlists']);
+  });
+
+  test('Início vem em blocos, e o que não tem capa não fica com quadro vazio', () async {
+    final home = await auto.children('tab:home');
+    final grupos = home.map((m) => m.extras?[AutoBrowser.groupTitleHint]).toSet();
+    expect(grupos, {'Tocar agora', 'Suas músicas', 'Descobrir'});
+    final aleatorias = home.firstWhere((m) => m.id == 'do:shuffle');
+    expect(aleatorias.extras![AutoBrowser.singleItemHint], AutoBrowser.styleCategoryList);
+    final favoritas = home.firstWhere((m) => m.id == 'list:starred');
+    expect(favoritas.extras![AutoBrowser.singleItemHint], AutoBrowser.styleCategoryList);
   });
 
   test('músicas do álbum tocam a partir da escolhida', () async {

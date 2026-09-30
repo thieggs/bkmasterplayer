@@ -13,15 +13,38 @@ import '../domain/music_provider.dart';
 /// `list:search`; música `<pasta>|<índice>` (toca a pasta a partir dela);
 /// ações `do:*` (o handler de mídia decide o que fazer).
 class AutoBrowser {
-  AutoBrowser({required this.provider, required this.artDir, required this.pt, this.artAuthority = defaultArtAuthority});
+  AutoBrowser({
+    required this.provider,
+    required this.artDir,
+    required this.pt,
+    this.tabs,
+    this.artAuthority = defaultArtAuthority,
+  });
 
   static const defaultArtAuthority = 'io.github.playermusica.player_musica.art';
 
-  // Dicas de layout do Android Auto (lista = 1, grade = 2).
+  // Dicas de layout do Android Auto (conferidas em androidx.media MediaConstants).
   static const contentStyleSupported = 'android.media.browse.CONTENT_STYLE_SUPPORTED';
   static const browsableHint = 'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT';
   static const playableHint = 'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT';
+  static const singleItemHint = 'android.media.browse.CONTENT_STYLE_SINGLE_ITEM_HINT';
+  static const groupTitleHint = 'android.media.browse.CONTENT_STYLE_GROUP_TITLE_HINT';
   static const searchSupported = 'android.media.browse.SEARCH_SUPPORTED';
+
+  /// Formatos: linha comum, quadro grande com capa, e as versões "categoria",
+  /// que dão margem ao ícone em vez de esticar uma capa que não existe.
+  static const styleList = 1;
+  static const styleGrid = 2;
+  static const styleCategoryList = 3;
+  static const styleCategoryGrid = 4;
+
+  /// Abas que fazem sentido no carro, na ordem em que o app as oferece. O
+  /// carro mostra poucas, então vale só o que dá para usar dirigindo: buscar
+  /// tem tela própria, e gerar playlist pede teclado.
+  static const carTabs = ['home', 'albums', 'artists', 'playlists', 'genres', 'favorites', 'songs'];
+
+  /// Quantas abas o Android Auto mostra na raiz antes de esconder o resto.
+  static const maxTabs = 4;
 
   /// Extras da raiz para o [AudioServiceConfig].
   static const rootExtras = <String, dynamic>{
@@ -36,6 +59,11 @@ class AutoBrowser {
 
   /// Onde ficam as fontes das capas que o [BkArtProvider] do Android serve.
   final String artDir;
+
+  /// As abas que o usuário escolheu no app (`UiPrefs.sidebarTabs`). É a
+  /// personalização que dá para levar para o carro: o visual ali é do Google,
+  /// mas o que aparece e em que ordem continua sendo escolha de quem usa.
+  final List<String> Function()? tabs;
   final bool pt;
   final String artAuthority;
 
@@ -44,12 +72,24 @@ class AutoBrowser {
 
   String _t(String pt, String en) => this.pt ? pt : en;
 
-  List<MediaItem> root() => [
-        _folder('tab:home', _t('Início', 'Home')),
-        _folder('tab:recent', _t('Recentes', 'Recent'), grid: true),
-        _folder('tab:albums', _t('Álbuns', 'Albums'), grid: true),
-        _folder('tab:playlists', 'Playlists'),
-      ];
+  /// As abas do carro: Início sempre, depois as do app que cabem aqui.
+  List<MediaItem> root() {
+    final escolhidas = tabs?.call() ?? const [];
+    final ordem = <String>['home', ...carTabs.where((t) => t != 'home' && escolhidas.contains(t))];
+    // Ninguém escolheu nada que sirva no carro: o de fábrica.
+    final usar = (ordem.length > 1 ? ordem : const ['home', 'albums', 'artists', 'playlists']).take(maxTabs);
+    return [for (final t in usar) _tab(t)];
+  }
+
+  MediaItem _tab(String tab) => switch (tab) {
+        'albums' => _folder('tab:albums', _t('Álbuns', 'Albums'), style: styleGrid),
+        'artists' => _folder('tab:artists', _t('Artistas', 'Artists'), style: styleGrid),
+        'playlists' => _folder('tab:playlists', 'Playlists'),
+        'genres' => _folder('tab:genres', _t('Gêneros', 'Genres'), style: styleCategoryList),
+        'favorites' => _folder('list:starred', _t('Favoritas', 'Favorites')),
+        'songs' => _folder('tab:recent', _t('Recentes', 'Recent'), style: styleGrid),
+        _ => _folder('tab:home', _t('Início', 'Home')),
+      };
 
   /// Filhos de uma pasta. [current] é a música tocando (para as ações dela).
   Future<List<MediaItem>> children(String parent, {Song? current}) async {
@@ -58,13 +98,21 @@ class AutoBrowser {
     if (p == null) return const [];
     switch (parent) {
       case 'tab:home':
+        // Os títulos de grupo separam a tela em blocos em vez de uma lista
+        // corrida — no carro é a diferença entre achar e procurar.
+        final tocar = _t('Tocar agora', 'Play now');
+        final suas = _t('Suas músicas', 'Your music');
+        final descobrir = _t('Descobrir', 'Discover');
         return [
-          _action('do:shuffle', _t('Tocar aleatórias', 'Shuffle all')),
-          if (current != null) _action('do:dj', _t('Modo DJ a partir desta', 'DJ mode from this song'), subtitle: current.title),
-          if (current != null) _action('do:mix', _t('Mix da música atual', 'Mix from this song'), subtitle: current.title),
-          _folder('list:starred', _t('Favoritas', 'Favorites')),
-          _folder('tab:frequent', _t('Mais tocados', 'Most played'), grid: true),
-          _folder('tab:random', _t('Álbuns aleatórios', 'Random albums'), grid: true),
+          _action('do:shuffle', _t('Tocar aleatórias', 'Shuffle all'), group: tocar),
+          if (current != null)
+            _action('do:dj', _t('Modo DJ a partir desta', 'DJ mode from this song'), subtitle: current.title, group: tocar),
+          if (current != null)
+            _action('do:mix', _t('Mix da música atual', 'Mix from this song'), subtitle: current.title, group: tocar),
+          _folder('list:starred', _t('Favoritas', 'Favorites'), style: styleCategoryList, group: suas),
+          _folder('tab:recent', _t('Recentes', 'Recent'), style: styleCategoryList, group: suas),
+          _folder('tab:frequent', _t('Mais tocados', 'Most played'), style: styleGrid, group: descobrir),
+          _folder('tab:random', _t('Álbuns aleatórios', 'Random albums'), style: styleGrid, group: descobrir),
         ];
       case 'tab:recent':
         return _albums(await p.albumList(AlbumListType.recent, size: 40));
@@ -80,6 +128,23 @@ class AutoBrowser {
             _folder('playlist:${pl.id}', pl.name,
                 subtitle: _t('${pl.songCount} músicas', '${pl.songCount} songs'), art: art(pl.coverArt)),
         ];
+      case 'tab:artists':
+        return [
+          for (final a in await p.artists())
+            _folder('artist:${a.id}', a.name,
+                subtitle: a.albumCount == null ? null : _t('${a.albumCount} álbuns', '${a.albumCount} albums'),
+                art: art(a.coverArt),
+                style: styleGrid),
+        ];
+      case 'tab:genres':
+        return [
+          for (final g in await p.genres())
+            _folder('genre:${g.name}', g.name,
+                subtitle: _t('${g.songCount} músicas', '${g.songCount} songs'), style: styleCategoryList),
+        ];
+    }
+    if (parent.startsWith('artist:')) {
+      return _albums((await p.artist(parent.substring(7))).albums);
     }
     final songs = await _load(parent);
     return songs == null ? const [] : _songs(parent, songs);
@@ -140,6 +205,8 @@ class AutoBrowser {
       songs = (await p.playlist(folder.substring(9))).songs;
     } else if (folder == 'list:starred') {
       songs = await p.starredSongs();
+    } else if (folder.startsWith('genre:')) {
+      songs = await p.songsByGenre(folder.substring(6));
     } else {
       return null;
     }
@@ -165,28 +232,44 @@ class AutoBrowser {
           ),
       ];
 
-  MediaItem _folder(String id, String title, {bool grid = false, String? subtitle, Uri? art}) => MediaItem(
+  MediaItem _folder(String id, String title, {int style = styleList, String? subtitle, Uri? art, String? group}) => MediaItem(
         id: id,
         title: title,
         displaySubtitle: subtitle,
         artist: subtitle,
         artUri: art,
         playable: false,
-        extras: {browsableHint: grid ? 2 : 1, playableHint: 1},
+        extras: {
+          // Como ESTE item se desenha, e como se desenha o que tem dentro.
+          singleItemHint: style,
+          browsableHint: style == styleGrid || style == styleCategoryGrid ? styleGrid : styleList,
+          playableHint: styleList,
+          groupTitleHint: ?group,
+        },
       );
 
-  MediaItem _action(String id, String title, {String? subtitle}) =>
-      MediaItem(id: id, title: title, displaySubtitle: subtitle, playable: true);
+  /// Ação (tocar aleatórias, DJ, mix): não tem capa, então vai como categoria —
+  /// senão o carro reserva um quadrado grande e vazio do lado do texto.
+  MediaItem _action(String id, String title, {String? subtitle, String? group}) => MediaItem(
+        id: id,
+        title: title,
+        displaySubtitle: subtitle,
+        playable: true,
+        extras: {
+          singleItemHint: styleCategoryList,
+          groupTitleHint: ?group,
+        },
+      );
 
   /// Capa para o carro: o Android Auto só aceita `content://`, então a fonte
   /// (URL do servidor, com o token, ou arquivo do aparelho) fica num arquivo
   /// privado e o provedor de capas do app serve pela chave.
-  Uri? art(String? coverArt) {
+  Uri? art(String? coverArt, {int size = 300}) {
     final p = provider();
     if (coverArt == null || coverArt.isEmpty || p == null) return null;
-    final src = coverArt.startsWith('/') ? coverArt : p.coverUri(coverArt, size: 300)?.toString();
+    final src = coverArt.startsWith('/') ? coverArt : p.coverUri(coverArt, size: size)?.toString();
     if (src == null) return null;
-    final key = sha1.convert(utf8.encode('${p.accountId}|$coverArt')).toString().substring(0, 24);
+    final key = sha1.convert(utf8.encode('${p.accountId}|$coverArt|$size')).toString().substring(0, 24);
     try {
       final f = File('$artDir/$key.src');
       if (!f.existsSync() || f.readAsStringSync() != src) {
