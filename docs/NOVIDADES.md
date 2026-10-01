@@ -3,6 +3,25 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## Ainda não lançado
+
+### Carro
+
+- **A capa aparecia cinza no carro.** Ela ia como `file://` apontando para o
+  cache privado do app: a notificação do celular lê, porque é o próprio app, o
+  Android Auto não, porque é outro app. E com ela sumia a cor — o carro tira o
+  destaque da tela da cor dominante da capa. Agora vai pelo provedor
+  `content://`, que os dois leem.
+- **A tela do carro era uma lista corrida.** Agora o Início vem em blocos com
+  título, o que não tem capa não reserva mais um quadrado grande e vazio, e
+  entraram artistas e gêneros.
+- **As abas do carro saem das que você escolheu no app**, na mesma ordem,
+  tirando o que não serve dirigindo.
+- **O app passou a funcionar em carro com Android de fábrica** (Automotive OS —
+  Volvo, Polestar, Renault, GM novos). Ele declarava só o Android Auto, e o
+  carro nativo procura outro aviso, no serviço: sem ele o app nem aparecia na
+  lista de fontes de música.
+
 ## v1.2.0
 
 Tudo nesta versão é do **disco de vinil** (modo de capa Vinil, em

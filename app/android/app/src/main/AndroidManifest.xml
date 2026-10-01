@@ -25,7 +25,12 @@
 
     <!-- usesCleartextTraffic: servidores Navidrome na rede local costumam ser http://.
          Backup: as credenciais cifradas ficam de fora (res/xml/*backup*). -->
+    <!-- Carros com Android de fábrica (Automotive OS). required=false: o mesmo
+         APK continua instalando em celular. -->
+    <uses-feature android:name="android.hardware.type.automotive" android:required="false"/>
+
     <application
+        android:appCategory="audio"
         android:label="BKmasterplayer 🎵"
         android:name=".BkApplication"
         android:icon="@mipmap/ic_launcher"
@@ -68,6 +73,12 @@
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
+            <!-- Carro com Android de fábrica procura o aviso AQUI, no serviço:
+                 só no aplicativo ele registra "No opt-in info found for
+                 Component" e não lista o app como fonte de música. -->
+            <meta-data
+                android:name="com.android.automotive"
+                android:resource="@xml/automotive_app_desc"/>
         </service>
 
         <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
@@ -85,6 +96,11 @@
              capas das listas por content:// (o carro não abre URL da internet). -->
         <meta-data
             android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc"/>
+        <!-- O mesmo aviso para carro com Android de fábrica: o nome é outro, e
+             sem ele o app nem aparece na lista de fontes de música do carro. -->
+        <meta-data
+            android:name="com.android.automotive"
             android:resource="@xml/automotive_app_desc"/>
         <meta-data
             android:name="com.google.android.gms.car.notification.SmallIcon"
