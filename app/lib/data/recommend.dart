@@ -13,6 +13,10 @@ import '../src/rust/api/recommend.dart' as rust;
 
 /// Jeitos de medir "parecida". A conta de cada um mora no motor
 /// (`engine/recommend.rs`); aqui fica só o nome que o app guarda.
+///
+/// Todos são contados no aparelho, com os vetores do AudioMuse — menos
+/// [RecommendStyle.server], que é "pergunte ao servidor". Quem faz esse desvio
+/// é `data/similar.dart`; sem ele as sete opções davam no mesmo.
 enum RecommendStyle {
   sound('sound'),
   mood('mood'),
@@ -27,6 +31,20 @@ enum RecommendStyle {
 
   static RecommendStyle parse(String? id) =>
       RecommendStyle.values.firstWhere((s) => s.id == id, orElse: () => RecommendStyle.sound);
+}
+
+/// O que quem busca parecidas precisa saber de quem conta no aparelho.
+///
+/// [RecommendNotifier] é a implementação de verdade. Existir como interface é o
+/// que deixa `findSimilar` ser testado sem subir o motor nem os providers.
+abstract interface class LocalSimilar {
+  /// Tem os vetores carregados? Sem eles não há o que contar.
+  bool get ready;
+
+  /// O método escolhido nos ajustes.
+  RecommendStyle get style;
+
+  Future<List<Song>> similar(Song seed, {RecommendStyle? style, int count, List<Song>? pool});
 }
 
 class RecommendState {
@@ -59,7 +77,7 @@ class RecommendState {
 /// arquivo; aqui só se compara, o que leva poucos milissegundos. Vale offline
 /// e, mesmo com internet, gasta menos bateria que acordar o rádio para
 /// perguntar ao servidor.
-class RecommendNotifier extends Notifier<RecommendState> {
+class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar {
   static const _file = 'vetores.bkvec';
   static const _versionKey = 'vetores.versao';
 
@@ -78,7 +96,14 @@ class RecommendNotifier extends Notifier<RecommendState> {
   File get _path => File(p.join(ref.read(supportDirProvider).path, _file));
 
   /// Dá para recomendar aqui mesmo? (De fora não se lê o estado direto.)
+  @override
   bool get ready => state.ready;
+
+  /// O método escolhido nos ajustes. Quem busca parecidas precisa dele para
+  /// saber se a conta é feita aqui ou se o servidor responde — ver
+  /// `data/similar.dart`.
+  @override
+  RecommendStyle get style => RecommendStyle.parse(ref.read(settingsProvider).recommendStyle);
 
   /// Baixa (ou atualiza) o arquivo e deixa pronto para consultar.
   ///
@@ -166,6 +191,7 @@ class RecommendNotifier extends Notifier<RecommendState> {
   /// [pool] limita o que pode ser sugerido — offline, só o que está baixado,
   /// porque sugerir o que não toca não serve de nada. Sem [pool], vale a
   /// biblioteca toda e as músicas vêm do servidor pelos ids.
+  @override
   Future<List<Song>> similar(Song seed, {RecommendStyle? style, int count = 50, List<Song>? pool}) async {
     if (!state.ready) return const [];
     final s = style ?? RecommendStyle.parse(ref.read(settingsProvider).recommendStyle);

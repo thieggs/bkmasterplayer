@@ -33,7 +33,11 @@ pub enum Style {
     Lyrics,
     /// Combina para emendar: andamento próximo e tom que casa.
     Mix,
-    /// A conta que o AudioMuse usa no servidor (0,75 letra + 0,25 som).
+    /// Imita a conta que o AudioMuse faz no servidor (0,75 letra + 0,25 som).
+    ///
+    /// No app, "deixar o servidor escolher" pergunta ao servidor mesmo; isto
+    /// aqui é o último recurso de quando ele não responde (offline, ou
+    /// biblioteca local sem Last.fm) — ver `data/similar.dart`.
     Server,
 }
 

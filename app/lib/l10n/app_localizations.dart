@@ -2302,13 +2302,13 @@ abstract class AppLocalizations {
   /// No description provided for @radioSheetHint.
   ///
   /// In pt, this message translates to:
-  /// **'Toque no jeito que o AudioMuse deve usar para escolher as próximas.'**
+  /// **'Toque no jeito de escolher as próximas. Menos \"Deixar o servidor escolher\", todos são contados aqui no aparelho.'**
   String get radioSheetHint;
 
   /// No description provided for @radioSheetOnline.
   ///
   /// In pt, this message translates to:
-  /// **'Perguntando ao servidor. Guarde no aparelho para funcionar sem internet.'**
+  /// **'Sem a análise no aparelho, só \"Deixar o servidor escolher\" muda algo — os outros caem nele.'**
   String get radioSheetOnline;
 
   /// No description provided for @recommendStyleSound.
@@ -2386,13 +2386,13 @@ abstract class AppLocalizations {
   /// No description provided for @recommendStyleServer.
   ///
   /// In pt, this message translates to:
-  /// **'Como o AudioMuse faz'**
+  /// **'Deixar o servidor escolher'**
   String get recommendStyleServer;
 
   /// No description provided for @recommendStyleServerHint.
   ///
   /// In pt, this message translates to:
-  /// **'A mesma conta do servidor: três quartos letra, um quarto som.'**
+  /// **'A resposta do próprio AudioMuse no servidor. Sem ele, o aparelho imita a conta dele: três quartos letra, um quarto som.'**
   String get recommendStyleServerHint;
 
   /// No description provided for @recommendOffline.
@@ -2430,6 +2430,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Procurar atualização'**
   String get recommendUpdate;
+
+  /// No description provided for @recommendStyleNeedsVectors.
+  ///
+  /// In pt, this message translates to:
+  /// **'Precisa da análise guardada no aparelho'**
+  String get recommendStyleNeedsVectors;
+
+  /// No description provided for @recommendFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem responde é o servidor: os métodos contados no aparelho precisam da análise guardada aqui.'**
+  String get recommendFallback;
+
+  /// No description provided for @radioStyleWontApply.
+  ///
+  /// In pt, this message translates to:
+  /// **'“{style}” precisa da análise guardada no aparelho. Por enquanto quem responde é o servidor.'**
+  String radioStyleWontApply(String style);
+
+  /// No description provided for @recommendTurnOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guardar no aparelho'**
+  String get recommendTurnOn;
 
   /// No description provided for @localAddressOk.
   ///

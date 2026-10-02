@@ -1245,11 +1245,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get radioSheetTitle => 'Radio';
 
   @override
-  String get radioSheetHint => 'Tap how AudioMuse should pick what comes next.';
+  String get radioSheetHint =>
+      'Tap how the next songs get picked. Except \"Let the server choose\", they are all computed here on the device.';
 
   @override
   String get radioSheetOnline =>
-      'Asking the server. Keep it on the device to work without the internet.';
+      'Without the analysis on the device, only \"Let the server choose\" changes anything — the others fall back to it.';
 
   @override
   String get recommendStyleSound => 'Similar sound';
@@ -1292,11 +1293,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Close tempo and a key that fits, the way DJs do it.';
 
   @override
-  String get recommendStyleServer => 'The way AudioMuse does';
+  String get recommendStyleServer => 'Let the server choose';
 
   @override
   String get recommendStyleServerHint =>
-      'The server\'s own formula: three quarters lyrics, one quarter sound.';
+      'AudioMuse\'s own answer on the server. Without it, the device imitates its formula: three quarters lyrics, one quarter sound.';
 
   @override
   String get recommendOffline => 'Keep on this device (works without internet)';
@@ -1324,6 +1325,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recommendUpdate => 'Check for update';
+
+  @override
+  String get recommendStyleNeedsVectors =>
+      'Needs the analysis kept on the device';
+
+  @override
+  String get recommendFallback =>
+      'The server is answering: the methods computed on the device need the analysis kept here.';
+
+  @override
+  String radioStyleWontApply(String style) {
+    return '“$style” needs the analysis kept on the device. For now the server answers.';
+  }
+
+  @override
+  String get recommendTurnOn => 'Keep on the device';
 
   @override
   String get localAddressOk => 'The home address responded and is now in use';

@@ -1247,11 +1247,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get radioSheetHint =>
-      'Toque no jeito que o AudioMuse deve usar para escolher as próximas.';
+      'Toque no jeito de escolher as próximas. Menos \"Deixar o servidor escolher\", todos são contados aqui no aparelho.';
 
   @override
   String get radioSheetOnline =>
-      'Perguntando ao servidor. Guarde no aparelho para funcionar sem internet.';
+      'Sem a análise no aparelho, só \"Deixar o servidor escolher\" muda algo — os outros caem nele.';
 
   @override
   String get recommendStyleSound => 'Parecida no som';
@@ -1293,11 +1293,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Andamento próximo e tom que casa, como os DJs fazem.';
 
   @override
-  String get recommendStyleServer => 'Como o AudioMuse faz';
+  String get recommendStyleServer => 'Deixar o servidor escolher';
 
   @override
   String get recommendStyleServerHint =>
-      'A mesma conta do servidor: três quartos letra, um quarto som.';
+      'A resposta do próprio AudioMuse no servidor. Sem ele, o aparelho imita a conta dele: três quartos letra, um quarto som.';
 
   @override
   String get recommendOffline => 'Guardar no aparelho (funciona sem internet)';
@@ -1325,6 +1325,22 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get recommendUpdate => 'Procurar atualização';
+
+  @override
+  String get recommendStyleNeedsVectors =>
+      'Precisa da análise guardada no aparelho';
+
+  @override
+  String get recommendFallback =>
+      'Quem responde é o servidor: os métodos contados no aparelho precisam da análise guardada aqui.';
+
+  @override
+  String radioStyleWontApply(String style) {
+    return '“$style” precisa da análise guardada no aparelho. Por enquanto quem responde é o servidor.';
+  }
+
+  @override
+  String get recommendTurnOn => 'Guardar no aparelho';
 
   @override
   String get localAddressOk => 'O endereço de casa respondeu e já está em uso';

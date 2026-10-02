@@ -367,8 +367,11 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   /// Com a rádio ligada e a fila acabando, completa com músicas parecidas com
-  /// a última (análise sônica do AudioMuse quando o servidor tem; senão o
-  /// "similar" do servidor; em último caso, aleatórias).
+  /// a última, **do jeito escolhido nos ajustes**.
+  ///
+  /// Quem decide a fonte é o método (ver `data/similar.dart`). Aqui não se
+  /// pergunta mais ao servidor na frente dele: era por isso que trocar de
+  /// método não mudava nada para quem tem o AudioMuse no servidor.
   Future<void> _maybeExtendRadio() async {
     if (!state.radio || _extending || state.queue.isEmpty) return;
     if (state.queue.length - state.index - 1 > 2) return;
@@ -377,15 +380,11 @@ class PlayerController extends Notifier<PlayerState> {
     _extending = true;
     try {
       final seed = state.queue.last.song;
-      var songs = <Song>[];
-      if (p.serverInfo?.sonicSimilarity ?? false) {
-        songs = (await p.sonicSimilar(seed.id, count: 40)).map((m) => m.song).toList();
-      }
-      if (songs.isEmpty) {
-        final s = ref.read(settingsProvider);
-        songs = await findSimilar(p, seed, count: 40, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
-            local: ref.read(recommendProvider.notifier));
-      }
+      final s = ref.read(settingsProvider);
+      var songs = await findSimilar(p, seed,
+          count: 40,
+          lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
+          local: ref.read(recommendProvider.notifier));
       if (songs.isEmpty) songs = await p.randomSongs(size: 20);
       final seen = state.queue.map((q) => q.song.id).toSet();
       final lastArtist = seed.artistId;
@@ -969,16 +968,13 @@ class PlayerController extends Notifier<PlayerState> {
     _djBusy = true;
     try {
       _djHeard.add(cur.song.id);
-      var cands = <(Song, double)>[];
-      if (p.serverInfo?.sonicSimilarity ?? false) {
-        cands = [for (final m in await p.sonicSimilar(cur.song.id, count: 30)) (m.song, m.similarity)];
-      }
-      if (cands.isEmpty) {
-        final s = ref.read(settingsProvider);
-        final list = await findSimilar(p, cur.song, count: 30, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
-            local: ref.read(recommendProvider.notifier));
-        cands = [for (final (i, x) in list.indexed) (x, 1 - 0.5 * i / max(1, list.length))];
-      }
+      // O método escolhido também manda aqui, e já vem com a nota de quanto
+      // combina (do servidor é a medida dele; local é a ordem da lista).
+      final s = ref.read(settingsProvider);
+      var cands = await findSimilarScored(p, cur.song,
+          count: 30,
+          lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
+          local: ref.read(recommendProvider.notifier));
       final inQueue = state.queue.map((q) => q.song.id).toSet();
       cands = cands.where((c) => !inQueue.contains(c.$1.id) && !_djHeard.contains(c.$1.id)).toList();
       if (cands.isEmpty) {

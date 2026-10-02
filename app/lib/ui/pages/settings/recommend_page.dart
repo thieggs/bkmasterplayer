@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/recommend.dart';
+import '../../../data/similar.dart';
 import '../../../l10n/l10n.dart';
 import '../../recommend_style_ui.dart';
 import 'common.dart';
@@ -32,6 +33,10 @@ class RecommendSection extends ConsumerWidget {
     final s = ref.watch(settingsProvider);
     final set = ref.read(settingsProvider.notifier).update;
     final escolhido = RecommendStyle.parse(s.recommendStyle);
+    // Sem a análise guardada, os métodos contados no aparelho não têm com que
+    // contar e o servidor responde no lugar — dizer isso aqui, senão trocar de
+    // método não muda nada e ninguém entende por quê.
+    final pronto = ref.watch(recommendProvider).ready;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -39,6 +44,21 @@ class RecommendSection extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(l10n.recommendHint, style: theme.textTheme.bodyMedium),
         ),
+        if (!pronto)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 18, color: theme.colorScheme.error),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(l10n.recommendFallback,
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error)),
+                ),
+              ],
+            ),
+          ),
         RadioGroup<RecommendStyle>(
           groupValue: escolhido,
           onChanged: (v) => set((x) => x.copyWith(recommendStyle: (v ?? RecommendStyle.sound).id)),
@@ -49,7 +69,12 @@ class RecommendSection extends ConsumerWidget {
                   value: e,
                   secondary: Icon(e.icon),
                   title: Text(e.label(l10n)),
-                  subtitle: Text(e.hint(l10n), style: theme.textTheme.bodySmall),
+                  subtitle: Text(
+                    styleWorksNow(e, vectorsReady: pronto)
+                        ? e.hint(l10n)
+                        : '${e.hint(l10n)} ${l10n.recommendStyleNeedsVectors}',
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
             ],
           ),

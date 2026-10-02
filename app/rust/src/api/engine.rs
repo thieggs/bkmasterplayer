@@ -9,7 +9,7 @@ use flutter_rust_bridge::frb;
 
 use crate::engine::analysis::{self as an, BeatModel};
 use crate::engine::automix::{AutomixSettings, MixStyle};
-use crate::engine::{self, Engine, EngineConfig, VinylSpin};
+use crate::engine::{self, Engine, EngineConfig};
 use crate::frb_generated::StreamSink;
 
 static ENGINE: OnceLock<Engine> = OnceLock::new();
