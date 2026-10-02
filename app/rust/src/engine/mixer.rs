@@ -440,6 +440,20 @@ impl Vinyl {
         self.filled = 0;
     }
 
+    /// A saída reabriu noutra taxa. Os passos das rampas dependem dela, e o
+    /// que estava guardado foi gravado na taxa velha — mas o **buffer fica**.
+    ///
+    /// Trocar o `Vinyl` inteiro aqui era um defeito: o buffer voltava vazio,
+    /// `grab` desistia calado em `memory.is_empty()` e o disco girava sem som
+    /// até a tela ser reaberta. E a saída reabre à beça num celular (fone,
+    /// Bluetooth, volta da inatividade), então dava "de vez em quando não
+    /// funciona".
+    fn set_rate(&mut self, rate: u32) {
+        self.step = 1.0 / (rate as f32 * VINYL_RAMP_SECS);
+        self.gain_step = 1.0 / (rate as f32 * VINYL_GAIN_RAMP_SECS);
+        self.forget();
+    }
+
     /// Pega o disco no ponto em que a faixa está agora, aproveitando o que já
     /// estava guardado: é esse passado que dá para voltar girando.
     fn grab(&mut self, at: u64) {
@@ -634,7 +648,16 @@ impl Mixer {
         self.rate = rate;
         let s = self.eq.settings;
         self.eq.configure(s, rate);
-        self.vinyl = Vinyl::new(rate);
+        // Sem trocar o `Vinyl`: o buffer da memória do disco tem que
+        // sobreviver à reabertura da saída — ver [`Vinyl::set_rate`].
+        self.vinyl.set_rate(rate);
+    }
+
+    /// Frames que a memória do disco comporta (o motor confere depois de uma
+    /// troca de taxa: a mesma quantidade de frames vale outros tantos
+    /// segundos).
+    pub fn vinyl_frames(&self) -> usize {
+        self.vinyl.frames()
     }
 
     fn ms(&self, ms: u32) -> u32 {
@@ -1687,5 +1710,37 @@ mod mixer_vinyl_tests {
         let ultimo = out[out.len() - 400..].iter().fold(0.0f32, |m, x| m.max(x.abs()));
         assert!(ultimo > 0.01, "no segundo gesto voltar não tocou (pico {ultimo})");
         std::mem::drop(p2);
+    }
+
+    /// O defeito do "de vez em quando não funciona": a saída de áudio reabre
+    /// (fone, Bluetooth, volta da inatividade) e o `set_rate` trocava o
+    /// `Vinyl` inteiro. O buffer voltava vazio, `grab` desistia calado e o
+    /// disco girava sem som até a tela ser reaberta.
+    #[test]
+    fn a_saida_reabrir_nao_tira_o_disco_da_agulha() {
+        let mut b = bancada(40000, 20000);
+        toca(&mut b, 4000);
+        assert_eq!(b.mixer.vinyl_frames(), 20000);
+
+        // A saída reabriu noutra taxa (o motor chama isto em `open_output`).
+        b.mixer.set_rate(44100);
+        assert_eq!(b.mixer.vinyl_frames(), 20000, "a memória do disco sumiu com a troca de taxa");
+        assert_eq!(b.mixer.vinyl.filled, 0, "o que foi gravado na taxa velha não pode tocar na nova");
+
+        // Tocou mais um pouco, e a pessoa pega o disco: a agulha tem que descer.
+        toca(&mut b, 4000);
+        gira(&mut b, -1.0);
+        let out = toca(&mut b, 2000);
+        assert!(b.mixer.vinyl.active, "depois de reabrir a saída o disco não pegou");
+        let ultimo = out[out.len() - 400..].iter().fold(0.0f32, |m, x| m.max(x.abs()));
+        assert!(ultimo > 0.01, "depois de reabrir a saída voltar não tocou (pico {ultimo})");
+    }
+
+    #[test]
+    fn a_rampa_segue_a_taxa_nova() {
+        let mut b = bancada(4000, 2000);
+        let antes = b.mixer.vinyl.step;
+        b.mixer.set_rate(96000);
+        assert!((b.mixer.vinyl.step - antes / 2.0).abs() < 1e-9, "a rampa não acompanhou a taxa");
     }
 }

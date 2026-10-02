@@ -148,8 +148,12 @@ struct Inner {
     ctl: Mutex<Control>,
     mixer: Arc<Mutex<Mixer>>,
     mixer_shared: Arc<MixerShared>,
-    /// Tamanho (em frames) da memória do disco que o mixer já tem.
+    /// Tamanho (em frames) da memória do disco que já foi mandada ao mixer.
     vinyl_frames: Mutex<usize>,
+    /// Segundos de memória que o app pediu. Guardado em segundos porque a
+    /// mesma quantidade de frames vale outro tanto de música quando a saída
+    /// reabre noutra taxa — e aí a memória precisa ser refeita.
+    vinyl_secs: Mutex<f32>,
     downloads: Arc<DownloadManager>,
     tracks: Mutex<HashMap<u64, Track>>,
     callback: Mutex<Option<EventCallback>>,
@@ -204,6 +208,8 @@ impl Inner {
         if old_rate != rate {
             // As faixas carregadas foram convertidas pra taxa antiga: recarrega.
             self.reload_at_current_position();
+            // E a memória do disco pode não caber mais a música inteira.
+            self.fit_vinyl();
         }
         Ok(())
     }
@@ -243,6 +249,33 @@ impl Inner {
 
     /// O mixer só lê os comandos quando a saída pede som: com ela fechada por
     /// inatividade, pede para reabrir (a thread de eventos abre na hora).
+    /// Garante que a memória do disco cabe os segundos que o app pediu, na
+    /// taxa que a saída está agora.
+    ///
+    /// Chamado pelo app ao abrir a tela do vinil e **de novo quando a saída
+    /// reabre noutra taxa**: o buffer sobrevive à troca (ver
+    /// `Vinyl::set_rate`), mas os mesmos frames valem menos segundos quando a
+    /// taxa sobe, e aí a música inteira não caberia mais.
+    fn fit_vinyl(&self) {
+        let secs = *self.vinyl_secs.lock();
+        if secs <= 0.0 {
+            return; // o app nunca pediu memória: nada a fazer
+        }
+        let (rate, no_mixer) = {
+            let m = self.mixer.lock();
+            (m.rate() as usize, m.vinyl_frames())
+        };
+        let teto = VINYL_MEMORY_MAX_BYTES / (2 * std::mem::size_of::<i16>());
+        let quer = ((secs.max(1.0) as usize) * rate).min(teto);
+        let mut enviado = self.vinyl_frames.lock();
+        // O que já foi mandado ainda pode estar na fila: contar os dois, senão
+        // dois pedidos seguidos alocam duas vezes.
+        if quer > (*enviado).max(no_mixer) {
+            *enviado = quer;
+            self.send(MixerCmd::VinylMemory(Box::new(vec![0i16; quer * 2])));
+        }
+    }
+
     fn send(&self, cmd: MixerCmd) {
         let mut ctl = self.ctl.lock();
         if ctl.cmd.push(cmd).is_err() {
@@ -564,6 +597,7 @@ impl Engine {
             mixer,
             mixer_shared,
             vinyl_frames: Mutex::new(0),
+            vinyl_secs: Mutex::new(0.0),
             downloads,
             tracks: Mutex::new(HashMap::new()),
             callback: Mutex::new(callback),
@@ -752,16 +786,15 @@ impl Engine {
     /// memória que chega junto com a mão nasce vazia: aí voltar o disco não
     /// toca nada, que foi exatamente o defeito.
     pub fn prepare_vinyl(&self, secs: f32) {
-        let rate = self.inner.mixer.lock().rate() as usize;
-        let teto = VINYL_MEMORY_MAX_BYTES / (2 * std::mem::size_of::<i16>());
-        let quer = ((secs.max(1.0) as usize) * rate).min(teto);
-        let mut tem = self.inner.vinyl_frames.lock();
-        // Só cresce: encolher a cada faixa curta seria alocar à toa (e jogar
-        // fora o passado guardado).
-        if quer > *tem {
-            *tem = quer;
-            self.inner.send(MixerCmd::VinylMemory(Box::new(vec![0i16; quer * 2])));
+        {
+            let mut quer = self.inner.vinyl_secs.lock();
+            // Só cresce: encolher a cada faixa curta seria alocar à toa (e
+            // jogar fora o passado guardado).
+            if secs > *quer {
+                *quer = secs;
+            }
         }
+        self.inner.fit_vinyl();
     }
 
     /// Gira o disco de vinil. `None` solta o disco.
