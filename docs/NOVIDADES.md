@@ -3,7 +3,70 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
-## Ainda não lançado
+## v1.3.0
+
+### Atualização automática
+
+- **O app procura versão nova sozinho.** Ao abrir, pergunta ao GitHub qual é o
+  último release; se for mais novo, avisa com as novidades e atualiza: no
+  Android abre o instalador do sistema, no AppImage troca o arquivo, no `.deb`
+  pede a senha, instalado pelo `install_linux.sh` troca a pasta e no Windows
+  roda o instalador quieto — e o app volta a abrir já na versão nova. No
+  iPhone só avisa, com o link.
+- **Pode baixar em segundo plano** (nunca nos dados móveis) e só perguntar na
+  hora de instalar. O arquivo é conferido com o SHA-256 que o GitHub publica.
+- Opções em Ajustes → Sobre → Atualizações, com o botão "Procurar agora".
+
+### Festa
+
+- **Festa por Bluetooth consertada e sem depender do Google.** Em celular novo
+  a Festa não achava ninguém por Bluetooth (faltava a permissão de localização
+  que o Google exige). E agora tem a chave "Bluetooth sem Google Play
+  Services": funciona em LineageOS, Huawei e afins, achando sozinho ou
+  escolhendo um celular pareado. Música mandada por Bluetooth tem progresso de
+  verdade e não trava mais.
+- Depois de uma recusa ou de a conexão cair, o convidado volta a procurar
+  sozinho, e o mesmo dono não aparece duas vezes na lista.
+
+### Rádio
+
+- **A rádio não se perde mais.** Ela guarda a música de onde começou e a
+  vizinhança dela, em vez de ir pulando de parecida em parecida até virar
+  outro estilo. Música recém-adicionada que o AudioMuse ainda não conhece
+  começa a rádio pela música anterior, em vez de cair em sugestões genéricas.
+- **Artista repetido:** escolha entre variar (nada do mesmo artista nas
+  últimas 5), só não repetir em seguida, ou à vontade. Na folha da rádio e
+  nos ajustes de recomendação.
+- **"Mesmo estilo musical" ficou mais certeiro:** usa o modelo de áudio e
+  texto do AudioMuse (CLAP), que entende estilos que os rótulos de gênero não
+  cobrem (o latino e o brasileiro, por exemplo).
+- Com a recomendação no aparelho ligada, os vetores não carregavam ao abrir o
+  app, e todos os métodos davam as mesmas músicas. Escolher um método contado
+  no aparelho agora já liga a análise guardada.
+
+### AutoMix
+
+- **O eco não corta mais o final da música.** A troca com eco saía até ~8 s
+  antes do fim e jogava fora compassos que ainda tinham música. Agora a música
+  toca até o último compasso com som, e a cauda do eco segue depois do fim do
+  arquivo.
+
+### Mais leve
+
+- A análise do AutoMix usa metade da memória e devolve ao sistema o que usou.
+- Música pausada não acorda mais o processador o tempo todo (no Android isso
+  ajudava o sistema a fechar o app em segundo plano).
+- A posição da fila é gravada à parte: regravar a fila inteira a cada 15 s
+  dava um engasgo de tempos em tempos.
+- Mini player, disco de vinil e fundo desfocado redesenham só o que mudou.
+
+### Corrigido
+
+- **O app travava (ANR) quando a capa demorava a baixar** com a notificação de
+  música aberta: a tela esperava a capa. Agora a capa carrega por fora, e
+  sem rede a música só fica sem capa.
+- Quando a consulta do tipo de rede falhava, sobrava um erro solto no registro
+  de diagnóstico.
 
 ### Carro
 
