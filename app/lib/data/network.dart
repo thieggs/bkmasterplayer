@@ -18,7 +18,11 @@ class MeteredNotifier extends Notifier<bool> {
     final c = Connectivity();
     final sub = c.onConnectivityChanged.listen((r) => state = isMetered(r), onError: (_) {});
     ref.onDispose(sub.cancel);
-    c.checkConnectivity().then((r) => state = isMetered(r), onError: (_) {});
+    // Chave no corpo: com `=>` o then vira Future<bool> e o onError, que não
+    // devolve nada, estourava um erro solto quando a consulta falhava.
+    c.checkConnectivity().then((r) {
+      state = isMetered(r);
+    }, onError: (_) {});
     return false;
   }
 }

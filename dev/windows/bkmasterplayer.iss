@@ -67,7 +67,16 @@ Name: "{userstartup}\{#Nome}"; Filename: "{app}\{#Executavel}"; AppUserModelID: 
 
 [Run]
 Filename: "{app}\{#Executavel}"; Description: "{cm:LaunchProgram,{#Nome}}"; Flags: nowait postinstall skipifsilent
+; Atualização feita pelo próprio app (/VERYSILENT /RELANCAR=1): ele fechou
+; para a troca dos arquivos, então volta a abrir no fim.
+Filename: "{app}\{#Executavel}"; Flags: nowait runasoriginaluser; Check: Relancar
 
 [UninstallDelete]
 ; Cache de música e capas; as preferências ficam, para reinstalar não perder a conta.
 Type: filesandordirs; Name: "{localappdata}\{#AppId}\cache"
+
+[Code]
+function Relancar: Boolean;
+begin
+  Result := ExpandConstant('{param:relancar|0}') = '1';
+end;

@@ -10,6 +10,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.KeyEvent
+import java.io.File
+import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -68,11 +70,22 @@ class MainActivity : AudioServiceActivity() {
                         grabVolumeKeys = call.arguments == true
                         result.success(null)
                     }
+                    // Atualização baixada do GitHub: o instalador do sistema
+                    // confere a assinatura e pede a confirmação.
+                    "installApk" -> {
+                        try {
+                            installApk(File(call.arguments as String))
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("install", e.message, null)
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
         }
         JamNearby(applicationContext, messenger)
+        JamBluetooth(applicationContext, messenger)
     }
 
     // Só enquanto a tela do app está na frente: com o app em segundo plano
@@ -85,7 +98,6 @@ class MainActivity : AudioServiceActivity() {
             }
             // Engole o soltar também: senão o sistema mexe no volume daqui.
             return true
-        JamBluetooth(applicationContext, messenger)
         }
         return super.dispatchKeyEvent(event)
     }
@@ -127,6 +139,14 @@ class MainActivity : AudioServiceActivity() {
     override fun onDestroy() {
         stopVolumeWatch()
         super.onDestroy()
+    }
+
+    private fun installApk(apk: File) {
+        val uri = FileProvider.getUriForFile(this, "$packageName.updates", apk)
+        val intent = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, "application/vnd.android.package-archive")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
     }
 
     private fun deviceName(): String {

@@ -24,6 +24,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      # A versão é a da tag: o app compara com ela para saber se há versão
+      # nova, então pubspec esquecido não pode sair com o número velho.
+      - name: Versão da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: sed -i "s/^version: .*/version: ${GITHUB_REF_NAME#v}+${GITHUB_RUN_NUMBER}/" app/pubspec.yaml
       - name: Bibliotecas do sistema
         run: |
           sudo apt-get update
@@ -50,6 +56,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      # A versão é a da tag: o app compara com ela para saber se há versão
+      # nova, então pubspec esquecido não pode sair com o número velho.
+      - name: Versão da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: sed -i "s/^version: .*/version: ${GITHUB_REF_NAME#v}+${GITHUB_RUN_NUMBER}/" app/pubspec.yaml
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
       - uses: subosito/flutter-action@v2
@@ -69,7 +81,7 @@ jobs:
         run: |
           echo "$KEYSTORE" | base64 -d > app/android/release.jks
           cat > app/android/key.properties <<PROPS
-          storeFile=release.jks
+          storeFile=${{ github.workspace }}/app/android/release.jks
           storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -83,6 +95,12 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      # A versão é a da tag: o app compara com ela para saber se há versão
+      # nova, então pubspec esquecido não pode sair com o número velho.
+      - name: Versão da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: sed -i "s/^version: .*/version: ${GITHUB_REF_NAME#v}+${GITHUB_RUN_NUMBER}/" app/pubspec.yaml
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.41.6', channel: stable, cache: true }
       - run: rustup update stable
@@ -110,6 +128,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      # A versão é a da tag: o app compara com ela para saber se há versão
+      # nova, então pubspec esquecido não pode sair com o número velho.
+      - name: Versão da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: sed -i "s/^version: .*/version: ${GITHUB_REF_NAME#v}+${GITHUB_RUN_NUMBER}/" app/pubspec.yaml
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.41.6', channel: stable, cache: true }
       - name: Rust para iPhone

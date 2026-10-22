@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 
 import 'connect/connect_service.dart';
 import 'core/providers.dart';
+import 'data/app_update.dart';
 import 'domain/models.dart';
 import 'jam/jam_page.dart';
 import 'l10n/l10n.dart';
@@ -39,6 +40,7 @@ import 'ui/player/now_playing_page.dart';
 import 'ui/shell.dart';
 import 'ui/theme/app_background.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/update_dialog.dart';
 import 'ui/widgets/cover_art.dart';
 
 final _routerProvider = Provider<GoRouter>((ref) {
@@ -165,6 +167,9 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
   AppLinks? _links;
   StreamSubscription<Uri>? _linkSub;
 
+  /// Aviso de atualização na tela (não abre um em cima do outro).
+  bool _updateOpen = false;
+
   @override
   void dispose() {
     _linkSub?.cancel();
@@ -198,6 +203,11 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
     });
     // QR da Festa: a câmera do celular lê `bkplayer://jam?h=…&p=…` e abre
     // aqui. Assim o app não precisa de câmera nem de permissão para isso.
+    // Versão nova no GitHub: procura um pouco depois de abrir, sem atrasar
+    // a primeira tela.
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) ref.read(updateProvider.notifier).checkOnLaunch();
+    });
     _links = AppLinks();
     _linkSub = _links?.uriLinkStream.listen(_abrirLink, onError: (_) {});
     unawaited(_links?.getInitialLink().then((u) {
@@ -219,6 +229,15 @@ class _PlayerAppState extends ConsumerState<PlayerApp> {
     ref.listen(commandsProvider, (_, _) {});
     // Vetores do AudioMuse no aparelho (baixa/solta conforme a opção).
     ref.listen(recommendProvider, (_, _) {});
+    ref.listen(updateProvider, (prev, next) {
+      final apareceu = (next.status == UpdateStatus.available && !next.quiet || next.status == UpdateStatus.ready) &&
+          prev?.status != next.status &&
+          !next.skipped;
+      final ctx = router.routerDelegate.navigatorKey.currentContext;
+      if (!apareceu || _updateOpen || ctx == null) return;
+      _updateOpen = true;
+      showUpdateDialog(ctx).whenComplete(() => _updateOpen = false);
+    });
     final ui = ref.watch(uiPrefsProvider);
     final light = ref.watch(_schemeProvider(Brightness.light)).value ?? AppTheme.seeded(ui, Brightness.light);
     final dark = ref.watch(_schemeProvider(Brightness.dark)).value ?? AppTheme.seeded(ui, Brightness.dark);

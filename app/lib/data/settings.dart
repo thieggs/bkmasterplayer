@@ -65,6 +65,8 @@ class AppSettings {
     this.onlineLyrics = true,
     this.onlineCovers = true,
     this.musixmatchKey,
+    this.updateCheck = true,
+    this.updateAutoDownload = true,
   });
 
   final int crossfadeSeconds;
@@ -126,12 +128,12 @@ class AppSettings {
   /// Como medir "parecida": sound, mood, genre, era, lyrics, mix, server.
   final String recommendStyle;
 
-  /// Guardar os vetores do AudioMuse no aparelho (uns 21 MB) para recomendar
-  /// sem internet. Entra desligado: é download grande para os dados móveis.
   /// Artista repetido na rádio: vary (variar: nada do mesmo nas últimas 5),
   /// spread (só não duas seguidas) ou free (à vontade). A música nunca repete.
   final String radioArtists;
 
+  /// Guardar os vetores do AudioMuse no aparelho (uns 21 MB) para recomendar
+  /// sem internet. Entra desligado: é download grande para os dados móveis.
   final bool recommendOffline;
 
   /// Volume no mínimo pausa; subir o volume volta a tocar.
@@ -171,6 +173,13 @@ class AppSettings {
 
   /// Chave da API oficial do Musixmatch (opcional).
   final String? musixmatchKey;
+
+  /// Ao abrir, pergunta ao GitHub se saiu versão nova.
+  final bool updateCheck;
+
+  /// Versão nova: já baixa em segundo plano (fora dos dados móveis) e só
+  /// pergunta na hora de instalar.
+  final bool updateAutoDownload;
 
   AppSettings copyWith({
     int? crossfadeSeconds,
@@ -212,6 +221,7 @@ class AppSettings {
     bool? trayIcon,
     bool? closeToTray,
     String? recommendStyle,
+    String? radioArtists,
     bool? recommendOffline,
     bool? pauseOnVolumeZero,
     bool? pauseOnUnplug,
@@ -221,7 +231,6 @@ class AppSettings {
     bool clearDeviceName = false,
     List<String>? localFolders,
     String? lastFmApiKey,
-    String? radioArtists,
     bool clearLastFm = false,
     bool? lastFmForRadio,
     bool? jamNearbyAlerts,
@@ -229,6 +238,8 @@ class AppSettings {
     bool? onlineCovers,
     String? musixmatchKey,
     bool clearMusixmatch = false,
+    bool? updateCheck,
+    bool? updateAutoDownload,
   }) =>
       AppSettings(
         crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
@@ -266,6 +277,7 @@ class AppSettings {
         trayIcon: trayIcon ?? this.trayIcon,
         closeToTray: closeToTray ?? this.closeToTray,
         recommendStyle: recommendStyle ?? this.recommendStyle,
+        radioArtists: radioArtists ?? this.radioArtists,
         recommendOffline: recommendOffline ?? this.recommendOffline,
         pauseOnVolumeZero: pauseOnVolumeZero ?? this.pauseOnVolumeZero,
         pauseOnUnplug: pauseOnUnplug ?? this.pauseOnUnplug,
@@ -277,9 +289,10 @@ class AppSettings {
         lastFmForRadio: lastFmForRadio ?? this.lastFmForRadio,
         jamNearbyAlerts: jamNearbyAlerts ?? this.jamNearbyAlerts,
         onlineLyrics: onlineLyrics ?? this.onlineLyrics,
-        radioArtists: radioArtists ?? this.radioArtists,
         onlineCovers: onlineCovers ?? this.onlineCovers,
         musixmatchKey: clearMusixmatch ? null : (musixmatchKey ?? this.musixmatchKey),
+        updateCheck: updateCheck ?? this.updateCheck,
+        updateAutoDownload: updateAutoDownload ?? this.updateAutoDownload,
       );
 
   Map<String, dynamic> toJson() => {
@@ -318,6 +331,7 @@ class AppSettings {
         'trayIcon': trayIcon,
         'closeToTray': closeToTray,
         'recommendStyle': recommendStyle,
+        'radioArtists': radioArtists,
         'recommendOffline': recommendOffline,
         'pauseOnVolumeZero': pauseOnVolumeZero,
         'pauseOnUnplug': pauseOnUnplug,
@@ -331,7 +345,8 @@ class AppSettings {
         'onlineLyrics': onlineLyrics,
         'onlineCovers': onlineCovers,
         'musixmatchKey': musixmatchKey,
-        'radioArtists': radioArtists,
+        'updateCheck': updateCheck,
+        'updateAutoDownload': updateAutoDownload,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -379,6 +394,7 @@ class AppSettings {
       trayIcon: pick('trayIcon', d.trayIcon),
       closeToTray: pick('closeToTray', d.closeToTray),
       recommendStyle: pick('recommendStyle', d.recommendStyle),
+      radioArtists: pick('radioArtists', d.radioArtists),
       recommendOffline: pick('recommendOffline', d.recommendOffline),
       pauseOnVolumeZero: pick('pauseOnVolumeZero', d.pauseOnVolumeZero),
       pauseOnUnplug: pick('pauseOnUnplug', d.pauseOnUnplug),
@@ -392,9 +408,10 @@ class AppSettings {
       onlineLyrics: pick('onlineLyrics', d.onlineLyrics),
       onlineCovers: pick('onlineCovers', d.onlineCovers),
       musixmatchKey: j['musixmatchKey'] as String?,
+      updateCheck: pick('updateCheck', d.updateCheck),
+      updateAutoDownload: pick('updateAutoDownload', d.updateAutoDownload),
     );
   }
-      radioArtists: pick('radioArtists', d.radioArtists),
 
   static const _key = 'settings';
 

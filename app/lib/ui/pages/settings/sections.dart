@@ -21,6 +21,7 @@ import '../../../jam/jam_permissions.dart';
 import '../../../l10n/l10n.dart';
 import '../../../src/rust/api/engine.dart' as engine;
 import '../../actions.dart';
+import '../../update_dialog.dart';
 import '../../widgets/bk_logo.dart';
 import '../../widgets/download_manager.dart';
 import '../automix_settings.dart';
@@ -762,6 +763,9 @@ class AboutSettingsPage extends ConsumerWidget {
           title: Text(l10n.appTitle),
           subtitle: Text([if (version != null) l10n.appVersion(version), l10n.aboutText].join('\n')),
         ),
+        SettingsSection(l10n.updates),
+        const UpdateSettingsTiles(),
+        const Divider(),
         ListTile(
           leading: const Icon(Icons.bug_report_outlined),
           title: Text(l10n.diagnostics),

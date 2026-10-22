@@ -148,7 +148,38 @@ Flutter passando, 45.991 arquivos de áudio corrompidos no fuzzing sem pânico
 nem travamento, e as 5.464 análises reais aceitas pela validação. O gitleaks
 acusou a chave pública falsa do teste do portal — falso positivo, marcado.
 
+## Atualização automática pelo GitHub (22/10/2026)
+
+O app pergunta ao GitHub pelo último release ao abrir e, se for mais novo,
+baixa e instala (`lib/data/app_update.dart`). Baixar e rodar executável é a
+superfície mais sensível que existe, então:
+
+- **Só HTTPS e só o repositório fixo** (`thieggs/bkmasterplayer`, no código):
+  nada de endereço vindo de configuração ou de resposta de terceiro.
+- **SHA-256 conferido** com o `digest` que o GitHub publica de cada arquivo do
+  release. Sem o resumo publicado, não instala. Isso pega arquivo corrompido ou
+  trocado no caminho; **não** protege contra quem controlar a conta do GitHub,
+  porque o resumo vem do mesmo lugar.
+- **Android confere a assinatura**: o sistema só instala por cima se o APK
+  novo tiver a mesma chave do instalado. Essa é a barreira de verdade no
+  celular, e é por isso que o release precisa sair assinado com a chave real
+  (segredos `ANDROID_*` do workflow), nunca com a de depuração do runner.
+- **Nada roda sem a pessoa:** Android confirma no instalador do sistema; o
+  `.deb` pede a senha pelo `pkexec`; AppImage e Windows só trocam depois do
+  "Atualizar"/"Instalar" (o download sozinho não instala).
+- **FileProvider só da pasta `updates/`**, sem exportar, com permissão de
+  leitura dada apenas ao instalador naquela chamada.
+
 ## Riscos que ficam (aceitos)
+
+- **Bluetooth próprio da Festa sem criptografia** (BLE/L2CAP e RFCOMM no
+  modo inseguro, sem pareamento obrigatório), como já era o Wi-Fi da Festa.
+  Quem decide quem entra é o aceite do dono; arquivos têm teto de 210 MB no
+  nativo, mais as cotas do Dart.
+- **Conta do GitHub é a chave das atualizações** no PC: quem publicar um
+  release em `thieggs/bkmasterplayer` faz o app de quem usa .deb, AppImage ou
+  Windows instalar o que quiser (com o "Instalar" da pessoa). Proteção: 2FA na
+  conta. No Android a assinatura do APK segura.
 
 - **Rede local sem criptografia.** Connect e Festa falam HTTP e WebSocket
   puros. Com o desafio e resposta, quem escuta a rede não leva a senha nem o

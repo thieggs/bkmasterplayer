@@ -2437,4 +2437,80 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get automixUnreliableHelp =>
       'Para sincronizar, as batidas precisam cair numa grade fixa (±10 ms) em boa parte do trecho. Música tocada ao vivo, com andamento que varia, costuma não passar; aí a transição fica simples.';
+
+  @override
+  String get updates => 'Atualizações';
+
+  @override
+  String get updateCheckOnOpen => 'Procurar versão nova ao abrir';
+
+  @override
+  String get updateCheckOnOpenHint =>
+      'Pergunta ao GitHub qual é a última versão; nada seu é enviado.';
+
+  @override
+  String get updateAutoDownload => 'Baixar sozinho';
+
+  @override
+  String get updateAutoDownloadHint =>
+      'Baixa em segundo plano (nunca nos dados móveis) e só pergunta na hora de instalar.';
+
+  @override
+  String get updateCheckNow => 'Procurar agora';
+
+  @override
+  String get updateChecking => 'Procurando…';
+
+  @override
+  String get updateUpToDate => 'Você está na versão mais nova.';
+
+  @override
+  String updateAvailable(String version) {
+    return 'Versão $version disponível';
+  }
+
+  @override
+  String updateDownloading(int percent) {
+    return 'Baixando… $percent%';
+  }
+
+  @override
+  String updateReady(String version) {
+    return 'Versão $version baixada, pronta para instalar';
+  }
+
+  @override
+  String get updateInstalling => 'Instalando…';
+
+  @override
+  String updateFailed(String error) {
+    return 'Não deu para atualizar: $error';
+  }
+
+  @override
+  String get updateNow => 'Atualizar';
+
+  @override
+  String get updateInstall => 'Instalar';
+
+  @override
+  String get updateLater => 'Depois';
+
+  @override
+  String get updateSkip => 'Pular esta versão';
+
+  @override
+  String get updateOpenPage => 'Abrir no GitHub';
+
+  @override
+  String get updateManualHint =>
+      'Este jeito de instalar não se troca sozinho: baixe a versão nova pela página do GitHub.';
+
+  @override
+  String get updateRestartHint =>
+      'O app fecha e abre de novo, já na versão nova.';
+
+  @override
+  String get updateAndroidHint =>
+      'O Android vai pedir para confirmar a instalação. Na primeira vez, ele pede também para permitir instalar apps deste aplicativo.';
 }

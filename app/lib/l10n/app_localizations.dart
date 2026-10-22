@@ -4362,6 +4362,132 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Para sincronizar, as batidas precisam cair numa grade fixa (±10 ms) em boa parte do trecho. Música tocada ao vivo, com andamento que varia, costuma não passar; aí a transição fica simples.'**
   String get automixUnreliableHelp;
+
+  /// No description provided for @updates.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizações'**
+  String get updates;
+
+  /// No description provided for @updateCheckOnOpen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurar versão nova ao abrir'**
+  String get updateCheckOnOpen;
+
+  /// No description provided for @updateCheckOnOpenHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pergunta ao GitHub qual é a última versão; nada seu é enviado.'**
+  String get updateCheckOnOpenHint;
+
+  /// No description provided for @updateAutoDownload.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar sozinho'**
+  String get updateAutoDownload;
+
+  /// No description provided for @updateAutoDownloadHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixa em segundo plano (nunca nos dados móveis) e só pergunta na hora de instalar.'**
+  String get updateAutoDownloadHint;
+
+  /// No description provided for @updateCheckNow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurar agora'**
+  String get updateCheckNow;
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurando…'**
+  String get updateChecking;
+
+  /// No description provided for @updateUpToDate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você está na versão mais nova.'**
+  String get updateUpToDate;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Versão {version} disponível'**
+  String updateAvailable(String version);
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando… {percent}%'**
+  String updateDownloading(int percent);
+
+  /// No description provided for @updateReady.
+  ///
+  /// In pt, this message translates to:
+  /// **'Versão {version} baixada, pronta para instalar'**
+  String updateReady(String version);
+
+  /// No description provided for @updateInstalling.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instalando…'**
+  String get updateInstalling;
+
+  /// No description provided for @updateFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para atualizar: {error}'**
+  String updateFailed(String error);
+
+  /// No description provided for @updateNow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar'**
+  String get updateNow;
+
+  /// No description provided for @updateInstall.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instalar'**
+  String get updateInstall;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In pt, this message translates to:
+  /// **'Depois'**
+  String get updateLater;
+
+  /// No description provided for @updateSkip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pular esta versão'**
+  String get updateSkip;
+
+  /// No description provided for @updateOpenPage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir no GitHub'**
+  String get updateOpenPage;
+
+  /// No description provided for @updateManualHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este jeito de instalar não se troca sozinho: baixe a versão nova pela página do GitHub.'**
+  String get updateManualHint;
+
+  /// No description provided for @updateRestartHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O app fecha e abre de novo, já na versão nova.'**
+  String get updateRestartHint;
+
+  /// No description provided for @updateAndroidHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O Android vai pedir para confirmar a instalação. Na primeira vez, ele pede também para permitir instalar apps deste aplicativo.'**
+  String get updateAndroidHint;
 }
 
 class _AppLocalizationsDelegate
