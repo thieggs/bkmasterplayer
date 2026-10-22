@@ -655,6 +655,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dlWifiOnlyHint => 'On mobile data, downloads wait for Wi-Fi';
 
   @override
+  String get dlQuality => 'Download quality';
+
+  @override
+  String get dlQualityHint =>
+      'Applies to what you download from now on; the original FLAC takes much more space';
+
+  @override
   String get dlWaitingWifi => 'Waiting for Wi-Fi';
 
   @override

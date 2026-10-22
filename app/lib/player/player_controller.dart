@@ -731,9 +731,10 @@ class PlayerController extends Notifier<PlayerState> {
   engine.TrackSource? _source(QueueItem item) => sourceFor(item.song, uid: item.uid, gain: _replayGain(item));
 
   /// Fonte de uma música para o motor. Músicas baixadas para ouvir offline
-  /// sempre usam o arquivo original ("raw"), para achar o download mesmo que
-  /// a qualidade de streaming mude depois.
-  engine.TrackSource? sourceFor(Song song, {String? uid, (double, double?)? gain, bool offline = false}) {
+  /// usam a qualidade com que foram baixadas (`downloadBitRate` ao baixar;
+  /// depois, a que a coleção guardou), nunca a do streaming: assim o download
+  /// é achado mesmo que a qualidade de streaming mude.
+  engine.TrackSource? sourceFor(Song song, {String? uid, (double, double?)? gain, bool offline = false, int downloadBitRate = 0}) {
     final (g0, peak0) = gain ?? (0.0, null);
     final path = song.path;
     if (path != null) {
@@ -756,14 +757,16 @@ class PlayerController extends Notifier<PlayerState> {
     final p = _provider;
     if (p == null) return null;
     final s = ref.read(settingsProvider);
-    final raw = offline || ref.read(offlineProvider.notifier).songIds.contains(song.id);
+    // Qualidade da cópia baixada (0 = original); null = não baixada.
+    final dl = offline ? downloadBitRate : ref.read(offlineProvider.notifier).bitRateFor(song.id);
     // Formato que o motor não decodifica (Opus etc.): o servidor converte, até no download.
     final convert = _undecodable.contains(song.suffix?.toLowerCase());
     // Nos dados móveis, a qualidade escolhida para eles. Conversão sempre para
     // MP3: é o que o motor decodifica (Opus, por exemplo, não).
     final rate = streamBitRate(s, metered: ref.read(meteredProvider));
-    final format = convert || (!raw && rate > 0) ? 'mp3' : null;
-    final bitrate = raw && !convert ? null : (rate > 0 ? rate : null);
+    final want = dl ?? rate; // kbps pedido ao servidor; 0 = original
+    final format = convert || want > 0 ? 'mp3' : null;
+    final bitrate = want > 0 ? want : null;
     final (g, peak) = gain ?? (0.0, null);
     // Análise pronta no servidor de análise: só se o arquivo tocado é o mesmo
     // que ele analisou (o original, ou o MP3 que o servidor converte dos

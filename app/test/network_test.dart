@@ -26,7 +26,8 @@ void main() {
     expect(streamBitRate(s, metered: false), 320);
     expect(streamBitRate(s, metered: true), 128);
     expect(streamBitRate(const AppSettings(mobileMaxBitRate: 128), metered: true), 128, reason: 'original no Wi-Fi, 128 nos dados');
-    expect(streamBitRate(const AppSettings(maxBitRate: 192), metered: true), 192, reason: '"a mesma do Wi-Fi"');
+    expect(streamBitRate(const AppSettings(maxBitRate: 192, mobileMaxBitRate: 0), metered: true), 192, reason: '"a mesma do Wi-Fi"');
+    expect(streamBitRate(const AppSettings(), metered: true), 320, reason: 'biblioteca em FLAC: nos dados, MP3 320 de fábrica');
     expect(streamBitRate(const AppSettings(maxBitRate: 128, mobileMaxBitRate: 256), metered: true), 128);
   });
 
@@ -37,6 +38,19 @@ void main() {
     expect(AppSettings.fromJson({}).transcodeFormat, isNull);
     final back = AppSettings.fromJson(const AppSettings(mobileMaxBitRate: 96, downloadWifiOnly: true).toJson());
     expect((back.mobileMaxBitRate, back.downloadWifiOnly), (96, true));
+  });
+
+  test('ajuste antigo com "a mesma do Wi-Fi" passa uma vez para 320 nos dados móveis', () {
+    expect(AppSettings.fromJson({'mobileMaxBitRate': 0}).mobileMaxBitRate, 320);
+    expect(AppSettings.fromJson({'mobileMaxBitRate': 128}).mobileMaxBitRate, 128, reason: 'escolha da pessoa fica');
+    // Salvo pela versão nova: "a mesma do Wi-Fi" foi escolhido de propósito.
+    final novo = AppSettings.fromJson(const AppSettings(mobileMaxBitRate: 0).toJson());
+    expect(novo.mobileMaxBitRate, 0);
+  });
+
+  test('qualidade dos downloads é salva (0 = original)', () {
+    expect(const AppSettings().downloadMaxBitRate, 0);
+    expect(AppSettings.fromJson(const AppSettings(downloadMaxBitRate: 320).toJson()).downloadMaxBitRate, 320);
   });
 
   test('downloads esperam o Wi-Fi só com a opção ligada e nos dados móveis', () async {

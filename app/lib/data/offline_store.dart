@@ -24,6 +24,7 @@ class OfflineCollection {
     this.coverArt,
     required this.songs,
     required this.account,
+    this.bitRate = 0,
   });
 
   final String type; // album | playlist
@@ -34,6 +35,14 @@ class OfflineCollection {
   final List<Song> songs;
   final String account;
 
+  /// Qualidade com que foi baixada (kbps, MP3; 0 = original). Fica guardada
+  /// na coleção: mudar o ajuste depois não pode fazer o que já está no disco
+  /// "sumir" (a chave do arquivo no cache depende da qualidade).
+  final int bitRate;
+
+  OfflineCollection withBitRate(int b) =>
+      OfflineCollection(type: type, id: id, name: name, artist: artist, coverArt: coverArt, songs: songs, account: account, bitRate: b);
+
   Map<String, dynamic> toJson() => {
         'type': type,
         'id': id,
@@ -41,6 +50,7 @@ class OfflineCollection {
         'artist': artist,
         'coverArt': coverArt,
         'account': account,
+        'bitRate': bitRate,
         'songs': songs.map((s) => s.toJson()).toList(),
       };
 
@@ -51,6 +61,7 @@ class OfflineCollection {
         artist: j['artist'] as String?,
         coverArt: j['coverArt'] as String?,
         account: j['account'] as String? ?? '',
+        bitRate: j['bitRate'] as int? ?? 0,
         songs: (j['songs'] as List).map((e) => Song.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
       );
 }
@@ -80,24 +91,44 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
   bool contains(String id) => state.any((c) => c.id == id);
 
   List<OfflineCollection>? _idsFor;
-  Set<String> _ids = const {};
+  Map<String, int> _ids = const {};
+  Set<String> _idSet = const {};
 
-  /// Músicas disponíveis offline (para tocar a versão baixada). Guardado: a
-  /// biblioteca inteira pode ter milhares e isto é consultado a cada faixa.
-  Set<String> get songIds {
+  /// Música baixada -> qualidade da cópia no disco (para tocar a versão
+  /// baixada). Em duas coleções com qualidades diferentes, vale a melhor:
+  /// original (0) ganha de tudo, senão a taxa maior. Guardado: a biblioteca
+  /// inteira pode ter milhares e isto é consultado a cada faixa.
+  Map<String, int> get _songBitRates {
     if (!identical(_idsFor, state)) {
       _idsFor = state;
-      _ids = {for (final c in state) ...c.songs.map((s) => s.id)};
+      final m = <String, int>{};
+      for (final c in state) {
+        for (final s in c.songs) {
+          final antes = m[s.id];
+          if (antes == null || (antes != 0 && (c.bitRate == 0 || c.bitRate > antes))) m[s.id] = c.bitRate;
+        }
+      }
+      _ids = m;
+      _idSet = m.keys.toSet();
     }
     return _ids;
   }
 
+  /// Músicas disponíveis offline.
+  Set<String> get songIds {
+    _songBitRates;
+    return _idSet;
+  }
+
+  /// Qualidade da cópia baixada desta música; null se não foi baixada.
+  int? bitRateFor(String songId) => _songBitRates[songId];
+
   /// Músicas para a fila de downloads do motor (as já baixadas ele ignora).
-  List<engine.OfflineTrack> _tracks(Iterable<Song> songs) {
+  List<engine.OfflineTrack> _tracks(Iterable<Song> songs, int bitRate) {
     final player = ref.read(playerProvider.notifier);
     return [
       for (final s in songs)
-        if (player.sourceFor(s, offline: true) case final src? when src.cacheKey != null)
+        if (player.sourceFor(s, offline: true, downloadBitRate: bitRate) case final src? when src.cacheKey != null)
           engine.OfflineTrack(
             cacheKey: src.cacheKey!,
             url: src.url,
@@ -108,11 +139,16 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
     ];
   }
 
+  /// Baixa na qualidade escolhida nos ajustes. Já baixada em outra
+  /// qualidade: a cópia velha sai antes, para não ficar ocupando o disco.
   Future<void> add(OfflineCollection c) async {
+    c = c.withBitRate(ref.read(settingsProvider).downloadMaxBitRate);
+    final antes = state.where((x) => x.id == c.id).firstOrNull;
+    if (antes != null && antes.bitRate != c.bitRate) await remove(c.id);
     state = [...state.where((x) => x.id != c.id), c];
     await _save();
     unawaited(_cacheCovers(c.songs));
-    await engine.playerDownloadOffline(tracks: _tracks(c.songs));
+    await engine.playerDownloadOffline(tracks: _tracks(c.songs, c.bitRate));
   }
 
   /// Guarda a capa junto com a música.
@@ -139,12 +175,12 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
   /// Ao abrir o app (com o login pronto): a fila de downloads é só da memória,
   /// então volta a pedir o que ainda falta das coleções desta conta.
   Future<void> resumePending(String account) async {
-    final songs = {
+    final tracks = [
       for (final c in state)
-        if (c.account == account) ...c.songs,
-    };
-    if (songs.isEmpty) return;
-    await engine.playerDownloadOffline(tracks: _tracks(songs));
+        if (c.account == account) ..._tracks(c.songs, c.bitRate),
+    ];
+    if (tracks.isEmpty) return;
+    await engine.playerDownloadOffline(tracks: tracks);
   }
 
   Future<void> remove(String id) async {
@@ -152,12 +188,16 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
     if (c == null) return;
     state = state.where((x) => x.id != id).toList();
     await _save();
-    // Só apaga as músicas que não estão em outra coleção baixada.
-    final still = songIds;
+    // Só apaga as músicas que não estão em outra coleção baixada na mesma
+    // qualidade (em outra qualidade é outro arquivo).
+    final still = {
+      for (final x in state)
+        if (x.bitRate == c.bitRate) ...x.songs.map((s) => s.id),
+    };
     final player = ref.read(playerProvider.notifier);
     final keys = c.songs
         .where((s) => !still.contains(s.id))
-        .map((s) => player.sourceFor(s, offline: true)?.cacheKey)
+        .map((s) => player.sourceFor(s, offline: true, downloadBitRate: c.bitRate)?.cacheKey)
         .whereType<String>()
         .toList();
     await engine.playerRemoveOffline(cacheKeys: keys);
@@ -166,7 +206,8 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
   /// Quantas músicas da coleção já estão no disco.
   Future<int> downloadedCount(OfflineCollection c) async {
     final player = ref.read(playerProvider.notifier);
-    final keys = c.songs.map((s) => player.sourceFor(s, offline: true)?.cacheKey).whereType<String>().toList();
+    final keys =
+        c.songs.map((s) => player.sourceFor(s, offline: true, downloadBitRate: c.bitRate)?.cacheKey).whereType<String>().toList();
     final state = await engine.playerCachedState(cacheKeys: keys);
     return state.where((b) => b).length;
   }

@@ -197,6 +197,8 @@
  "dlParallelHint": "How many songs download together for offline listening. More is faster on a good connection; fewer leaves bandwidth for playback.",
  "dlWifiOnly": "Download on Wi-Fi only",
  "dlWifiOnlyHint": "On mobile data, downloads wait for Wi-Fi",
+ "dlQuality": "Download quality",
+ "dlQualityHint": "Applies to what you download from now on; the original FLAC takes much more space",
  "dlWaitingWifi": "Waiting for Wi-Fi",
  "analysisServerOk": "Connected · {done} of {total} songs analyzed · workers online: {workers}",
  "analysisServerLoginFail": "The analysis server rejected this account's login (does it use another Navidrome?)",

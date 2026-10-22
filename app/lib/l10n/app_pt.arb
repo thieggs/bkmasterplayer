@@ -259,6 +259,8 @@
  "dlParallelHint": "Quantas músicas baixam juntas para ouvir offline. Mais é mais rápido numa conexão boa; menos deixa a rede livre para tocar.",
  "dlWifiOnly": "Baixar só no Wi-Fi",
  "dlWifiOnlyHint": "Nos dados móveis, os downloads esperam o Wi-Fi",
+ "dlQuality": "Qualidade dos downloads",
+ "dlQualityHint": "Vale para o que for baixado daqui em diante; o original em FLAC ocupa bem mais espaço",
  "dlWaitingWifi": "Esperando o Wi-Fi",
  "analysisServerOk": "Conectado · {done} de {total} músicas analisadas · trabalhadores ligados: {workers}",
  "@analysisServerOk": {"placeholders": {"done": {"type": "String"}, "total": {"type": "String"}, "workers": {"type": "int"}}},

@@ -1238,6 +1238,18 @@ abstract class AppLocalizations {
   /// **'Nos dados móveis, os downloads esperam o Wi-Fi'**
   String get dlWifiOnlyHint;
 
+  /// No description provided for @dlQuality.
+  ///
+  /// In pt, this message translates to:
+  /// **'Qualidade dos downloads'**
+  String get dlQuality;
+
+  /// No description provided for @dlQualityHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vale para o que for baixado daqui em diante; o original em FLAC ocupa bem mais espaço'**
+  String get dlQualityHint;
+
   /// No description provided for @dlWaitingWifi.
   ///
   /// In pt, this message translates to:

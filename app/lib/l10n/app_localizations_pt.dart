@@ -654,6 +654,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dlWifiOnlyHint => 'Nos dados móveis, os downloads esperam o Wi-Fi';
 
   @override
+  String get dlQuality => 'Qualidade dos downloads';
+
+  @override
+  String get dlQualityHint =>
+      'Vale para o que for baixado daqui em diante; o original em FLAC ocupa bem mais espaço';
+
+  @override
   String get dlWaitingWifi => 'Esperando o Wi-Fi';
 
   @override

@@ -25,7 +25,8 @@ class AppSettings {
     this.downloadParallel = 3,
     this.transcodeFormat,
     this.maxBitRate = 0,
-    this.mobileMaxBitRate = 0,
+    this.mobileMaxBitRate = 320,
+    this.downloadMaxBitRate = 0,
     this.downloadWifiOnly = false,
     this.volume = 1.0,
     this.locale,
@@ -76,8 +77,13 @@ class AppSettings {
   final int downloadParallel;
   final String? transcodeFormat;
 
-  /// Qualidade nos dados móveis (kbps, MP3); 0 = a mesma do Wi-Fi.
+  /// Qualidade nos dados móveis (kbps, MP3); 0 = a mesma do Wi-Fi. Entra em
+  /// 320: com a biblioteca em FLAC, "a mesma do Wi-Fi" é 30 a 100 MB por
+  /// música no plano de dados.
   final int mobileMaxBitRate;
+
+  /// Qualidade dos downloads offline (kbps, MP3); 0 = o arquivo original.
+  final int downloadMaxBitRate;
 
   /// Downloads offline esperam o Wi-Fi (não gastam o plano de dados).
   final bool downloadWifiOnly;
@@ -174,6 +180,7 @@ class AppSettings {
     bool clearTranscode = false,
     int? maxBitRate,
     int? mobileMaxBitRate,
+    int? downloadMaxBitRate,
     bool? downloadWifiOnly,
     double? volume,
     String? locale,
@@ -228,6 +235,7 @@ class AppSettings {
         transcodeFormat: clearTranscode ? null : (transcodeFormat ?? this.transcodeFormat),
         maxBitRate: maxBitRate ?? this.maxBitRate,
         mobileMaxBitRate: mobileMaxBitRate ?? this.mobileMaxBitRate,
+        downloadMaxBitRate: downloadMaxBitRate ?? this.downloadMaxBitRate,
         downloadWifiOnly: downloadWifiOnly ?? this.downloadWifiOnly,
         volume: volume ?? this.volume,
         locale: clearLocale ? null : (locale ?? this.locale),
@@ -278,6 +286,7 @@ class AppSettings {
         'transcodeFormat': transcodeFormat,
         'maxBitRate': maxBitRate,
         'mobileMaxBitRate': mobileMaxBitRate,
+        'downloadMaxBitRate': downloadMaxBitRate,
         'downloadWifiOnly': downloadWifiOnly,
         'volume': volume,
         'locale': locale,
@@ -331,7 +340,13 @@ class AppSettings {
       // Só MP3: o motor não decodifica Opus (versões antigas ofereciam Opus).
       transcodeFormat: j['transcodeFormat'] is String ? 'mp3' : null,
       maxBitRate: pick('maxBitRate', d.maxBitRate),
-      mobileMaxBitRate: pick('mobileMaxBitRate', d.mobileMaxBitRate),
+      // Ajuste salvo antes da qualidade de download existir: "a mesma do Wi-Fi"
+      // era o padrão, e com a biblioteca em FLAC isso estoura o plano. Passa
+      // uma vez para 320; dali em diante vale o que a pessoa escolher.
+      mobileMaxBitRate: !j.containsKey('downloadMaxBitRate') && pick('mobileMaxBitRate', 0) == 0
+          ? d.mobileMaxBitRate
+          : pick('mobileMaxBitRate', d.mobileMaxBitRate),
+      downloadMaxBitRate: pick('downloadMaxBitRate', d.downloadMaxBitRate),
       downloadWifiOnly: pick('downloadWifiOnly', d.downloadWifiOnly),
       volume: (j['volume'] as num?)?.toDouble() ?? d.volume,
       locale: j['locale'] as String?,

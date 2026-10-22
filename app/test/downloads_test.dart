@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:player_musica/data/offline_store.dart';
 import 'package:player_musica/data/settings.dart';
 import 'package:player_musica/domain/models.dart';
 
@@ -16,5 +17,13 @@ void main() {
     expect(d.copyWith(downloadParallel: 20).downloadParallel, 8);
     expect(AppSettings.fromJson({'downloadParallel': 99}).downloadParallel, 8);
     expect(AppSettings.fromJson(d.copyWith(downloadParallel: 5).toJson()).downloadParallel, 5);
+  });
+
+  test('coleção baixada guarda a qualidade; as antigas eram o original', () {
+    const songs = [Song(id: 's1', title: 'Um')];
+    const c = OfflineCollection(type: 'album', id: 'a', name: 'A', songs: songs, account: 'x', bitRate: 320);
+    expect(OfflineCollection.fromJson(c.toJson()).bitRate, 320);
+    final velha = c.toJson()..remove('bitRate');
+    expect(OfflineCollection.fromJson(velha).bitRate, 0);
   });
 }
