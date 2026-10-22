@@ -597,6 +597,20 @@ struct ActiveTransition {
     len: u64,
 }
 
+impl ActiveTransition {
+    /// No eco e no corte, passado o ponto da troca, a música já é de B: o que
+    /// falta de A é a cauda do eco, que vem da linha de atraso e segue mesmo
+    /// com A no fim do arquivo (a saída fica no fim da música, sem folga para
+    /// a cauda). Os outros estilos fecham quando A acaba, para B não ficar
+    /// presa numa curva de volume sem ninguém do outro lado.
+    fn outlives_from(&self) -> bool {
+        match &self.kind {
+            Transition::Automix(e) => matches!(e.style, MixStyle::Echo | MixStyle::Cut) && self.pos >= e.swap_at,
+            _ => false,
+        }
+    }
+}
+
 pub struct Mixer {
     cmd_rx: rtrb::Consumer<MixerCmd>,
     ev_tx: rtrb::Producer<MixerEvent>,
@@ -1040,7 +1054,7 @@ impl Mixer {
         let transition_done = self
             .transition
             .as_ref()
-            .is_some_and(|tr| tr.pos >= tr.len || tr.from.src.exhausted());
+            .is_some_and(|tr| tr.pos >= tr.len || (tr.from.src.exhausted() && !tr.outlives_from()));
         if transition_done {
             if let Some(tr) = self.transition.take() {
                 // Terminou antes da hora (faixa mais curta que o estimado): evita salto de volume.

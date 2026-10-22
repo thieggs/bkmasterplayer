@@ -148,7 +148,7 @@ fn unclear_plan(a: &TrackAnalysis, b: &TrackAnalysis, s: &AutomixSettings, a_now
 }
 
 /// BPMs longe demais para casar: em vez de misturar dois tempos brigando, faz
-/// como DJ — A ecoa (ou corta) num início de compasso perto do fim e B entra
+/// como DJ — A ecoa (ou corta) no compasso em que a música dela acaba e B entra
 /// no primeiro tempo dela no mesmo instante. Estilos "mistura"/"filtro"
 /// escolhidos pelo usuário ficam com a transição simples.
 fn tempo_jump_plan(a: &TrackAnalysis, b: &TrackAnalysis, ga: &BeatGrid, gb: &BeatGrid, s: &AutomixSettings, a_now: f64) -> MixPlan {
@@ -159,18 +159,14 @@ fn tempo_jump_plan(a: &TrackAnalysis, b: &TrackAnalysis, ga: &BeatGrid, gb: &Bea
     };
     let a_end = if s.trim_silence { a.last_sound } else { a.duration };
     let bar_a = ga.bar_seconds();
-    let a_stop = ga.nearest_bar(a_end).min(a.duration);
-    // Onde sair: 4 compassos antes do fim musical (ou depois disso, se a outro
-    // começar mais tarde ainda). Sair no começo de uma outro longa cortava a
-    // música cedo demais.
-    let mut at = exit_bar(a.outro_start.map(|o| ga.nearest_bar(o)), a_stop, bar_a);
-    at = at.max(ga.bar_at_or_after(a_now + 4.0));
-    // O eco repete a batida de A por 2 compassos, sumindo (0,55 por repetição).
-    // A linha do eco é enchida antes, com a música ainda tocando (ver mixer).
-    let duration = if style == MixStyle::Cut { ga.period } else { 2.0 * bar_a };
-    if at + duration > a.duration {
+    // Onde sair: no compasso em que a música de A acaba.
+    let Some(at) = grid_exit(a, ga, a_end, a_now) else {
         return unclear_plan(a, b, s, a_now, "BPM muito diferente");
-    }
+    };
+    // O eco repete a batida de A por 2 compassos, sumindo (0,55 por repetição).
+    // A linha do eco é enchida antes, com a música ainda tocando, e a cauda
+    // segue depois do fim do arquivo (ver mixer).
+    let duration = if style == MixStyle::Cut { ga.period } else { 2.0 * bar_a };
     let b_bar = gb.bar_at_or_after(b.first_sound - 0.05);
     let off_a = ga.offset_near(at, at + bar_a).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
     let off_b = gb.offset_near(b_bar, b_bar + gb.bar_seconds()).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
@@ -196,13 +192,14 @@ fn tempo_jump_plan(a: &TrackAnalysis, b: &TrackAnalysis, ga: &BeatGrid, gb: &Bea
 }
 
 /// Compasso dos downbeats da rede em volta do `i`-ésimo, se vêm regulares
-/// (3 intervalos seguidos com a mesma duração, ±6%): serve para cortar ou
-/// ecoar no compasso, não para sincronizar o tempo.
-fn regular_bar(downs: &[f64], i: usize) -> Option<f64> {
+/// (3 intervalos seguidos com a mesma duração, ±6%, começando `before`
+/// downbeats antes dele): serve para cortar ou ecoar no compasso, não para
+/// sincronizar o tempo.
+fn regular_bar(downs: &[f64], i: usize, before: usize) -> Option<f64> {
     if downs.len() < 4 || i >= downs.len() {
         return None;
     }
-    let start = i.saturating_sub(1).min(downs.len() - 4);
+    let start = i.saturating_sub(before).min(downs.len() - 4);
     let iv: Vec<f64> = downs[start..start + 4].windows(2).map(|w| w[1] - w[0]).collect();
     let mut sorted = iv.clone();
     sorted.sort_by(|x, y| x.partial_cmp(y).unwrap());
@@ -229,38 +226,65 @@ pub fn bar_entry(b: &TrackAnalysis) -> Option<f64> {
     // virada que a rede marcou torta).
     let first = b.downbeats.iter().position(|d| *d >= b.first_sound - 0.05)?;
     (first..(first + 3).min(b.downbeats.len())).find_map(|i| {
-        let bar = regular_bar(&b.downbeats, i)?;
+        let bar = regular_bar(&b.downbeats, i, 1)?;
         (b.downbeats[i] - b.first_sound <= bar.max(2.5) + bar).then_some(b.downbeats[i])
     })
 }
 
-/// Onde A sai numa transição no compasso: 4 compassos antes do fim musical
-/// (ou mais tarde, se a outro começar depois disso), num compasso da grade
-/// estável ou num downbeat regular da rede, no futuro e com espaço para o
-/// eco. (instante, compasso, batida), em s.
-/// Ponto de saída: 4 compassos antes do fim musical, e nunca mais de ~8 s
-/// antes (em música lenta, 4 compassos são meia dúzia de segundos a mais). O
-/// eco precisa de 2 compassos, então esse é o limite do outro lado. Se a outro
-/// começar depois disso, respeita a outro (final curto). Antes, uma outro
-/// longa fazia a música sair até 47 s antes do fim.
-fn exit_bar(outro: Option<f64>, stop: f64, bar: f64) -> f64 {
-    let early = (4.0 * bar).min(8.0f64.max(2.0 * bar));
-    let late = stop - early;
-    match outro {
-        Some(o) if o > late => o.min(stop - 2.0 * bar),
-        _ => late,
+/// Quanto abaixo das partes cheias um compasso do fim ainda conta como
+/// música. Num fade-out, o eco entra quando ele já baixou isso: esperar o
+/// silêncio deixaria uns 10 a 20 s de música quase muda antes da próxima.
+const END_DB: f32 = 20.0;
+
+/// Folga entre a saída e o fim do arquivo, para a troca começar antes de A
+/// acabar (a cauda do eco não precisa de espaço: segue depois do fim).
+const EXIT_ROOM: f64 = 0.5;
+
+/// Fim musical de A (s): fim do último compasso que ainda soa como música (a
+/// menos de END_DB das partes cheias), sem passar do último som. Num final
+/// seco é o compasso da pancada final; num fade-out, onde ele já baixou
+/// bastante. Sem energia por compasso, o último som.
+fn music_end(a: &TrackAnalysis, a_end: f64) -> f64 {
+    let e = &a.bar_energy;
+    let mut sorted: Vec<f32> = e.iter().copied().filter(|x| *x > -90.0).collect();
+    if a.bars.len() != e.len() || sorted.len() < 16 {
+        return a_end;
     }
+    sorted.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    // Mesma referência da estrutura (intro/outro): o percentil 75.
+    let reference = sorted[sorted.len() * 3 / 4];
+    (0..e.len())
+        .rev()
+        .find(|&i| a.bars[i] < a_end && e[i] >= reference - END_DB)
+        .map(|i| a.bars.get(i + 1).copied().unwrap_or(a.duration).min(a_end))
+        .unwrap_or(a_end)
 }
 
+/// Compasso da grade em que a música de A acaba: arredonda para depois (para
+/// baixo cortaria a última pancada), no futuro e antes do fim do arquivo.
+fn grid_exit(a: &TrackAnalysis, g: &BeatGrid, a_end: f64, a_now: f64) -> Option<f64> {
+    let mut at = g.bar_at_or_after(music_end(a, a_end) - 0.1);
+    if at > a.duration - EXIT_ROOM {
+        at -= g.bar_seconds();
+    }
+    let at = at.max(g.bar_at_or_after(a_now + 4.0));
+    (at <= a.duration - EXIT_ROOM).then_some(at)
+}
+
+/// Onde A sai numa transição no compasso: no compasso em que a música dela
+/// acaba, num compasso da grade estável ou num downbeat regular da rede, no
+/// futuro. (instante, compasso, batida), em s.
+///
+/// Antes a saída ficava 4 compassos antes do fim (até ~8 s), para a cauda do
+/// eco caber no arquivo, e jogava fora o final de 93% das faixas. Agora a
+/// cauda segue depois do fim do arquivo (ver mixer) e a música toca inteira.
 pub fn bar_exit(a: &TrackAnalysis, s: &AutomixSettings, a_now: f64) -> Option<(f64, f64, f64)> {
     let a_end = if s.trim_silence { a.last_sound } else { a.duration };
     if let Some(g) = steady_grid(a, a_end - 20.0) {
         let bar = g.bar_seconds();
-        let stop = g.nearest_bar(a_end).min(a.duration);
-        let at = exit_bar(a.outro_start.map(|o| g.nearest_bar(o)), stop, bar);
-        let at = at.max(g.bar_at_or_after(a_now + 4.0));
+        let at = grid_exit(a, g, a_end, a_now)?;
         let off = g.offset_near(at, at + bar).filter(|o| o.abs() <= 0.025).unwrap_or(0.0);
-        return (at + 2.0 * bar <= a.duration).then_some((at + off, bar, g.period));
+        return Some((at + off, bar, g.period));
     }
     let downs = &a.downbeats;
     // Compasso típico no fim (mediana dos últimos 40 s): o finalzinho costuma
@@ -272,14 +296,19 @@ pub fn bar_exit(a: &TrackAnalysis, s: &AutomixSettings, a_now: f64) -> Option<(f
     }
     iv.sort_by(|x, y| x.partial_cmp(y).unwrap());
     let bar0 = iv[iv.len() / 2];
-    let want = exit_bar(a.outro_start, a_end, bar0);
-    // O downbeat regular (no compasso típico) mais perto do alvo.
-    let (at, bar) = downs
+    let want = music_end(a, a_end);
+    // O downbeat regular (no compasso típico) no fim da música ou logo
+    // depois; antes dele só se não houver outro (cortaria a última pancada).
+    // A regularidade vale para os compassos antes do corte (o eco repete o
+    // último deles): no fim da música a rede costuma marcar um downbeat torto.
+    let near: Vec<(f64, f64)> = downs
         .iter()
         .enumerate()
-        .filter(|(_, d)| **d >= a_now + 4.0 && **d + 2.0 * bar0 <= a.duration && (**d - want).abs() <= 4.0 * bar0)
-        .filter_map(|(i, d)| regular_bar(downs, i).filter(|b| (b / bar0 - 1.0).abs() < 0.06).map(|b| (*d, b)))
-        .min_by(|x, y| (x.0 - want).abs().partial_cmp(&(y.0 - want).abs()).unwrap())?;
+        .filter(|(_, d)| **d >= a_now + 4.0 && **d <= a.duration - EXIT_ROOM && (**d - want).abs() <= 4.0 * bar0)
+        .filter_map(|(i, d)| regular_bar(downs, i, 3).filter(|b| (b / bar0 - 1.0).abs() < 0.06).map(|b| (*d, b)))
+        .collect();
+    let by_time = |x: &&(f64, f64), y: &&(f64, f64)| x.0.partial_cmp(&y.0).unwrap();
+    let (at, bar) = *near.iter().filter(|(d, _)| *d >= want - 0.1).min_by(by_time).or_else(|| near.iter().max_by(by_time))?;
     // Batida: mediana dos intervalos da rede ali perto (o eco repete nela).
     let mut iv: Vec<f64> = a.beats.windows(2).filter(|w| w[0] >= at - 4.0 * bar && w[1] <= at + 2.0 * bar).map(|w| w[1] - w[0]).collect();
     iv.sort_by(|x, y| x.partial_cmp(y).unwrap());
@@ -699,8 +728,9 @@ mod tests {
         let bar_a = 4.0 * 60.0 / 130.0;
         assert!((p.duration - 2.0 * bar_a).abs() < 1e-6);
         assert!((p.beat - bar_a / 4.0).abs() < 1e-6);
-        // 4 compassos antes do fim (sem outro detectada).
-        assert!((p.from_start - (240.0 - 4.0 * bar_a)).abs() <= bar_a, "{p:?}");
+        // No último compasso: a música toca até o fim, a cauda do eco segue
+        // depois do arquivo.
+        assert!(240.0 - p.from_start <= bar_a + 1e-6 && p.from_start <= 240.0 - 0.5, "{p:?}");
     }
 
     #[test]
@@ -745,20 +775,77 @@ mod tests {
         assert!((m.speed_at(48000.0 * 40.0) - 0.98).abs() < 1e-9);
     }
 
-    #[test]
-    fn echo_exit_stays_close_to_the_end() {
-        // Outro longa (12 compassos antes do fim): antes a saída ia para o
-        // começo dela e cortava a música ~32 s cedo; agora sai perto do fim.
-        let a = fake(90.0, 240.0, 16.0, 12.0, "8A");
+    /// `fake` com energia por compasso: partes cheias a -10 dB e o fim pedido
+    /// (um valor por compasso, contando do último para trás).
+    fn with_ending(mut a: TrackAnalysis, tail_from_end: &[f32], last_sound: f64) -> TrackAnalysis {
+        let bar = a.grids[0].bar_seconds();
+        let n = (a.duration / bar).round() as usize;
+        a.bars = (0..n).map(|i| i as f64 * bar).collect();
+        a.bar_energy = vec![-10.0; n];
+        for (k, e) in tail_from_end.iter().enumerate() {
+            a.bar_energy[n - 1 - k] = *e;
+        }
+        a.last_sound = last_sound;
+        a
+    }
+
+    /// Eco no automático: plano completo (BPM longe) e saída no compasso
+    /// sozinha (sem grade para casar). As duas têm de sair no mesmo ponto.
+    fn echo_exit(a: &TrackAnalysis) -> f64 {
         let b = fake(128.0, 240.0, 16.0, 16.0, "8A");
-        let p = plan(&a, &b, &AutomixSettings::default(), 30.0);
+        let p = plan(a, &b, &AutomixSettings::default(), 30.0);
         assert_eq!(p.style, MixStyle::Echo, "{p:?}");
+        let (at, _, _) = bar_exit(a, &AutomixSettings::default(), 30.0).unwrap();
+        assert!((at - p.from_start).abs() < 1e-6, "{at} vs {p:?}");
+        p.from_start
+    }
+
+    #[test]
+    fn echo_exit_lets_a_long_outro_play_to_the_end() {
+        // Outro de 12 compassos (só bateria, 6 dB abaixo) e 2 compassos da
+        // cauda da última nota. Antes o eco cortava 4 compassos antes do fim
+        // e jogava fora o final; agora sai quando a música acaba.
         let bar = 4.0 * 60.0 / 90.0;
-        let antes_do_fim = a.last_sound - p.from_start;
-        assert!(antes_do_fim <= 9.0, "saiu {antes_do_fim:.1}s antes do fim");
-        assert!(antes_do_fim >= 2.0 * bar - 0.01, "sem espaço para a cauda do eco ({antes_do_fim:.1}s)");
-        // A cauda do eco cabe no que resta da faixa.
-        assert!(p.from_start + p.duration <= a.duration + 1e-6, "{p:?}");
+        let mut tail = vec![-40.0, -40.0];
+        tail.extend([-16.0; 12]);
+        let a = with_ending(fake(90.0, 240.0, 16.0, 14.0, "8A"), &tail, 239.5);
+        let at = echo_exit(&a);
+        assert!((at - (240.0 - 2.0 * bar)).abs() < 1e-6, "saiu em {at:.2}, música até {:.2}", 240.0 - 2.0 * bar);
+    }
+
+    #[test]
+    fn echo_exit_keeps_the_final_hit() {
+        // A música para, 2 compassos de silêncio, uma pancada final no
+        // penúltimo compasso e a cauda dela até o meio do último: a pancada fica.
+        let bar = 4.0 * 60.0 / 90.0;
+        let a = with_ending(fake(90.0, 240.0, 16.0, 4.0, "8A"), &[-35.0, -14.0, -95.0, -95.0], 240.0 - 0.5 * bar);
+        let at = echo_exit(&a);
+        assert!(at >= 240.0 - bar - 1e-6, "cortou a pancada final (saiu em {at:.2})");
+        assert!(at <= a.duration - 0.5, "{at}");
+    }
+
+    #[test]
+    fn echo_exit_does_not_wait_for_the_whole_fade_out() {
+        // Fade-out de 3 dB por compasso nos últimos 16: o eco entra quando já
+        // baixou 20 dB (sem esperar o silêncio, nem cortar o começo do fade).
+        let bar = 4.0 * 60.0 / 90.0;
+        let tail: Vec<f32> = (0..16).map(|k| -10.0 - 3.0 * (16 - k) as f32).collect();
+        let a = with_ending(fake(90.0, 240.0, 16.0, 16.0, "8A"), &tail, 239.0);
+        // O de -28 dB (6º do fade) é o último a menos de 20 dB das partes cheias.
+        let last = 90 - 16 + 5;
+        let at = echo_exit(&a);
+        assert!((at - (last + 1) as f64 * bar).abs() < 1e-6, "saiu em {at:.2}");
+    }
+
+    #[test]
+    fn echo_exit_without_bar_energy_uses_the_last_sound() {
+        // Análise sem energia por compasso: sai no compasso do último som,
+        // com folga para a troca começar antes do fim do arquivo.
+        let a = fake(90.0, 240.0, 16.0, 12.0, "8A");
+        let bar = 4.0 * 60.0 / 90.0;
+        let at = echo_exit(&a);
+        assert!(a.last_sound - at <= bar + 1e-6, "saiu {:.1}s antes do fim", a.last_sound - at);
+        assert!(at <= a.duration - 0.5);
     }
 
     #[test]

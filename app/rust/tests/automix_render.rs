@@ -222,3 +222,88 @@ fn echo_repeats_the_last_beat_without_a_hole() {
     assert!(eco2 > ultima * 0.1, "o eco não continuou na segunda batida ({eco2:.4})");
     assert!(eco2 < eco1, "o eco tem que ir sumindo ({eco1:.4} → {eco2:.4})");
 }
+
+/// A saída do eco fica no fim da música, sem folga para a cauda: quando o
+/// arquivo de A acaba no meio do eco, as repetições têm que continuar até o
+/// fim da transição. Antes o mixer fechava a transição no fim de A e a cauda
+/// sumia seco (por isso a saída ficava 4 compassos antes do fim).
+#[test]
+fn echo_tail_survives_the_end_of_the_file() {
+    let rate = 48000u32;
+    let rf = rate as f64;
+    let (beat, bar) = (0.5, 2.0); // A: 120 BPM, 4/4
+    let (a_len, cut) = (3.0, 2.5); // A acaba 1 batida depois do corte
+    let dir = std::env::temp_dir();
+    let a_path = dir.join(format!("bk-echo-end-a-{}.wav", std::process::id()));
+    let silence = dir.join(format!("bk-echo-end-b-{}.wav", std::process::id()));
+    let spec = hound::WavSpec { channels: 2, sample_rate: rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
+    {
+        // Uma pancada (200 Hz, 80 ms sumindo) em cada batida.
+        let mut w = hound::WavWriter::create(&a_path, spec).unwrap();
+        for i in 0..(a_len * rf) as usize {
+            let t = (i as f64 / rf) % beat;
+            let x = if t < 0.08 { 0.5 * (1.0 - t / 0.08) * (2.0 * std::f64::consts::PI * 200.0 * t).sin() } else { 0.0 };
+            let s = (x * 32767.0) as i16;
+            w.write_sample(s).unwrap();
+            w.write_sample(s).unwrap();
+        }
+        w.finalize().unwrap();
+        let mut w = hound::WavWriter::create(&silence, spec).unwrap();
+        for _ in 0..(rate as usize * 10 * 2) {
+            w.write_sample(0i16).unwrap();
+        }
+        w.finalize().unwrap();
+    }
+    let (cmd_tx, cmd_rx) = rtrb::RingBuffer::new(64);
+    let (ev_tx, mut ev_rx) = rtrb::RingBuffer::new(1024);
+    let mut mixer = Mixer::new(rate, cmd_rx, ev_tx);
+    let mut cmd_tx = cmd_tx;
+    let _ = cmd_tx.push(MixerCmd::Play(deck(1, a_path.clone(), rate, 0, None)));
+    let len = (2.0 * bar * rf) as u64;
+    let exec = AutomixExec {
+        style: player_engine::engine::automix::MixStyle::Echo,
+        start_native: (cut * rf) as u64,
+        len,
+        swap_at: 0,
+        beat: (beat * rf) as u64,
+        echo_buf: vec![0.0; rate as usize * 4],
+        echo_pos: 0,
+        mute_from: false,
+    };
+    let _ = cmd_tx.push(MixerCmd::SetNext(Some(deck(2, silence.clone(), rate, 0, None)), Transition::Automix(Box::new(exec))));
+    std::thread::sleep(Duration::from_millis(500));
+
+    let total = ((cut + 2.0 * bar + 0.5) * rf) as usize;
+    let mut out = Vec::with_capacity(total * 2);
+    let mut block = vec![0.0f32; 1024];
+    let mut a_finished = None;
+    while out.len() < total * 2 {
+        mixer.render(&mut block);
+        out.extend_from_slice(&block);
+        while let Ok(e) = ev_rx.pop() {
+            if let MixerEvent::Finished(1) = e {
+                a_finished.get_or_insert(out.len() as f64 / 2.0 / rf);
+            }
+        }
+        std::thread::sleep(Duration::from_secs_f64(512.0 / rf / 8.0));
+    }
+    let _ = std::fs::remove_file(&a_path);
+    let _ = std::fs::remove_file(&silence);
+    let mono: Vec<f32> = out.chunks(2).map(|f| (f[0] + f[1]) * 0.5).collect();
+    let energy = |from: f64, to: f64| -> f32 {
+        let (a, b) = ((from * rf) as usize, ((to * rf) as usize).min(mono.len()));
+        (mono[a..b].iter().map(|x| x * x).sum::<f32>() / (b - a).max(1) as f32).sqrt()
+    };
+    // Repetições: 0,8 · 0,55^k da última batida; as que caem depois do fim
+    // do arquivo de A (a partir de 3 s) também têm que soar.
+    let ultima = energy(cut - beat, cut);
+    let depois_do_fim = energy(a_len, a_len + beat);
+    let mais_uma = energy(a_len + beat, a_len + 2.0 * beat);
+    eprintln!("última batida {ultima:.4} → depois do fim de A {depois_do_fim:.4} → {mais_uma:.4}; A encerrada em {a_finished:?}");
+    assert!(ultima > 0.01, "A não estava tocando antes do corte");
+    assert!(depois_do_fim > ultima * 0.3, "o eco parou junto com o arquivo de A ({depois_do_fim:.4} vs {ultima:.4})");
+    assert!(mais_uma > ultima * 0.15 && mais_uma < depois_do_fim, "a cauda tem que continuar sumindo ({mais_uma:.4})");
+    // A só sai do mixer quando a cauda acaba.
+    let fim = a_finished.expect("A nunca terminou");
+    assert!(fim >= cut + 2.0 * bar - 0.05, "a transição fechou em {fim:.2}s, antes do fim da cauda");
+}
