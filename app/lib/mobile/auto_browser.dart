@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 
 import '../domain/models.dart';
 import '../domain/music_provider.dart';
+import '../ui/widgets/cover_art.dart' show CoverImageProvider;
 
 /// Navegação no carro (Android Auto hoje; a mesma árvore serve ao CarPlay).
 ///
@@ -280,5 +281,32 @@ class AutoBrowser {
       return null;
     }
     return Uri.parse('content://$artAuthority/c/$key');
+  }
+
+  /// Igual a [art], mas só devolve depois de a imagem estar no disco, onde o
+  /// provedor de capas serve na hora. Quem abre a capa do que está tocando é
+  /// o audio_service, segurando uma trava que a thread principal também usa:
+  /// com o provedor baixando da rede ali dentro (até 20 s), a tela do app
+  /// travava junto — ANR no M35. Sem conseguir baixar, fica sem capa.
+  Future<Uri?> artReady(String? coverArt, {int size = 300}) async {
+    final uri = art(coverArt, size: size);
+    final p = provider();
+    if (uri == null || p == null || coverArt == null || coverArt.startsWith('/')) return uri;
+    final img = File('$artDir/${uri.pathSegments.last}.img');
+    if (await img.exists()) return uri;
+    final url = p.coverUri(coverArt, size: size);
+    final cacheKey = p.coverCacheKey(coverArt, size: size);
+    if (url == null || cacheKey == null) return null;
+    try {
+      // O cache de capas da tela costuma já ter esta: aí nem vai à rede.
+      final cached = await CoverImageProvider.fetchFile(
+          url: url.toString(), cacheKey: cacheKey, cacheDir: '${File(artDir).parent.path}/ui_covers');
+      final tmp = File('${img.path}.$pid.part');
+      await cached.copy(tmp.path);
+      await tmp.rename(img.path);
+      return uri;
+    } catch (_) {
+      return null;
+    }
   }
 }

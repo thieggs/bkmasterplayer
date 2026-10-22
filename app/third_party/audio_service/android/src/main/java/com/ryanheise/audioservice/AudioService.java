@@ -801,30 +801,48 @@ public class AudioService extends MediaBrowserServiceCompat {
      *  - https://developer.android.com/guide/topics/media-apps/working-with-a-media-session#album_artwork
      *  - https://9to5google.com/2020/08/02/android-11-lockscreen-art/
      */
-    synchronized void setMetadata(MediaMetadataCompat mediaMetadata) {
+    // BKplayer: a capa é carregada FORA da trava. Antes este método inteiro
+    // era synchronized e carregava a capa lá dentro (por content://, o que
+    // pode baixar da rede); a thread principal precisa da mesma trava para
+    // montar a notificação (buildNotification) e ficava parada esperando —
+    // com a rede lenta, ANR ("Input dispatching timed out"), visto no M35.
+    // O número de sequência descarta uma capa lenta que chegue depois da
+    // música seguinte.
+    private long metadataSeq = 0;
+
+    void setMetadata(MediaMetadataCompat mediaMetadata) {
+        final long seq;
+        synchronized (this) {
+            seq = ++metadataSeq;
+        }
+        Bitmap bitmap = null;
+        boolean withArt = false;
         String artCacheFilePath = mediaMetadata.getString("artCacheFile");
         if (artCacheFilePath != null) {
             // Load local files and network images, cached in files
-            artBitmap = loadArtBitmap(artCacheFilePath, null);
-            mediaMetadata = putArtToMetadata(mediaMetadata);
+            bitmap = loadArtBitmap(artCacheFilePath, null);
+            withArt = true;
         } else {
             // Load content:// URIs
             String artUri = mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI);
             if (artUri != null && artUri.startsWith("content:")) {
                 String loadThumbnailUri = mediaMetadata.getString("loadThumbnailUri");
-                artBitmap = loadArtBitmap(artUri, loadThumbnailUri);
-                mediaMetadata = putArtToMetadata(mediaMetadata);
-            } else {
-                artBitmap = null;
+                bitmap = loadArtBitmap(artUri, loadThumbnailUri);
+                withArt = true;
             }
         }
-        this.mediaMetadata = mediaMetadata;
-        mediaSession.setMetadata(mediaMetadata);
+        synchronized (this) {
+            if (seq != metadataSeq) return; // chegou outra mais nova enquanto carregava
+            artBitmap = bitmap;
+            if (withArt) mediaMetadata = putArtToMetadata(mediaMetadata, bitmap);
+            this.mediaMetadata = mediaMetadata;
+            mediaSession.setMetadata(mediaMetadata);
+        }
         handler.removeCallbacksAndMessages(null);
         handler.post(this::updateNotification);
     }
 
-    private MediaMetadataCompat putArtToMetadata(MediaMetadataCompat mediaMetadata) {
+    private static MediaMetadataCompat putArtToMetadata(MediaMetadataCompat mediaMetadata, Bitmap artBitmap) {
         return new MediaMetadataCompat.Builder(mediaMetadata)
                 .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                 .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)

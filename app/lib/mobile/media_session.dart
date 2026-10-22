@@ -189,7 +189,7 @@ class _BkAudioHandler extends BaseAudioHandler {
   /// qualquer app instalado consegue ler.
   Future<void> _loadArt(QueueItem item) async {
     try {
-      final uri = _auto.art(item.song.coverArt, size: 600);
+      final uri = await _auto.artReady(item.song.coverArt, size: 600);
       if (uri == null) return;
       final cur = mediaItem.value;
       if (cur != null && cur.id == item.uid) mediaItem.add(cur.copyWith(artUri: uri));
