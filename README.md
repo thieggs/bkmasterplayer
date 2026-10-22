@@ -300,18 +300,23 @@ mesmo, para valer também no mix instantâneo e na fila infinita:
 |---|---|
 | Parecida no som | o timbre e o arranjo (padrão) |
 | Mesmo clima | dançante, agressiva, feliz, festa, relaxada, triste |
-| Mesmo estilo musical | os gêneros que a análise reconheceu |
+| Mesmo estilo musical | o CLAP do AudioMuse (áudio + texto), com o som desempatando |
 | Mesma época | anos próximos, com o som desempatando |
 | Mesmo assunto | o que a letra fala |
 | Combina pra emendar | andamento próximo e tom que casa, como os DJs |
-| Como o AudioMuse faz | a conta do servidor: 0,75 letra + 0,25 som |
+| Como o AudioMuse faz | a conta do "parecidas" do servidor: só o som |
 
 ```bash
 ./dev/exporta_audiomuse.py                    # gera ~/.local/share/bk-analyzer/vetores.bkvec
 ```
 
 Vale automatizar com um timer do systemd (`bk-vetores.timer`), para o aparelho
-acompanhar a biblioteca. A mesma faixa costuma existir em vários arquivos
+acompanhar a biblioteca, e re-casar o AudioMuse antes de exportar
+(`./dev/audiomuse_manutencao.sh alinhar`): música trocada ganha outro id no
+Navidrome e, sem o alinhamento, o AudioMuse não a conhece mais — a rádio não
+acha parecidas dela, e ela nunca aparece como sugestão. O mesmo script tem o
+`vigia`, que conserta o AudioMuse quando ele não sobe direito depois de
+reiniciar o PC (`audiomuse-vigia.timer`, a cada 15 min). A mesma faixa costuma existir em vários arquivos
 (single, álbum, coletânea): o vetor vai uma vez e os ids apontam para ele,
 senão a mesma música apareceria repetida nas sugestões.
 

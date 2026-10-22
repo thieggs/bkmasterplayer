@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../core/providers.dart';
 import '../data/playlist_gen.dart';
 import '../data/recommend.dart';
-import '../data/similar.dart';
 import '../data/subsonic/subsonic_client.dart';
 import '../domain/models.dart';
 import '../l10n/l10n.dart';
@@ -71,43 +70,22 @@ class LibraryActions {
     }
   }
 
-  /// Mix instantâneo (getSimilarSongs2 — no Navidrome+AudioMuse vem da análise sônica).
+  /// Mix instantâneo: começa uma rádio a partir de [song], do jeito escolhido
+  /// nos ajustes (ou [style]). Ver `player/radio.dart`.
   static Future<void> instantMix(BuildContext context, WidgetRef ref, Song song, {RecommendStyle? style}) async {
     final l10n = context.l10n;
     showSnack(context, l10n.buildingMix);
     try {
-      final s = ref.read(settingsProvider);
-      final similar = await findSimilar(ref.read(musicProvider), song,
-          count: 60,
-          lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
-          local: ref.read(recommendProvider.notifier),
-          style: style);
-      if (similar.isEmpty) {
-        if (context.mounted) showSnack(context, l10n.noSimilarSongs);
-        return;
-      }
-      _player(ref).playSongs([song, ...similar.where((s) => s.id != song.id)]);
-      _player(ref).setRadio(true);
+      final ok = await _player(ref).startRadio(song, style: style);
+      if (!ok && context.mounted) showSnack(context, l10n.noSimilarSongs);
     } on SubsonicException catch (e) {
       if (context.mounted) showSnack(context, e.message);
     }
   }
 
-  /// Rádio sônica: getSonicSimilarTracks (extensão sonicSimilarity / AudioMuse).
-  static Future<void> sonicRadio(BuildContext context, WidgetRef ref, Song song) async {
-    final l10n = context.l10n;
-    try {
-      final matches = await ref.read(musicProvider).sonicSimilar(song.id, count: 60);
-      if (matches.isEmpty) {
-        if (context.mounted) showSnack(context, l10n.noSimilarSongs);
-        return;
-      }
-      _player(ref).playSongs([song, ...matches.map((m) => m.song).where((s) => s.id != song.id)]);
-      _player(ref).setRadio(true);
-    } on SubsonicException catch (e) {
-      if (context.mounted) showSnack(context, e.message);
-    }
-  }
+  /// Rádio sônica: a mesma rádio, pela análise sônica do servidor (AudioMuse).
+  static Future<void> sonicRadio(BuildContext context, WidgetRef ref, Song song) =>
+      instantMix(context, ref, song, style: RecommendStyle.server);
 
   /// Caminho sônico entre duas músicas (findSonicPath).
   static Future<void> sonicPath(BuildContext context, WidgetRef ref, Song from) async {

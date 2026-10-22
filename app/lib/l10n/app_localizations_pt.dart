@@ -1347,6 +1347,30 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get radioArtists => 'Artista repetido na rádio';
+
+  @override
+  String get radioArtistsVary => 'Variar artistas';
+
+  @override
+  String get radioArtistsVaryHint =>
+      'Nada do mesmo artista nas últimas 5, no máximo 4 a cada 30';
+
+  @override
+  String get radioArtistsSpread => 'Só não colar';
+
+  @override
+  String get radioArtistsSpreadHint =>
+      'Pode repetir, só não duas seguidas do mesmo artista';
+
+  @override
+  String get radioArtistsFree => 'À vontade';
+
+  @override
+  String get radioArtistsFreeHint =>
+      'O artista repete quanto for; só a música não repete';
+
+  @override
   String get recommendTurnOn => 'Guardar no aparelho';
 
   @override

@@ -2461,6 +2461,48 @@ abstract class AppLocalizations {
   /// **'“{style}” precisa da análise guardada no aparelho. Por enquanto quem responde é o servidor.'**
   String radioStyleWontApply(String style);
 
+  /// No description provided for @radioArtists.
+  ///
+  /// In pt, this message translates to:
+  /// **'Artista repetido na rádio'**
+  String get radioArtists;
+
+  /// No description provided for @radioArtistsVary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Variar artistas'**
+  String get radioArtistsVary;
+
+  /// No description provided for @radioArtistsVaryHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nada do mesmo artista nas últimas 5, no máximo 4 a cada 30'**
+  String get radioArtistsVaryHint;
+
+  /// No description provided for @radioArtistsSpread.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só não colar'**
+  String get radioArtistsSpread;
+
+  /// No description provided for @radioArtistsSpreadHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pode repetir, só não duas seguidas do mesmo artista'**
+  String get radioArtistsSpreadHint;
+
+  /// No description provided for @radioArtistsFree.
+  ///
+  /// In pt, this message translates to:
+  /// **'À vontade'**
+  String get radioArtistsFree;
+
+  /// No description provided for @radioArtistsFreeHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'O artista repete quanto for; só a música não repete'**
+  String get radioArtistsFreeHint;
+
   /// No description provided for @recommendTurnOn.
   ///
   /// In pt, this message translates to:

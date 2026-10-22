@@ -411,6 +411,13 @@
  "@radioStyleWontApply": {
   "placeholders": { "style": { "type": "String" } }
  },
+ "radioArtists": "Repeated artists on the radio",
+ "radioArtistsVary": "Vary artists",
+ "radioArtistsVaryHint": "None of the same artist in the last 5, at most 4 every 30",
+ "radioArtistsSpread": "Just not back to back",
+ "radioArtistsSpreadHint": "Artists may repeat, just not two in a row",
+ "radioArtistsFree": "Anything goes",
+ "radioArtistsFreeHint": "Artists repeat freely; only songs never repeat",
  "recommendTurnOn": "Keep on the device",
  "localAddressOk": "The home address responded and is now in use",
  "localAddressNotNow": "No response right now; it will be used when you're at home",

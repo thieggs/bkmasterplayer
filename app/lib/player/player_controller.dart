@@ -14,6 +14,7 @@ import '../data/recommend.dart';
 import '../data/settings.dart';
 import '../data/similar.dart';
 import 'dj_mode.dart';
+import 'radio.dart';
 import '../domain/models.dart';
 import '../data/network.dart';
 import '../data/offline_store.dart';
@@ -252,7 +253,6 @@ class PlayerController extends Notifier<PlayerState> {
 
   File get _queueFile => File('${ref.read(supportDirProvider).path}/queue.json');
 
-  void _persistSoon() {
   /// Posição tocando, gravada à parte a cada 15 s: regravar a fila inteira
   /// (até 1000 músicas em JSON, na thread da tela) só para mudar a posição
   /// dava um engasgo de tempos em tempos.
@@ -265,6 +265,7 @@ class PlayerController extends Notifier<PlayerState> {
   int _savedLength = 0;
   int _savedStamp = 0;
 
+  void _persistSoon() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 1), _persistNow);
     _syncSoon();
@@ -280,14 +281,14 @@ class PlayerController extends Notifier<PlayerState> {
     final p = _provider;
     if (p == null) return;
     // Guarda até 1000 faixas em volta da atual.
-    final start = max(0, state.index - 200);
     final queue = state.queue;
+    final start = max(0, state.index - 200);
     final items = queue.skip(start).take(1000).toList();
     final stamp = DateTime.now().microsecondsSinceEpoch;
     final data = {
       'account': p.accountId,
-      'index': state.index - start,
       'stamp': stamp,
+      'index': state.index - start,
       'position': state.position.inMilliseconds,
       'radio': state.radio,
       'dj': state.dj,
@@ -297,16 +298,15 @@ class PlayerController extends Notifier<PlayerState> {
       final tmp = File('${_queueFile.path}.tmp');
       await tmp.writeAsString(jsonEncode(data));
       await tmp.rename(_queueFile.path);
-    } catch (e) {
       _savedQueue = queue;
       _savedStart = start;
       _savedLength = items.length;
       _savedStamp = stamp;
+    } catch (e) {
       debugPrint('salvando fila: $e');
     }
   }
 
-  void _syncSoon() {
   /// Grava só a posição (e qual música da fila gravada está tocando). Se a
   /// fila mudou desde a última gravação, grava tudo.
   Future<void> _savePosition() => _saveChain = _saveChain.then((_) {
@@ -332,6 +332,7 @@ class PlayerController extends Notifier<PlayerState> {
     }
   }
 
+  void _syncSoon() {
     if (!ref.read(settingsProvider).syncQueue) return;
     _syncTimer?.cancel();
     _syncTimer = Timer(const Duration(seconds: 5), _syncNow);
@@ -366,7 +367,6 @@ class PlayerController extends Notifier<PlayerState> {
           position = Duration(milliseconds: (j['position'] as int?) ?? 0);
           radio = j['radio'] == true;
           dj = j['dj'] == true;
-        }
           // A posição gravada depois, à parte, se for desta mesma fila.
           try {
             final pos = jsonDecode(await _positionFile.readAsString()) as Map<String, dynamic>;
@@ -375,6 +375,7 @@ class PlayerController extends Notifier<PlayerState> {
               position = Duration(milliseconds: (pos['position'] as int?) ?? position.inMilliseconds);
             }
           } catch (_) {}
+        }
       }
     } catch (e) {
       debugPrint('fila salva ilegível: $e');
@@ -405,25 +406,75 @@ class PlayerController extends Notifier<PlayerState> {
 
   bool _extending = false;
 
-  void toggleRadio() {
-    if (_fwd('radio', {'on': !state.radio})) return;
-    state = state.copyWith(radio: !state.radio);
-    _persistSoon();
-    _maybeExtendRadio();
-  }
+  /// A rádio em andamento: a semente e a vizinhança dela (ver `radio.dart`).
+  /// Nula = a próxima extensão começa uma, a partir da música atual.
+  RadioSession? _radioSession;
 
-  void setRadio(bool on) {
+  /// Método escolhido para esta rádio na hora de começar (folha da rádio);
+  /// nulo = o dos ajustes.
+  RecommendStyle? _radioStyle;
+
+  void toggleRadio() => setRadio(!state.radio, persist: true);
+
+  void setRadio(bool on, {bool persist = false}) {
     if (_fwd('radio', {'on': on})) return;
+    // Ligar de novo começa outra rádio, a partir do que toca agora.
+    if (on != state.radio) {
+      _radioSession = null;
+      _radioStyle = null;
+    }
     state = state.copyWith(radio: on);
+    if (persist) _persistSoon();
     _maybeExtendRadio();
   }
 
-  /// Com a rádio ligada e a fila acabando, completa com músicas parecidas com
-  /// a última, **do jeito escolhido nos ajustes**.
-  ///
-  /// Quem decide a fonte é o método (ver `data/similar.dart`). Aqui não se
-  /// pergunta mais ao servidor na frente dele: era por isso que trocar de
-  /// método não mudava nada para quem tem o AudioMuse no servidor.
+  /// Começa uma rádio a partir de [seed]: ela e as primeiras parecidas, já
+  /// com as regras da rádio (sem repetir artista, sem mix de uma hora). Falso
+  /// se não achou nada.
+  Future<bool> startRadio(Song seed, {RecommendStyle? style}) async {
+    final p = _provider;
+    if (p == null) return false;
+    final session = RadioSession(seed, artists: _radioArtists);
+    final first = await session.next(
+      want: 20,
+      history: [seed],
+      fetch: _radioFetch(p, style),
+      fallback: () => _radioFallback(p, seed, style),
+    );
+    if (first.isEmpty) return false;
+    playSongs([seed, ...first]);
+    setRadio(true);
+    _radioSession = session;
+    _radioStyle = style;
+    return true;
+  }
+
+  RadioArtists get _radioArtists => RadioArtists.parse(ref.read(settingsProvider).radioArtists);
+
+  /// Parecidas para a rádio: só a fonte boa (vetores ou análise sônica), para
+  /// a sessão perceber quando a música é desconhecida e pedir a outra.
+  SimilarFetch _radioFetch(MusicProvider p, RecommendStyle? style) {
+    final s = ref.read(settingsProvider);
+    final lastFm = s.lastFmForRadio ? ref.read(lastFmProvider) : null;
+    final local = ref.read(recommendProvider.notifier);
+    return (seed, count) => findSimilarScored(p, seed, count: count, lastFm: lastFm, local: local, style: style, strict: true);
+  }
+
+  /// Último recurso da rádio: as parecidas de qualquer fonte (Last.fm, o
+  /// "similar" do servidor) e, sem nada, aleatórias.
+  Future<List<Song>> _radioFallback(MusicProvider p, Song seed, RecommendStyle? style) async {
+    final s = ref.read(settingsProvider);
+    final r = await findSimilar(p, seed,
+        count: 40,
+        lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
+        local: ref.read(recommendProvider.notifier),
+        style: style);
+    return r.isNotEmpty ? r : p.randomSongs(size: 20);
+  }
+
+  /// Com a rádio ligada e a fila acabando, completa com mais dez, **do jeito
+  /// escolhido nos ajustes** (quem decide a fonte é o método, ver
+  /// `data/similar.dart`), seguindo a sessão da rádio (ver `radio.dart`).
   Future<void> _maybeExtendRadio() async {
     if (!state.radio || _extending || state.queue.isEmpty) return;
     if (state.queue.length - state.index - 1 > 2) return;
@@ -431,19 +482,17 @@ class PlayerController extends Notifier<PlayerState> {
     if (p == null) return;
     _extending = true;
     try {
-      final seed = state.queue.last.song;
-      final s = ref.read(settingsProvider);
-      var songs = await findSimilar(p, seed,
-          count: 40,
-          lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null,
-          local: ref.read(recommendProvider.notifier));
-      if (songs.isEmpty) songs = await p.randomSongs(size: 20);
-      final seen = state.queue.map((q) => q.song.id).toSet();
-      final lastArtist = seed.artistId;
-      // Evita repetir e alterna artistas quando possível.
-      final fresh = songs.where((s) => !seen.contains(s.id)).toList()
-        ..sort((a, b) => (a.artistId == lastArtist ? 1 : 0) - (b.artistId == lastArtist ? 1 : 0));
-      if (fresh.isNotEmpty) enqueue(fresh.take(10).toList());
+      final session = _radioSession ??= RadioSession(state.current?.song ?? state.queue.last.song, artists: _radioArtists);
+      session.artists = _radioArtists;
+      final style = _radioStyle;
+      final songs = await session.next(
+        want: 10,
+        history: [for (final q in state.queue) q.song],
+        fetch: _radioFetch(p, style),
+        fallback: () => _radioFallback(p, state.current?.song ?? session.seed, style),
+      );
+      // A rádio pode ter sido desligada (ou trocada) enquanto buscava.
+      if (songs.isNotEmpty && state.radio && identical(_radioSession, session)) enqueue(songs);
     } catch (e) {
       debugPrint('rádio: $e');
     } finally {
@@ -476,7 +525,10 @@ class PlayerController extends Notifier<PlayerState> {
       items.insert(0, first);
       startIndex = 0;
     }
-    // Lista nova escolhida: o Modo DJ só continua se foi ele que começou.
+    // Lista nova escolhida: o Modo DJ só continua se foi ele que começou, e a
+    // rádio (se ficar ligada) recomeça a partir dela.
+    _radioSession = null;
+    _radioStyle = null;
     state = state.copyWith(queue: items, shuffle: shuffle, clearMessage: true, dj: _startingDj);
     _startAt(startIndex);
   }
@@ -874,6 +926,10 @@ class PlayerController extends Notifier<PlayerState> {
       case engine.PlayerEvent_Position(:final id, :final positionMs, :final durationMs, :final buffered):
         if (state.current?.uid != id) return;
         final pos = Duration(milliseconds: positionMs);
+        final duration = durationMs != null ? Duration(milliseconds: durationMs) : state.duration;
+        final buf = buffered ?? state.buffered;
+        // Nada mudou: não acorda quem observa o player (tela, notificação, Connect).
+        if (pos == state.position && duration == state.duration && buf == state.buffered) return;
         _trackListening(pos);
         final now = DateTime.now();
         if (now.difference(_lastPositionSave) > const Duration(seconds: 15)) {
@@ -925,10 +981,6 @@ class PlayerController extends Notifier<PlayerState> {
   void _preAnalyze(int index) {
     final s = ref.read(settingsProvider);
     if (!s.automixEnabled || !s.preAnalyze) return;
-        final duration = durationMs != null ? Duration(milliseconds: durationMs) : state.duration;
-        final buf = buffered ?? state.buffered;
-        // Nada mudou: não acorda quem observa o player (tela, notificação, Connect).
-        if (pos == state.position && duration == state.duration && buf == state.buffered) return;
     for (var j = index + 2; j < state.queue.length && j <= index + 3; j++) {
       final src = _source(state.queue[j]);
       if (src != null) engine.playerAnalyze(track: src);

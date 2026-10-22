@@ -51,6 +51,7 @@ class AppSettings {
     this.trayIcon = true,
     this.closeToTray = false,
     this.recommendStyle = 'sound',
+    this.radioArtists = 'vary',
     this.recommendOffline = false,
     this.pauseOnVolumeZero = false,
     this.pauseOnUnplug = true,
@@ -127,6 +128,10 @@ class AppSettings {
 
   /// Guardar os vetores do AudioMuse no aparelho (uns 21 MB) para recomendar
   /// sem internet. Entra desligado: é download grande para os dados móveis.
+  /// Artista repetido na rádio: vary (variar: nada do mesmo nas últimas 5),
+  /// spread (só não duas seguidas) ou free (à vontade). A música nunca repete.
+  final String radioArtists;
+
   final bool recommendOffline;
 
   /// Volume no mínimo pausa; subir o volume volta a tocar.
@@ -216,6 +221,7 @@ class AppSettings {
     bool clearDeviceName = false,
     List<String>? localFolders,
     String? lastFmApiKey,
+    String? radioArtists,
     bool clearLastFm = false,
     bool? lastFmForRadio,
     bool? jamNearbyAlerts,
@@ -271,6 +277,7 @@ class AppSettings {
         lastFmForRadio: lastFmForRadio ?? this.lastFmForRadio,
         jamNearbyAlerts: jamNearbyAlerts ?? this.jamNearbyAlerts,
         onlineLyrics: onlineLyrics ?? this.onlineLyrics,
+        radioArtists: radioArtists ?? this.radioArtists,
         onlineCovers: onlineCovers ?? this.onlineCovers,
         musixmatchKey: clearMusixmatch ? null : (musixmatchKey ?? this.musixmatchKey),
       );
@@ -324,6 +331,7 @@ class AppSettings {
         'onlineLyrics': onlineLyrics,
         'onlineCovers': onlineCovers,
         'musixmatchKey': musixmatchKey,
+        'radioArtists': radioArtists,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> j) {
@@ -386,6 +394,7 @@ class AppSettings {
       musixmatchKey: j['musixmatchKey'] as String?,
     );
   }
+      radioArtists: pick('radioArtists', d.radioArtists),
 
   static const _key = 'settings';
 

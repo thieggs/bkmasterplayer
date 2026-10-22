@@ -500,6 +500,13 @@
  "@radioStyleWontApply": {
   "placeholders": { "style": { "type": "String" } }
  },
+ "radioArtists": "Artista repetido na rádio",
+ "radioArtistsVary": "Variar artistas",
+ "radioArtistsVaryHint": "Nada do mesmo artista nas últimas 5, no máximo 4 a cada 30",
+ "radioArtistsSpread": "Só não colar",
+ "radioArtistsSpreadHint": "Pode repetir, só não duas seguidas do mesmo artista",
+ "radioArtistsFree": "À vontade",
+ "radioArtistsFreeHint": "O artista repete quanto for; só a música não repete",
  "recommendTurnOn": "Guardar no aparelho",
  "localAddressOk": "O endereço de casa respondeu e já está em uso",
  "localAddressNotNow": "Não respondeu agora; será usado quando você estiver em casa",

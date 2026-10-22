@@ -8,8 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../core/providers.dart';
-import '../data/recommend.dart';
-import '../data/similar.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
 import 'auto_browser.dart';
@@ -300,13 +298,7 @@ class _BkAudioHandler extends BaseAudioHandler {
       case 'do:dj':
         if (song != null) _player.startDj(song);
       case 'do:mix':
-        final p = _auto.provider();
-        if (song == null || p == null) return;
-        final s = _container.read(settingsProvider);
-        final similar = await findSimilar(p, song, count: 60, lastFm: s.lastFmForRadio ? _container.read(lastFmProvider) : null,
-            local: _container.read(recommendProvider.notifier));
-        _player.playSongs([song, ...similar.where((x) => x.id != song.id)]);
-        _player.setRadio(true);
+        if (song != null) await _player.startRadio(song);
       case 'do:shuffle':
         final p = _auto.provider();
         if (p != null) _player.playSongs(await p.randomSongs(size: 100));

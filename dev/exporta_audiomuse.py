@@ -22,9 +22,16 @@ CONTAINER = os.environ.get("AUDIOMUSE_DB", "audiomuse-postgres")
 DB = os.environ.get("AUDIOMUSE_DBNAME", "audiomusedb")
 USER = os.environ.get("AUDIOMUSE_DBUSER", "audiomuse")
 
-MAGIC = b"BKVEC\x02\x00\x00"
+# v3: + o vetor CLAP (512, em 8 bits). O app lê a v2 e a v3.
+MAGIC = b"BKVEC\x03\x00\x00"
 AUDIO_DIMS = 200
 LYRICS_DIMS = 768
+# CLAP: o modelo de áudio + texto do AudioMuse. É ele que sabe "estilo": os
+# rótulos de estilo do AudioMuse vêm de um classificador com 45 gêneros
+# ocidentais (sem nada latino ou brasileiro) e põem corrido mexicano como
+# "electronic, rock, indie". Medido contra o gênero das tags do Navidrome
+# (400 sementes): o CLAP acerta 53% contra 46% dos rótulos.
+CLAP_DIMS = 512
 ID_LEN = 32
 # Mesma ordem em que o app lê (ver `vectors.rs`).
 OTHER = ["danceable", "aggressive", "happy", "party", "relaxed", "sad"]
@@ -69,6 +76,18 @@ def vetor(hexa: str, dims: int) -> bytes:
     return b
 
 
+def clap8(hexa: str) -> bytes:
+    """Vetor CLAP (float32) -> 8 bits com sinal, escalado pelo maior valor.
+    Para o cosseno a escala não importa, e 8 bits bastam: o arquivo cresce
+    3,6 MB em vez de 14."""
+    b = bytes.fromhex(hexa) if hexa else b""
+    if len(b) != CLAP_DIMS * 4:
+        return b"\x00" * CLAP_DIMS
+    v = struct.unpack(f"<{CLAP_DIMS}f", b)
+    m = max(abs(x) for x in v) or 1.0
+    return struct.pack(f"<{CLAP_DIMS}b", *(max(-127, min(127, round(x / m * 127))) for x in v))
+
+
 def main() -> None:
     saida = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / ".local/share/bk-analyzer/vetores.bkvec"
 
@@ -83,10 +102,11 @@ def main() -> None:
     linhas = psql("""
         SELECT s.item_id, s.tempo, s.key, s.scale, s.energy, s.year,
                s.mood_vector, s.other_features,
-               encode(e.embedding, 'hex'), encode(l.embedding, 'hex')
+               encode(e.embedding, 'hex'), encode(l.embedding, 'hex'), encode(c.embedding, 'hex')
         FROM score s
         JOIN embedding e ON e.item_id = s.item_id
         LEFT JOIN lyrics_embedding l ON l.item_id = s.item_id
+        LEFT JOIN clap_embedding c ON c.item_id = s.item_id
     """)
     if not linhas:
         sys.exit("nada para exportar (o AudioMuse já analisou a biblioteca?)")
@@ -100,7 +120,7 @@ def main() -> None:
     print(f"  {len(linhas)} músicas distintas, {len(ids)} arquivos na biblioteca", file=sys.stderr)
 
     cabecalho = struct.pack(
-        "<8sIIIIII", MAGIC, len(ids), len(linhas), AUDIO_DIMS, LYRICS_DIMS, len(estilos), ID_LEN)
+        "<8sIIIIIII", MAGIC, len(ids), len(linhas), AUDIO_DIMS, LYRICS_DIMS, len(estilos), ID_LEN, CLAP_DIMS)
     vocab = ("\n".join(estilos)).encode()
 
     tmp = Path(tempfile.mkstemp(dir=saida.parent if saida.parent.exists() else None, suffix=".tmp")[1])
@@ -115,7 +135,7 @@ def main() -> None:
             f.write(struct.pack("<I", i))
         # Parte 2: os vetores, um por música distinta.
         for r in linhas:
-            (_item, tempo, key, scale, energy, year, mood, outras, emb, lyr) = (r + [""] * 10)[:10]
+            (_item, tempo, key, scale, energy, year, mood, outras, emb, lyr, clap) = (r + [""] * 11)[:11]
             f.write(struct.pack("<ff", float(tempo or 0), float(energy or 0)))
             f.write(struct.pack("<H", min(int(year or 0), 65535)))
             k = KEY_ALIAS.get(key, key)
@@ -130,6 +150,7 @@ def main() -> None:
             f.write(bytes(est))
             f.write(vetor("\\x" + emb if emb else "", AUDIO_DIMS))
             f.write(vetor("\\x" + lyr if lyr else "", LYRICS_DIMS))
+            f.write(clap8(clap))
     tmp.replace(saida)
     mb = saida.stat().st_size / 1048576
     print(f"{saida} ({mb:.1f} MB, {len(linhas)} músicas, {len(ids)} arquivos)")

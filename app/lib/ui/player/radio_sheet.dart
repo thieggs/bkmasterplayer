@@ -72,7 +72,7 @@ class _RadioSheet extends ConsumerWidget {
                 // Vai valer de verdade, ou vai cair no servidor?
                 works: styleWorksNow(e, vectorsReady: rec.ready),
                 onTap: () {
-                  hostRef.read(settingsProvider.notifier).update((x) => x.copyWith(recommendStyle: e.id));
+                  hostRef.read(settingsProvider.notifier).update((x) => chooseRecommendStyle(x, e));
                   Navigator.of(context).pop();
                   if (!styleWorksNow(e, vectorsReady: rec.ready)) {
                     showSnack(host, l10n.radioStyleWontApply(e.label(l10n)));
@@ -80,6 +80,8 @@ class _RadioSheet extends ConsumerWidget {
                   LibraryActions.instantMix(host, hostRef, song, style: e);
                 },
               ),
+            const Divider(height: 8),
+            const RadioArtistsPicker(),
             const Divider(height: 8),
             ListTile(
               dense: true,

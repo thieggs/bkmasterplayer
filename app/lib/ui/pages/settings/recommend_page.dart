@@ -61,7 +61,7 @@ class RecommendSection extends ConsumerWidget {
           ),
         RadioGroup<RecommendStyle>(
           groupValue: escolhido,
-          onChanged: (v) => set((x) => x.copyWith(recommendStyle: (v ?? RecommendStyle.sound).id)),
+          onChanged: (v) => set((x) => chooseRecommendStyle(x, v ?? RecommendStyle.sound)),
           child: Column(
             children: [
               for (final e in RecommendStyle.values)
@@ -79,6 +79,8 @@ class RecommendSection extends ConsumerWidget {
             ],
           ),
         ),
+        const Divider(height: 24),
+        const RadioArtistsPicker(),
         const Divider(height: 24),
         const RecommendOfflineTile(),
       ],

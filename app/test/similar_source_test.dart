@@ -185,6 +185,27 @@ void main() {
     });
   });
 
+  group('modo estrito (rádio)', () {
+    test('AudioMuse não conhece a música: vazio, e não o similar genérico', () async {
+      final p = _FakeProvider(sonic: true, sonicGives: false);
+      final r = await findSimilar(p, _seed, local: _FakeLocal(ready: false), style: RecommendStyle.server, strict: true);
+      expect(r, isEmpty, reason: 'a rádio precisa saber que a semente é desconhecida para pedir a outra');
+      expect(p.chamadas, ['sonicSimilar']);
+    });
+
+    test('servidor sem AudioMuse: o similar dele continua valendo', () async {
+      final p = _FakeProvider();
+      final r = await findSimilar(p, _seed, local: _FakeLocal(ready: false), strict: true);
+      expect(r.map((s) => s.id), ['servidor-1', 'servidor-2']);
+    });
+
+    test('vetores sem a música: ainda pergunta ao AudioMuse antes de desistir', () async {
+      final p = _FakeProvider(sonic: true);
+      final r = await findSimilar(p, _seed, local: _FakeLocal(gives: false), style: RecommendStyle.sound, strict: true);
+      expect(r.map((s) => s.id), ['sonica-1', 'sonica-2']);
+    });
+  });
+
   group('as notas que o AutoMix usa', () {
     test('do servidor vêm as medidas dele', () async {
       final r = await findSimilarScored(_FakeProvider(sonic: true), _seed, style: RecommendStyle.server);

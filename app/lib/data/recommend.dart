@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../core/providers.dart';
 import '../domain/models.dart';
+import '../domain/music_provider.dart';
 import 'offline_store.dart';
 import '../src/rust/api/recommend.dart' as rust;
 
@@ -85,11 +86,13 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
   RecommendState build() {
     // Ligar a opção baixa; desligar apaga e solta a memória.
     final on = ref.watch(settingsProvider.select((s) => s.recommendOffline));
-    if (on) {
-      unawaited(sync());
-    } else {
-      unawaited(forget());
-    }
+    // A sessão entrou (ou trocou de conta): confere se há vetores novos.
+    ref.watch(sessionProvider.select((s) => s.value?.provider.accountId));
+    // Depois do build: `sync` lê o estado logo de cara, e dentro do build ele
+    // ainda não existe ("uninitialized provider"). Com a opção ligada ao abrir
+    // o app, os vetores nunca carregavam e todo método caía no servidor — os
+    // sete davam as mesmas músicas.
+    Future.microtask(on ? sync : forget);
     return const RecommendState();
   }
 
@@ -111,15 +114,23 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
   /// barato.
   Future<void> sync({bool force = false}) async {
     if (state.downloading) return;
-    final server = ref.read(settingsProvider).analysisServer;
-    final provider = ref.read(musicProvider);
-    final uri = server == null ? null : provider.analyzerUri(server, '/api/vectors');
     final arquivo = _path;
 
-    // Já tem o arquivo: usa agora, e só então vê se mudou.
+    // Já tem o arquivo: usa agora, e só então vê se mudou. Antes do login:
+    // ao abrir o app a sessão ainda está entrando, e pedir o provedor de
+    // música aqui dava erro e largava tudo — nem o arquivo já baixado
+    // carregava.
     if (!state.ready && await arquivo.exists()) {
       await _load(arquivo);
     }
+    final server = ref.read(settingsProvider).analysisServer;
+    final MusicProvider provider;
+    try {
+      provider = ref.read(musicProvider);
+    } catch (_) {
+      return; // sem login ainda: o build roda de novo quando a sessão entrar
+    }
+    final uri = server == null ? null : provider.analyzerUri(server, '/api/vectors');
     if (uri == null) return;
 
     final prefs = ref.read(prefsProvider);

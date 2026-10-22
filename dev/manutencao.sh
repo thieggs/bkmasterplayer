@@ -9,7 +9,9 @@
 #   2. músicas repetidas          (movidas para uma pasta de descarte)
 #   3. artistas grudados          ("Mandragora,420" vira dois artistas)
 #   4. lixo do banco do AudioMuse (ligações mortas, análises repetidas)
-#   5. vetores refeitos           (a recomendação offline do celular)
+#   5. AudioMuse re-casado        (música trocada ganha outro id no Navidrome;
+#                                  sem isso a rádio não acha parecidas dela)
+#   6. vetores refeitos           (a recomendação offline do celular)
 #
 # Mostra tudo o que faria e só mexe depois do "sim". Nada é apagado de
 # verdade: o descarte fica no mesmo disco e cada passo tem como voltar.
@@ -99,6 +101,9 @@ fi
 
 titulo "Limpando o banco do AudioMuse"
 ./dev/limpa_audiomuse.py --aplicar
+
+titulo "Re-casando o AudioMuse com o Navidrome"
+./dev/audiomuse_manutencao.sh alinhar || echo "${amarelo}Não deu para re-casar agora; o timer diário tenta de novo.${off}"
 
 titulo "Refazendo os vetores para o celular"
 ./dev/exporta_audiomuse.py

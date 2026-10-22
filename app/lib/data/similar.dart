@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../domain/models.dart';
+import 'settings.dart';
 import '../domain/music_provider.dart';
 import 'lastfm.dart';
 import 'local/local_provider.dart';
@@ -24,6 +25,14 @@ import 'recommend.dart';
 /// chama precisa avisar na tela — ver [styleNeedsVectors].
 bool styleNeedsVectors(RecommendStyle style) => style != RecommendStyle.server;
 
+/// Escolher um método contado no aparelho já liga a análise guardada (quando
+/// há de onde baixar): era preciso achar a opção noutra tela, e até lá a
+/// escolha não mudava nada — o servidor respondia no lugar sem ninguém notar.
+AppSettings chooseRecommendStyle(AppSettings s, RecommendStyle style) => s.copyWith(
+      recommendStyle: style.id,
+      recommendOffline: styleNeedsVectors(style) && s.analysisServer != null ? true : s.recommendOffline,
+    );
+
 /// O método escolhido vai valer agora, ou vai cair no servidor?
 ///
 /// A tela usa isto para não prometer o que não vai acontecer.
@@ -35,6 +44,13 @@ bool styleWorksNow(RecommendStyle style, {required bool vectorsReady}) =>
 /// A nota vem da análise sônica quando o servidor responde com ela (é a
 /// medida dele); nos outros caminhos a ordem é a nota, porque a lista já vem
 /// da melhor para a pior.
+///
+/// [strict]: só a fonte boa (os vetores ou a análise sônica do servidor),
+/// sem cair no "similar" genérico quando ela não conhece a música. A rádio usa
+/// isso para perceber que a semente é desconhecida (música recém-adicionada,
+/// que o AudioMuse ainda não analisou) e pedir a outra — antes ela aceitava as
+/// três ou quatro músicas genéricas e seguia com elas. Sem fonte boa no
+/// servidor, as outras continuam valendo.
 Future<List<(Song, double)>> findSimilarScored(
   MusicProvider p,
   Song seed, {
@@ -42,10 +58,12 @@ Future<List<(Song, double)>> findSimilarScored(
   LastFm? lastFm,
   LocalSimilar? local,
   RecommendStyle? style,
+  bool strict = false,
 }) async {
   final escolhido = style ?? local?.style ?? RecommendStyle.sound;
+  final usaVetores = styleNeedsVectors(escolhido) && local != null && local.ready;
 
-  if (styleNeedsVectors(escolhido) && local != null && local.ready) {
+  if (usaVetores) {
     try {
       final r = await local.similar(seed, count: count, style: escolhido);
       if (r.isNotEmpty) return _ranked(r);
@@ -65,6 +83,7 @@ Future<List<(Song, double)>> findSimilarScored(
       debugPrint('análise sônica do servidor: $e');
     }
   }
+  if (strict && (usaVetores || sonic)) return const [];
   if (!sonic && lastFm != null && p is! LocalProvider) {
     try {
       final r = await similarViaLastFm(p, lastFm, seed, count: count);
@@ -94,8 +113,12 @@ Future<List<(Song, double)>> findSimilarScored(
 
 /// Mesma coisa sem as notas, para quem só quer a fila.
 Future<List<Song>> findSimilar(MusicProvider p, Song seed,
-        {int count = 50, LastFm? lastFm, LocalSimilar? local, RecommendStyle? style}) async =>
-    [for (final (s, _) in await findSimilarScored(p, seed, count: count, lastFm: lastFm, local: local, style: style)) s];
+        {int count = 50, LastFm? lastFm, LocalSimilar? local, RecommendStyle? style, bool strict = false}) async =>
+    [
+      for (final (s, _) in await findSimilarScored(p, seed,
+          count: count, lastFm: lastFm, local: local, style: style, strict: strict))
+        s
+    ];
 
 /// Lista já ordenada da melhor para a pior: a nota sai da posição.
 List<(Song, double)> _ranked(List<Song> songs) =>
