@@ -137,6 +137,29 @@ def qualidade(f: dict) -> tuple:
     )
 
 
+def corrige_playlists(raiz: Path, troca: dict[Path, Path]) -> int:
+    """Playlist que apontava para uma repetida passa a apontar para a que ficou.
+
+    As playlists em `Playlists/` (criadas pelo troca_por_melhor.py) usam o
+    caminho do arquivo; sem isto, tirar a repetida abriria um buraco nelas.
+    """
+    mudou = 0
+    for m3u in sorted((raiz / "Playlists").glob("*.m3u")):
+        linhas = m3u.read_text(encoding="utf-8").splitlines()
+        novas = []
+        for l in linhas:
+            if l and not l.startswith("#"):
+                alvo = troca.get(Path(os.path.normpath(m3u.parent / l)))
+                if alvo:
+                    l = os.path.relpath(alvo, m3u.parent)
+            novas.append(l)
+        novas = list(dict.fromkeys(novas))  # a que ficou pode já estar na lista
+        if novas != linhas:
+            m3u.write_text("\n".join(novas) + "\n", encoding="utf-8")
+            mudou += 1
+    return mudou
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--aplicar", action="store_true", help="move mesmo (sem isto, só mostra)")
@@ -286,6 +309,8 @@ def main() -> None:
                 print(f"erro ao mover {x}: {e}", file=sys.stderr)
         movidos += 1
     print(f"{movidos} movidas para {descarte}", file=sys.stderr)
+    if n := corrige_playlists(raiz, {r["caminho"]: f["caminho"] for r, f in tirar}):
+        print(f"{n} playlists apontam agora para a cópia que ficou", file=sys.stderr)
 
 
 if __name__ == "__main__":
