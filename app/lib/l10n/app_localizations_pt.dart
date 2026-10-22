@@ -1674,6 +1674,48 @@ class AppLocalizationsPt extends AppLocalizations {
       'Procurando… Peça para quem está tocando abrir uma Festa no BKmasterplayer.';
 
   @override
+  String get jamBluetoothUnavailable =>
+      'Este celular não tem o Google Play Services. Para ir por Bluetooth, ligue a chave \"Bluetooth sem Google Play Services\" (nos dois celulares), ou fiquem no mesmo Wi-Fi.';
+
+  @override
+  String get jamBluetoothFailed =>
+      'Não deu para procurar por Bluetooth. Ligue o Bluetooth e a localização, deixe o app usar \"Dispositivos próximos\" e \"Localização\" e toque em atualizar.';
+
+  @override
+  String get jamOpenPermissions => 'Abrir permissões do app';
+
+  @override
+  String get jamPlainBt => 'Bluetooth sem Google Play Services';
+
+  @override
+  String get jamPlainBtHint =>
+      'Para celular sem Play Services (LineageOS, Huawei…). Os dois celulares precisam ligar esta chave. É mais lento que o Wi-Fi.';
+
+  @override
+  String get jamPlainBtFailed =>
+      'Não deu para procurar por Bluetooth. Ligue o Bluetooth e a localização e toque em atualizar.';
+
+  @override
+  String get jamBtOff => 'Ligue o Bluetooth do celular primeiro.';
+
+  @override
+  String get jamPlainBtHostFailed =>
+      'Não deu para abrir a Festa por Bluetooth neste celular.';
+
+  @override
+  String get jamPairedPick => 'Não apareceu? Escolher um celular pareado';
+
+  @override
+  String get jamPairedTitle => 'Celulares pareados';
+
+  @override
+  String get jamPairedHint =>
+      'Pareie os dois celulares nas configurações de Bluetooth do sistema. Quem abriu a Festa precisa estar com a chave do Bluetooth ligada.';
+
+  @override
+  String get jamPairedNone => 'Nenhum celular pareado ainda.';
+
+  @override
   String jamOf(String name) {
     return 'Festa de $name';
   }

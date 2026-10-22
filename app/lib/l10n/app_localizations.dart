@@ -3007,6 +3007,78 @@ abstract class AppLocalizations {
   /// **'Procurando… Peça para quem está tocando abrir uma Festa no BKmasterplayer.'**
   String get jamSearching;
 
+  /// No description provided for @jamBluetoothUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este celular não tem o Google Play Services. Para ir por Bluetooth, ligue a chave \"Bluetooth sem Google Play Services\" (nos dois celulares), ou fiquem no mesmo Wi-Fi.'**
+  String get jamBluetoothUnavailable;
+
+  /// No description provided for @jamBluetoothFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para procurar por Bluetooth. Ligue o Bluetooth e a localização, deixe o app usar \"Dispositivos próximos\" e \"Localização\" e toque em atualizar.'**
+  String get jamBluetoothFailed;
+
+  /// No description provided for @jamOpenPermissions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir permissões do app'**
+  String get jamOpenPermissions;
+
+  /// No description provided for @jamPlainBt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bluetooth sem Google Play Services'**
+  String get jamPlainBt;
+
+  /// No description provided for @jamPlainBtHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para celular sem Play Services (LineageOS, Huawei…). Os dois celulares precisam ligar esta chave. É mais lento que o Wi-Fi.'**
+  String get jamPlainBtHint;
+
+  /// No description provided for @jamPlainBtFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para procurar por Bluetooth. Ligue o Bluetooth e a localização e toque em atualizar.'**
+  String get jamPlainBtFailed;
+
+  /// No description provided for @jamBtOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ligue o Bluetooth do celular primeiro.'**
+  String get jamBtOff;
+
+  /// No description provided for @jamPlainBtHostFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não deu para abrir a Festa por Bluetooth neste celular.'**
+  String get jamPlainBtHostFailed;
+
+  /// No description provided for @jamPairedPick.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não apareceu? Escolher um celular pareado'**
+  String get jamPairedPick;
+
+  /// No description provided for @jamPairedTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Celulares pareados'**
+  String get jamPairedTitle;
+
+  /// No description provided for @jamPairedHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pareie os dois celulares nas configurações de Bluetooth do sistema. Quem abriu a Festa precisa estar com a chave do Bluetooth ligada.'**
+  String get jamPairedHint;
+
+  /// No description provided for @jamPairedNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum celular pareado ainda.'**
+  String get jamPairedNone;
+
   /// No description provided for @jamOf.
   ///
   /// In pt, this message translates to:

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
+import 'package:permission_handler/permission_handler.dart' show openAppSettings;
 
 import '../core/format.dart';
 import '../connect/connect_service.dart';
@@ -15,6 +16,7 @@ import '../player/player_controller.dart';
 import '../src/rust/api/library.dart' as lib;
 import '../ui/actions.dart';
 import '../ui/widgets/cover_art.dart';
+import 'jam_bluetooth.dart';
 import 'jam_core.dart';
 import 'jam_permissions.dart';
 
@@ -158,7 +160,7 @@ class _OffersView extends ConsumerWidget {
                   icon: const Icon(Icons.groups),
                   label: Text(l10n.startJam),
                   onPressed: () async {
-                    await ensureJamPermissions();
+                    await ensureJamPermissions(bluetooth: ref.read(jamBluetoothModeProvider));
                     await ref.read(jamHostProvider.notifier).start();
                   },
                 ),
@@ -166,6 +168,7 @@ class _OffersView extends ConsumerWidget {
             ),
           ),
         ),
+        const _PlainBtSwitch(),
         const SizedBox(height: 16),
         if (guest.phase == JamPhase.rejected)
           ListTile(leading: const Icon(Icons.block), title: Text(l10n.jamRejected)),
@@ -176,7 +179,11 @@ class _OffersView extends ConsumerWidget {
             IconButton(
               tooltip: l10n.search,
               icon: const Icon(Icons.refresh),
-              onPressed: () => ref.read(jamGuestProvider.notifier).search(),
+              onPressed: () async {
+                // A permissão pode ter sido negada antes: pede de novo.
+                await ensureJamPermissions(bluetooth: ref.read(jamBluetoothModeProvider));
+                await ref.read(jamGuestProvider.notifier).search();
+              },
             ),
           ],
         ),
@@ -201,6 +208,18 @@ class _OffersView extends ConsumerWidget {
             ],
           ),
         ),
+        // Com a chave do Bluetooth sem Play Services ligada o aviso não vale mais.
+        if (guest.bluetooth != JamBluetooth.ok && !(guest.bluetooth == JamBluetooth.unavailable && ref.watch(jamBluetoothModeProvider)))
+          ListTile(
+            leading: Icon(Icons.bluetooth_disabled, color: theme.colorScheme.error),
+            title: Text(guest.bluetooth == JamBluetooth.unavailable ? l10n.jamBluetoothUnavailable : l10n.jamBluetoothFailed),
+            subtitle: guest.bluetooth == JamBluetooth.failed
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(onPressed: openAppSettings, child: Text(l10n.jamOpenPermissions)),
+                  )
+                : null,
+          ),
         if (guest.offers.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -251,6 +270,7 @@ class _HostView extends ConsumerWidget {
           ),
         ),
         const _MeuEndereco(),
+        const _PlainBtSwitch(host: true),
         if (current != null)
           ListTile(
             leading: CoverArt(coverArtId: current.song.coverArt, size: 44),
@@ -720,4 +740,94 @@ Future<void> _mostrarQr(BuildContext context, String endereco) {
       actions: [TextButton(onPressed: () => Navigator.pop(d), child: Text(l10n.jamClose))],
     ),
   );
+}
+
+// ---- Bluetooth sem Google Play Services ----
+
+/// Chave do Bluetooth sem Play Services e, para o convidado, o modo manual
+/// (escolher o dono entre os celulares pareados).
+class _PlainBtSwitch extends ConsumerWidget {
+  const _PlainBtSwitch({this.host = false});
+  final bool host;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (jamBluetooth == null) return const SizedBox.shrink();
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final on = ref.watch(jamBluetoothModeProvider);
+    final failed = !host && ref.watch(jamGuestProvider.select((g) => g.plainBtFailed));
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.bluetooth),
+            title: Text(l10n.jamPlainBt),
+            subtitle: Text(l10n.jamPlainBtHint),
+            value: on,
+            onChanged: (v) => _setPlainBt(context, ref, v),
+          ),
+          if (on && failed)
+            ListTile(
+              leading: Icon(Icons.bluetooth_disabled, color: theme.colorScheme.error),
+              title: Text(l10n.jamPlainBtFailed),
+            ),
+          if (on && !host)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child: TextButton.icon(icon: const Icon(Icons.link, size: 18), label: Text(l10n.jamPairedPick), onPressed: () => _escolherPareado(context, ref)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _setPlainBt(BuildContext context, WidgetRef ref, bool on) async {
+  final l10n = context.l10n;
+  final messenger = ScaffoldMessenger.of(context);
+  if (on) {
+    await ensureJamPermissions(bluetooth: true);
+    if (!await BluetoothJam.isOn()) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.jamBtOff)));
+      return;
+    }
+  }
+  ref.read(jamBluetoothModeProvider.notifier).set(on);
+  final host = ref.read(jamHostProvider.notifier);
+  if (ref.read(jamHostProvider).active) {
+    if (!await host.setBluetooth(on) && on) messenger.showSnackBar(SnackBar(content: Text(l10n.jamPlainBtHostFailed)));
+  } else {
+    await ref.read(jamGuestProvider.notifier).setBluetooth(on);
+  }
+}
+
+/// Modo manual: o convidado escolhe o dono entre os celulares pareados.
+Future<void> _escolherPareado(BuildContext context, WidgetRef ref) async {
+  final bt = BluetoothJam.instance;
+  if (bt == null) return;
+  final l10n = context.l10n;
+  List<JamOffer> pareados;
+  try {
+    pareados = await bt.paired();
+  } catch (_) {
+    pareados = const [];
+  }
+  if (!context.mounted) return;
+  final escolhido = await showModalBottomSheet<JamOffer>(
+    context: context,
+    builder: (c) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          ListTile(title: Text(l10n.jamPairedTitle), subtitle: Text(l10n.jamPairedHint)),
+          if (pareados.isEmpty) ListTile(leading: const Icon(Icons.info_outline), title: Text(l10n.jamPairedNone)),
+          for (final o in pareados) ListTile(leading: const Icon(Icons.smartphone), title: Text(o.hostName), onTap: () => Navigator.pop(c, o)),
+        ],
+      ),
+    ),
+  );
+  if (escolhido != null) await ref.read(jamGuestProvider.notifier).join(escolhido);
 }

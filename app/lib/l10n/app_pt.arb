@@ -682,6 +682,18 @@
  "jamAddressBad": "Não entendi esse endereço.",
  "jamsNearby": "Festas por perto",
  "jamSearching": "Procurando… Peça para quem está tocando abrir uma Festa no BKmasterplayer.",
+ "jamBluetoothUnavailable": "Este celular não tem o Google Play Services. Para ir por Bluetooth, ligue a chave \"Bluetooth sem Google Play Services\" (nos dois celulares), ou fiquem no mesmo Wi-Fi.",
+ "jamBluetoothFailed": "Não deu para procurar por Bluetooth. Ligue o Bluetooth e a localização, deixe o app usar \"Dispositivos próximos\" e \"Localização\" e toque em atualizar.",
+ "jamOpenPermissions": "Abrir permissões do app",
+ "jamPlainBt": "Bluetooth sem Google Play Services",
+ "jamPlainBtHint": "Para celular sem Play Services (LineageOS, Huawei…). Os dois celulares precisam ligar esta chave. É mais lento que o Wi-Fi.",
+ "jamPlainBtFailed": "Não deu para procurar por Bluetooth. Ligue o Bluetooth e a localização e toque em atualizar.",
+ "jamBtOff": "Ligue o Bluetooth do celular primeiro.",
+ "jamPlainBtHostFailed": "Não deu para abrir a Festa por Bluetooth neste celular.",
+ "jamPairedPick": "Não apareceu? Escolher um celular pareado",
+ "jamPairedTitle": "Celulares pareados",
+ "jamPairedHint": "Pareie os dois celulares nas configurações de Bluetooth do sistema. Quem abriu a Festa precisa estar com a chave do Bluetooth ligada.",
+ "jamPairedNone": "Nenhum celular pareado ainda.",
  "jamOf": "Festa de {name}",
  "@jamOf": {
   "placeholders": {

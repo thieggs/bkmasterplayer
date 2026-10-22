@@ -118,6 +118,24 @@ abstract class JamTransport {
 /// Transporte Nearby registrado pelo Android (null no desktop).
 JamTransport? jamNearby;
 
+/// Bluetooth sem o Google Play Services (Android; null no desktop). Só liga
+/// com a chave da tela da Festa ([jamBluetoothModeProvider]).
+JamTransport? jamBluetooth;
+
+/// Passe guardado para entrar direto na Festa deste dono (id do dono → passe).
+String? Function(String hostId)? jamPassFor;
+
+/// Chave "Bluetooth sem Google Play Services" da tela da Festa. Não fica
+/// guardada: o app sempre abre com ela desligada.
+class JamBluetoothMode extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool on) => state = on;
+}
+
+final jamBluetoothModeProvider = NotifierProvider<JamBluetoothMode, bool>(JamBluetoothMode.new);
+
 /// Avisos do sistema para pedidos de entrada (Android: notificação com
 /// Aceitar/Recusar/Sempre). A decisão volta por [jamDecisionSink].
 void Function(JamJoinRequest req)? jamShowRequest;
@@ -456,6 +474,25 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
         debugPrint('Jam por Bluetooth indisponível: $e');
       }
     }
+    if (ref.read(jamBluetoothModeProvider)) await setBluetooth(true);
+  }
+
+  /// Liga/desliga a Festa por Bluetooth sem Play Services. Devolve false se
+  /// não deu para ligar (Bluetooth desligado, sem permissão).
+  Future<bool> setBluetooth(bool on) async {
+    final bt = jamBluetooth;
+    if (bt == null) return false;
+    if (!on || !state.active) {
+      await bt.stopHosting();
+      return true;
+    }
+    try {
+      await bt.startHosting(hostName: _name, hostId: _myId(ref), jamId: jamId, onRequest: _decide, onJoined: _attach);
+      return true;
+    } catch (e) {
+      debugPrint('Festa por Bluetooth (sem Play Services) não abriu: $e');
+      return false;
+    }
   }
 
   Future<void> stop() async {
@@ -481,6 +518,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
       if (identical(connect.jamRoutes, this)) connect.jamRoutes = null;
     } catch (_) {}
     jamNearby?.stopHosting();
+    jamBluetooth?.stopHosting();
   }
 
   /// Decide um pedido: aceito automaticamente se a pessoa está na lista;
@@ -812,6 +850,8 @@ class JamGuestState {
     this.current,
     this.next = const [],
     this.transfers = const {},
+    this.bluetooth = JamBluetooth.ok,
+    this.plainBtFailed = false,
   });
   final JamPhase phase;
   final List<JamOffer> offers;
@@ -827,6 +867,12 @@ class JamGuestState {
   /// Músicas sendo mandadas daqui (id → progresso).
   final Map<String, JamTransfer> transfers;
 
+  /// Se a busca por Bluetooth está de pé (para avisar quando não está).
+  final JamBluetooth bluetooth;
+
+  /// A busca por Bluetooth sem Play Services não começou.
+  final bool plainBtFailed;
+
   JamGuestState copyWith({
     JamPhase? phase,
     List<JamOffer>? offers,
@@ -838,6 +884,8 @@ class JamGuestState {
     bool clearCurrent = false,
     List<Map<String, dynamic>>? next,
     Map<String, JamTransfer>? transfers,
+    JamBluetooth? bluetooth,
+    bool? plainBtFailed,
   }) =>
       JamGuestState(
         phase: phase ?? this.phase,
@@ -849,12 +897,27 @@ class JamGuestState {
         current: clearCurrent ? null : (current ?? this.current),
         next: next ?? this.next,
         transfers: transfers ?? this.transfers,
+        bluetooth: bluetooth ?? this.bluetooth,
+        plainBtFailed: plainBtFailed ?? this.plainBtFailed,
       );
+}
+
+/// Estado da busca por Bluetooth do convidado.
+enum JamBluetooth {
+  ok,
+
+  /// Sem Google Play Services (LineageOS, Huawei…): só dá pelo Wi-Fi.
+  unavailable,
+
+  /// A busca não começou: Bluetooth/localização desligados ou sem permissão.
+  failed,
 }
 
 class JamGuestNotifier extends Notifier<JamGuestState> {
   JamLink? _link;
   StreamSubscription<List<JamOffer>>? _nearbySub;
+  StreamSubscription<List<JamOffer>>? _btSub;
+  List<JamOffer> _btOffers = const [];
   final _bonjour = JamBonjour();
   List<LanJamOffer> _bonjourOffers = const [];
   List<JamOffer> _nearbyOffers = const [];
@@ -870,6 +933,7 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
 
   @override
   JamGuestState build() {
+    jamPassFor = (hostId) => _passes()[hostId];
     ref.onDispose(() {
       _stopSearch();
       _link?.close();
@@ -890,17 +954,64 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
       _mergeOffers();
     }));
     final nearby = jamNearby;
-    if (nearby != null && nearby.available && _nearbySub == null) {
+    if (nearby == null || !nearby.available) {
+      if (Platform.isAndroid) state = state.copyWith(bluetooth: JamBluetooth.unavailable);
+    } else if (_nearbySub == null) {
+      state = state.copyWith(bluetooth: JamBluetooth.ok);
       try {
-        _nearbySub = nearby.discover(myId: _myId(ref), myName: await _myName(ref)).listen((o) {
-          _nearbyOffers = o;
-          _mergeOffers();
-        });
+        _nearbySub = nearby
+            .discover(myId: _myId(ref), myName: await _myName(ref))
+            .listen(
+              (o) {
+                _nearbyOffers = o;
+                _mergeOffers();
+              },
+              onError: (Object e) {
+                // Sem isto a busca morta ficava "de pé" e o atualizar não tentava de novo.
+                debugPrint('busca por Bluetooth falhou: $e');
+                _nearbySub?.cancel();
+                _nearbySub = null;
+                state = state.copyWith(bluetooth: JamBluetooth.failed);
+              },
+            );
       } catch (e) {
         debugPrint('busca por Bluetooth indisponível: $e');
+        state = state.copyWith(bluetooth: JamBluetooth.failed);
       }
     }
+    if (ref.read(jamBluetoothModeProvider)) await setBluetooth(true);
     _mergeOffers();
+  }
+
+  /// Liga/desliga a busca por Bluetooth sem Play Services.
+  Future<void> setBluetooth(bool on) async {
+    final bt = jamBluetooth;
+    if (bt == null) return;
+    if (!on) {
+      await _btSub?.cancel();
+      _btSub = null;
+      _btOffers = const [];
+      await bt.stopDiscovery();
+      state = state.copyWith(plainBtFailed: false);
+      _mergeOffers();
+      return;
+    }
+    if (_btSub != null) return;
+    state = state.copyWith(plainBtFailed: false);
+    _btSub = bt
+        .discover(myId: _myId(ref), myName: await _myName(ref))
+        .listen(
+          (o) {
+            _btOffers = o;
+            _mergeOffers();
+          },
+          onError: (Object e) {
+            debugPrint('busca por Bluetooth (sem Play Services) falhou: $e');
+            _btSub?.cancel();
+            _btSub = null;
+            state = state.copyWith(plainBtFailed: true);
+          },
+        );
   }
 
   void _mergeOffers() {
@@ -914,6 +1025,7 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
       for (final o in lan)
         JamOffer(key: 'wifi:${o.deviceId}', hostId: o.deviceId, hostName: o.name, via: 'wifi', join: (id, name, pass) => joinLan(o, id, name, pass)),
       ..._nearbyOffers,
+      ..._btOffers,
     ];
     state = state.copyWith(offers: offers);
   }
@@ -928,6 +1040,10 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     _nearbySub?.cancel();
     _nearbySub = null;
     jamNearby?.stopDiscovery();
+    _btSub?.cancel();
+    _btSub = null;
+    _btOffers = const [];
+    jamBluetooth?.stopDiscovery();
     unawaited(_bonjour.stopDiscovery());
     _bonjourOffers = const [];
   }
@@ -977,13 +1093,23 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
         if (_link == link) {
           _link = null;
           state = state.copyWith(phase: JamPhase.ended);
+          _searchAgain();
         }
       });
     } on JamRejected {
       state = state.copyWith(phase: JamPhase.rejected);
+      _searchAgain();
     } catch (_) {
       state = state.copyWith(phase: JamPhase.rejected);
+      _searchAgain();
     }
+  }
+
+  /// Depois de cair, sair ou ser recusado a busca parou (o Bluetooth para o
+  /// scan para conectar): recomeça, senão a lista fica velha.
+  void _searchAgain() {
+    _stopSearch();
+    unawaited(search());
   }
 
   Future<void> leave() async {
@@ -1064,6 +1190,9 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     if (l == null) return;
     final fid = _randomId(16);
     void progress(double v, {String? error}) {
+      // O "queued" do dono pode chegar antes do último aviso de progresso
+      // (Bluetooth): o que já foi confirmado não volta a ser progresso.
+      if (state.transfers[fid]?.done == true) return;
       state = state.copyWith(transfers: {...state.transfers, fid: JamTransfer(title: song.title, progress: v, error: error)});
     }
 

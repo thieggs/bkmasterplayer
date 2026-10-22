@@ -16,6 +16,7 @@ import 'core/providers.dart';
 import 'data/network.dart';
 import 'data/settings.dart';
 import 'desktop/desktop_integration.dart';
+import 'jam/jam_bluetooth.dart';
 import 'jam/jam_core.dart';
 import 'jam/jam_nearby.dart';
 import 'mobile/media_session.dart';
@@ -130,6 +131,7 @@ Future<void> main() async {
       debugPrint('serviço de mídia indisponível: $e');
     }
     // Jam por Bluetooth/Wi-Fi Direct e o aviso de Jam por perto.
+    jamBluetooth = BluetoothJam.instance;
     final nearby = await NearbyJam.create();
     if (nearby != null) {
       jamNearby = nearby;

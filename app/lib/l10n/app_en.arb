@@ -593,6 +593,18 @@
  "jamAddressBad": "I could not make sense of that address.",
  "jamsNearby": "Parties nearby",
  "jamSearching": "Searching… Ask whoever is playing to open a Party in BKmasterplayer.",
+ "jamBluetoothUnavailable": "This phone has no Google Play Services. For Bluetooth, turn on \"Bluetooth without Google Play Services\" (on both phones), or use the same Wi-Fi.",
+ "jamBluetoothFailed": "Couldn't search over Bluetooth. Turn on Bluetooth and location, allow the app \"Nearby devices\" and \"Location\", then tap refresh.",
+ "jamOpenPermissions": "Open app permissions",
+ "jamPlainBt": "Bluetooth without Google Play Services",
+ "jamPlainBtHint": "For phones without Play Services (LineageOS, Huawei…). Both phones need this switch on. Slower than Wi-Fi.",
+ "jamPlainBtFailed": "Couldn't search over Bluetooth. Turn on Bluetooth and location, then tap refresh.",
+ "jamBtOff": "Turn on Bluetooth first.",
+ "jamPlainBtHostFailed": "Couldn't open the Party over Bluetooth on this phone.",
+ "jamPairedPick": "Not showing up? Pick a paired phone",
+ "jamPairedTitle": "Paired phones",
+ "jamPairedHint": "Pair both phones in the system Bluetooth settings. The host needs the Bluetooth switch on.",
+ "jamPairedNone": "No paired phones yet.",
  "jamOf": "{name}'s Party",
  "@jamOf": {
   "placeholders": {

@@ -85,6 +85,7 @@ class MainActivity : AudioServiceActivity() {
             }
             // Engole o soltar também: senão o sistema mexe no volume daqui.
             return true
+        JamBluetooth(applicationContext, messenger)
         }
         return super.dispatchKeyEvent(event)
     }

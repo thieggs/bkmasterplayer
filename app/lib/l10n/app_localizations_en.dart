@@ -1675,6 +1675,48 @@ class AppLocalizationsEn extends AppLocalizations {
       'Searching… Ask whoever is playing to open a Party in BKmasterplayer.';
 
   @override
+  String get jamBluetoothUnavailable =>
+      'This phone has no Google Play Services. For Bluetooth, turn on \"Bluetooth without Google Play Services\" (on both phones), or use the same Wi-Fi.';
+
+  @override
+  String get jamBluetoothFailed =>
+      'Couldn\'t search over Bluetooth. Turn on Bluetooth and location, allow the app \"Nearby devices\" and \"Location\", then tap refresh.';
+
+  @override
+  String get jamOpenPermissions => 'Open app permissions';
+
+  @override
+  String get jamPlainBt => 'Bluetooth without Google Play Services';
+
+  @override
+  String get jamPlainBtHint =>
+      'For phones without Play Services (LineageOS, Huawei…). Both phones need this switch on. Slower than Wi-Fi.';
+
+  @override
+  String get jamPlainBtFailed =>
+      'Couldn\'t search over Bluetooth. Turn on Bluetooth and location, then tap refresh.';
+
+  @override
+  String get jamBtOff => 'Turn on Bluetooth first.';
+
+  @override
+  String get jamPlainBtHostFailed =>
+      'Couldn\'t open the Party over Bluetooth on this phone.';
+
+  @override
+  String get jamPairedPick => 'Not showing up? Pick a paired phone';
+
+  @override
+  String get jamPairedTitle => 'Paired phones';
+
+  @override
+  String get jamPairedHint =>
+      'Pair both phones in the system Bluetooth settings. The host needs the Bluetooth switch on.';
+
+  @override
+  String get jamPairedNone => 'No paired phones yet.';
+
+  @override
   String jamOf(String name) {
     return '$name\'s Party';
   }
