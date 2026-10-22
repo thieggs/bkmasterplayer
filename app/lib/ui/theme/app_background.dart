@@ -57,7 +57,8 @@ class AppBackground extends ConsumerWidget {
       fit: StackFit.expand,
       children: [
         ColoredBox(color: scheme.surface),
-        if (layer != null) Positioned.fill(child: layer),
+        // Camada própria: o que muda nas telas por cima não redesenha o fundo.
+        if (layer != null) Positioned.fill(child: RepaintBoundary(child: layer)),
         if (layer != null) ColoredBox(color: scheme.surface.withValues(alpha: dim.clamp(0.0, 1.0))),
         child,
       ],

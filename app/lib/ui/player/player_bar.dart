@@ -51,21 +51,24 @@ class _SeekBarState extends ConsumerState<SeekBar> {
         },
       ),
     );
-    if (!widget.showTimes) return slider;
+    // Muda 4 vezes por segundo: redesenha só a barra, não a tela em volta.
+    if (!widget.showTimes) return RepaintBoundary(child: slider);
     final style = theme.textTheme.bodySmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
-    return Row(
-      children: [
-        SizedBox(
-          width: 44,
-          child: Text(
-            formatDuration(Duration(milliseconds: value.round())),
-            style: style,
-            textAlign: TextAlign.right,
+    return RepaintBoundary(
+      child: Row(
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              formatDuration(Duration(milliseconds: value.round())),
+              style: style,
+              textAlign: TextAlign.right,
+            ),
           ),
-        ),
-        Expanded(child: slider),
-        SizedBox(width: 44, child: Text(formatDuration(dur), style: style)),
-      ],
+          Expanded(child: slider),
+          SizedBox(width: 44, child: Text(formatDuration(dur), style: style)),
+        ],
+      ),
     );
   }
 }
@@ -356,10 +359,11 @@ class MiniPlayer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final s = ref.watch(playerProvider.select((s) => (s.current, s.playing, s.position, s.duration)));
-    final (item, playing, pos, dur) = s;
+    // Sem a posição: ela muda 4 vezes por segundo, e quem acompanha é só a
+    // linha de progresso (_MiniProgress), não a barra inteira.
+    final s = ref.watch(playerProvider.select((s) => (s.current, s.playing)));
+    final (item, playing) = s;
     if (item == null) return const SizedBox.shrink();
-    final progress = dur.inMilliseconds == 0 ? 0.0 : pos.inMilliseconds / dur.inMilliseconds;
     return floatingFrame(ref, theme.colorScheme.surfaceContainerHigh, margin: const EdgeInsets.fromLTRB(8, 4, 8, 6), Material(
       color: theme.colorScheme.surfaceContainerHigh,
       child: InkWell(
@@ -367,7 +371,7 @@ class MiniPlayer extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            LinearProgressIndicator(value: progress.clamp(0.0, 1.0), minHeight: 2),
+            const _MiniProgress(),
             SizedBox(
               height: 60,
               child: Row(
@@ -414,6 +418,19 @@ class MiniPlayer extends ConsumerWidget {
         ),
       ),
     ));
+  }
+}
+
+/// Linha de progresso do mini player, separada para só ela redesenhar a cada
+/// posição nova.
+class _MiniProgress extends ConsumerWidget {
+  const _MiniProgress();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final (pos, dur) = ref.watch(playerProvider.select((s) => (s.position, s.duration)));
+    final progress = dur.inMilliseconds == 0 ? 0.0 : pos.inMilliseconds / dur.inMilliseconds;
+    return RepaintBoundary(child: LinearProgressIndicator(value: progress.clamp(0.0, 1.0), minHeight: 2));
   }
 }
 

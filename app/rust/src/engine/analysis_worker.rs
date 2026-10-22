@@ -31,6 +31,10 @@ pub struct AnalysisJob {
 
 pub type ReadyCallback = Arc<dyn Fn(&str, Option<&Arc<TrackAnalysis>>) + Send + Sync>;
 
+/// Análises guardadas na memória. As outras continuam no disco (`get` relê):
+/// com a rádio ou o Modo DJ ligados por horas, o mapa crescia sem parar.
+const RESULTS_MAX: usize = 200;
+
 /// Perguntas ao servidor por música, por sessão, enquanto ele analisa.
 const REMOTE_TRIES: u8 = 4;
 /// Intervalo entre elas.
@@ -106,8 +110,22 @@ impl AnalysisWorker {
         } else {
             Arc::new(self.analyzer.cached(key)?)
         };
-        self.results.lock().insert(key.to_string(), a.clone());
+        self.remember(key, a.clone());
         Some(a)
+    }
+
+    /// Guarda na memória; passando do teto, esquece metade (as que estão em
+    /// uso seguem vivas pelo `Arc`, e o disco devolve qualquer uma depois).
+    fn remember(&self, key: &str, a: Arc<TrackAnalysis>) {
+        let mut results = self.results.lock();
+        if results.len() >= RESULTS_MAX && !results.contains_key(key) {
+            let mut n = 0;
+            results.retain(|_, _| {
+                n += 1;
+                n % 2 == 0
+            });
+        }
+        results.insert(key.to_string(), a);
     }
 
     /// A análise desta música veio do servidor.
@@ -280,7 +298,7 @@ impl AnalysisWorker {
                     Remote::Ready(a) => {
                         self.analyzer.store_remote(&job.key, &a);
                         let a = Arc::new(*a);
-                        self.results.lock().insert(job.key.clone(), a.clone());
+                        self.remember(&job.key, a.clone());
                         self.from_server.lock().insert(job.key.clone());
                         self.failed.lock().remove(&job.key);
                         on_ready(&job.key, Some(&a));
@@ -314,10 +332,11 @@ impl AnalysisWorker {
                     .and_then(|opened| self.analyzer.analyze(&job.key, opened.source, job.ext.as_deref()))
             }))
             .unwrap_or_else(|_| Err(anyhow::anyhow!("pânico na análise")));
+            release_free_memory();
             match result {
                 Ok(a) => {
                     let a = Arc::new(a);
-                    self.results.lock().insert(job.key.clone(), a.clone());
+                    self.remember(&job.key, a.clone());
                     on_ready(&job.key, Some(&a));
                 }
                 Err(e) => {
@@ -327,6 +346,20 @@ impl AnalysisWorker {
                 }
             }
         }
+    }
+}
+
+/// Devolve ao sistema a memória livre depois de uma análise.
+///
+/// A rede de batidas usa centenas de MB por algumas dezenas de segundos. No
+/// Linux o alocador (glibc) segura isso depois de liberado, e o app ficava com
+/// 300–500 MB a mais até fechar; medido com `examples/memprof.rs`. No Android
+/// o alocador já devolve sozinho.
+fn release_free_memory() {
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
+    // SAFETY: só pede ao glibc para devolver ao sistema o que já está livre.
+    unsafe {
+        libc::malloc_trim(0);
     }
 }
 

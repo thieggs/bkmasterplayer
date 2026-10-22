@@ -18,8 +18,8 @@ mod desktop;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Result};
@@ -174,6 +174,15 @@ struct Inner {
     /// Pedidos avulsos de análise (chave → ids) que esperam resposta, mesmo sem
     /// estar na fila de reprodução (ex.: candidatas do Modo DJ).
     watchers: Mutex<HashMap<String, Vec<String>>>,
+    /// Thread de eventos: dorme mais com a música parada, e um comando novo a
+    /// acorda na hora (ver `send`).
+    events_thread: OnceLock<std::thread::Thread>,
+    /// Quando chegou o último comando (ms desde `born`).
+    last_cmd_ms: AtomicU64,
+    born: Instant,
+    /// Última posição mandada ao app: parada, não se repete a mesma 4 vezes por
+    /// segundo (o app acordava à toa com a música pausada).
+    last_position: Mutex<Option<(String, u64, Option<u64>, Option<f32>)>>,
 }
 
 pub struct Engine {
@@ -277,13 +286,27 @@ impl Inner {
     }
 
     fn send(&self, cmd: MixerCmd) {
-        let mut ctl = self.ctl.lock();
-        if ctl.cmd.push(cmd).is_err() {
-            log::error!("fila de comandos do mixer cheia");
+        {
+            let mut ctl = self.ctl.lock();
+            if ctl.cmd.push(cmd).is_err() {
+                log::error!("fila de comandos do mixer cheia");
+            }
+            if ctl.idle_closed {
+                self.wake_output.store(true, Ordering::Relaxed);
+            }
         }
-        if ctl.idle_closed {
-            self.wake_output.store(true, Ordering::Relaxed);
+        // A resposta do mixer (faixa começou, posição nova) chega logo: a
+        // thread de eventos volta ao passo curto.
+        self.last_cmd_ms.store(self.born.elapsed().as_millis() as u64, Ordering::Relaxed);
+        if let Some(t) = self.events_thread.get() {
+            t.unpark();
         }
+    }
+
+    /// Chegou comando há pouco (a resposta do mixer pode estar a caminho).
+    fn recently_commanded(&self) -> bool {
+        let now = self.born.elapsed().as_millis() as u64;
+        now.saturating_sub(self.last_cmd_ms.load(Ordering::Relaxed)) < 2000
     }
 
     fn current_deck(&self) -> Option<Arc<DeckShared>> {
@@ -613,6 +636,10 @@ impl Engine {
             automix: Mutex::new(AutomixSettings::default()),
             planned: Mutex::new(None),
             watchers: Mutex::new(HashMap::new()),
+            events_thread: OnceLock::new(),
+            last_cmd_ms: AtomicU64::new(0),
+            born: Instant::now(),
+            last_position: Mutex::new(None),
         });
 
         if let Some(model_dir) = config.model_dir.clone() {
@@ -655,9 +682,10 @@ impl Engine {
         }
 
         let loop_inner = inner.clone();
-        std::thread::Builder::new()
+        let handle = std::thread::Builder::new()
             .name("engine-events".into())
             .spawn(move || event_loop(loop_inner, ev_rx))?;
+        let _ = inner.events_thread.set(handle.thread().clone());
         Ok(Engine { inner })
     }
 
@@ -892,10 +920,17 @@ impl Drop for Engine {
 
 // ---- Thread de eventos ----
 
-/// Parado por esse tempo, a saída fecha. No celular é menor (bateria).
 /// Antecedência mínima para preparar a próxima faixa de uma transição do DJ.
 const MIX_LEAD_SECS: u64 = 5;
 
+/// Passo da thread de eventos tocando (ou logo depois de um comando).
+const TICK_BUSY: Duration = Duration::from_millis(20);
+/// Passo com a música parada: nada muda sozinho, e um comando novo acorda a
+/// thread na hora. Antes era o mesmo passo curto, 66 vezes por segundo, horas
+/// a fio com o app pausado.
+const TICK_IDLE: Duration = Duration::from_millis(250);
+
+/// Parado por esse tempo, a saída fecha. No celular é menor (bateria).
 #[cfg(any(target_os = "android", target_os = "ios"))]
 const IDLE_CLOSE: Duration = Duration::from_secs(30);
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -1007,7 +1042,8 @@ fn event_loop(inner: Arc<Inner>, mut ev_rx: rtrb::Consumer<MixerEvent>) {
             inner.downloads.gc(&keep);
         }
 
-        std::thread::sleep(Duration::from_millis(15));
+        let busy = state.0 || state.1 || inner.mixer_shared.transitioning.load(Ordering::Relaxed) || inner.recently_commanded();
+        std::thread::park_timeout(if busy { TICK_BUSY } else { TICK_IDLE });
     }
 }
 
@@ -1026,7 +1062,15 @@ fn emit_position(inner: &Inner) {
             )
         })
     };
-    if let Some((id, position_ms, duration_ms, buffered)) = info {
+    if let Some(pos) = info {
+        {
+            let mut last = inner.last_position.lock();
+            if last.as_ref() == Some(&pos) {
+                return;
+            }
+            *last = Some(pos.clone());
+        }
+        let (id, position_ms, duration_ms, buffered) = pos;
         inner.emit(EngineEvent::Position { id, position_ms, duration_ms, buffered });
     }
 }
@@ -1035,6 +1079,8 @@ fn handle_mixer_event(inner: &Arc<Inner>, ev: MixerEvent) {
     match ev {
         MixerEvent::Started(token) => {
             *inner.current.lock() = Some(token);
+            // Faixa (re)começou: a posição vai para o app mesmo igual à última.
+            *inner.last_position.lock() = None;
             let req = inner.tracks.lock().get(&token).map(|t| t.req.clone());
             if let Some(req) = req {
                 // A "próxima" virou atual: esquece o pedido de próxima.
@@ -1065,6 +1111,7 @@ fn handle_mixer_event(inner: &Arc<Inner>, ev: MixerEvent) {
         }
         MixerEvent::Replaced(token) => {
             *inner.current.lock() = Some(token);
+            *inner.last_position.lock() = None;
             emit_position(inner);
             update_desktop_playback(inner);
         }

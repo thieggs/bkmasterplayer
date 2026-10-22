@@ -478,28 +478,42 @@ impl Analyzer {
 pub struct DecodedAudio {
     pub rate: u32,
     pub mono: Vec<f32>,
-    pub stereo: Vec<f32>,
+    /// Loudness integrada (LUFS), medida enquanto decodifica: guardar o
+    /// estéreo da faixa inteira só para isso dobrava a memória da análise.
+    pub lufs: Option<f64>,
 }
+
+/// Teto da reserva antecipada (o cabeçalho pode mentir): 30 min de áudio.
+/// Reservar não ocupa RAM de fato; só evita o vetor crescer dobrando, que
+/// chegava a segurar o tamanho velho e o novo ao mesmo tempo.
+const RESERVE_MAX_SECS: usize = 30 * 60;
 
 pub fn decode_all(source: Box<dyn MediaSource>, ext: Option<&str>) -> Result<DecodedAudio> {
     let mut dec = Decoder::open(source, ext, None)?;
     let rate = dec.sample_rate;
+    let reserve = dec.total_frames.map_or(0, |n| n as usize).min(rate as usize * RESERVE_MAX_SECS);
     let mut buf = Vec::new();
-    let mut mono = Vec::new();
+    let mut mono = Vec::with_capacity(reserve);
     let mut stereo = Vec::new();
+    let mut meter = ebur128::EbuR128::new(2, rate, ebur128::Mode::I).ok();
     while dec.next_chunk(&mut buf)?.is_some() {
         let ch = dec.channels;
+        stereo.clear();
         for f in buf.chunks_exact(ch) {
             let (l, r) = if ch == 1 { (f[0], f[0]) } else { (f[0], f[1]) };
             mono.push((l + r) * 0.5);
             stereo.push(l);
             stereo.push(r);
         }
+        if meter.as_mut().is_some_and(|m| m.add_frames_f32(&stereo).is_err()) {
+            meter = None;
+        }
     }
     if mono.is_empty() {
         return Err(anyhow!("áudio vazio"));
     }
-    Ok(DecodedAudio { rate, mono, stereo })
+    let lufs = meter.and_then(|m| m.loudness_global().ok()).filter(|l| l.is_finite());
+    Ok(DecodedAudio { rate, mono, lufs })
 }
 
 /// Regiões onde rodar a rede de batidas: começo e fim (ou tudo, se curta).
@@ -553,7 +567,7 @@ pub fn build_analysis(audio: &DecodedAudio, regions: &[BeatRegion]) -> TrackAnal
         Some((k, c, conf)) => (Some(k), Some(c), conf),
         None => (None, None, 0.0),
     };
-    let lufs = loudness(&audio.stereo, audio.rate);
+    let lufs = audio.lufs;
     let peak = audio.mono.iter().fold(0.0f32, |m, s| m.max(s.abs()));
     let (first_sound, last_sound) = sound_bounds(&audio.mono, audio.rate);
     let bars = bar_starts(&grids, beats_per_bar, duration);
@@ -1202,12 +1216,6 @@ pub fn detect_key(mono: &[f32], rate: u32) -> Option<(String, String, f32)> {
     Some((name, camelot(root, minor), conf))
 }
 
-fn loudness(stereo: &[f32], rate: u32) -> Option<f64> {
-    let mut m = ebur128::EbuR128::new(2, rate, ebur128::Mode::I).ok()?;
-    m.add_frames_f32(stereo).ok()?;
-    m.loudness_global().ok().filter(|l| l.is_finite())
-}
-
 /// Primeiro e último instante com som (janelas de 10 ms acima de -50 dBFS).
 fn sound_bounds(mono: &[f32], rate: u32) -> (f64, f64) {
     let win = (rate as usize / 100).max(1);
@@ -1289,6 +1297,54 @@ mod tests {
         assert!(camelot_compatible("12A", "1A"));
         assert!(!camelot_compatible("8A", "10A"));
         assert!(!camelot_compatible("8A", "3B"));
+    }
+
+    /// O loudness medido em pedaços, enquanto decodifica, tem de dar o mesmo
+    /// número que medir o estéreo inteiro de uma vez (como era antes).
+    #[test]
+    fn streaming_loudness_matches_whole_file() {
+        let rate = 44_100u32;
+        let frames = rate as usize * 12;
+        let mut seed = 1u32;
+        let mut stereo = Vec::with_capacity(frames * 2);
+        for i in 0..frames {
+            seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+            let noise = (seed >> 16) as f32 / 65_536.0 - 0.5;
+            let t = i as f32 / rate as f32;
+            let swell = 0.2 + 0.8 * (t * 0.7).sin().abs();
+            stereo.push(((t * 440.0 * std::f32::consts::TAU).sin() * 0.3 + noise * 0.2) * swell);
+            stereo.push(((t * 660.0 * std::f32::consts::TAU).sin() * 0.25 + noise * 0.1) * swell);
+        }
+        let pcm: Vec<i16> = stereo.iter().map(|x| (x.clamp(-1.0, 1.0) * 32767.0) as i16).collect();
+        // O que o decodificador entrega: as amostras de 16 bits de volta em f32.
+        let decoded: Vec<f32> = pcm.iter().map(|&x| x as f32 / 32768.0).collect();
+        let mut wav = Vec::new();
+        let data_len = (pcm.len() * 2) as u32;
+        for (tag, v) in [(b"RIFF", 36 + data_len)] {
+            wav.extend_from_slice(tag);
+            wav.extend_from_slice(&v.to_le_bytes());
+        }
+        wav.extend_from_slice(b"WAVEfmt ");
+        wav.extend_from_slice(&16u32.to_le_bytes());
+        wav.extend_from_slice(&1u16.to_le_bytes());
+        wav.extend_from_slice(&2u16.to_le_bytes());
+        wav.extend_from_slice(&rate.to_le_bytes());
+        wav.extend_from_slice(&(rate * 4).to_le_bytes());
+        wav.extend_from_slice(&4u16.to_le_bytes());
+        wav.extend_from_slice(&16u16.to_le_bytes());
+        wav.extend_from_slice(b"data");
+        wav.extend_from_slice(&data_len.to_le_bytes());
+        for s in &pcm {
+            wav.extend_from_slice(&s.to_le_bytes());
+        }
+
+        let audio = decode_all(Box::new(std::io::Cursor::new(wav)), Some("wav")).unwrap();
+        assert_eq!(audio.mono.len(), frames);
+        let mut whole = ebur128::EbuR128::new(2, rate, ebur128::Mode::I).unwrap();
+        whole.add_frames_f32(&decoded).unwrap();
+        let expected = whole.loudness_global().unwrap();
+        let got = audio.lufs.expect("loudness");
+        assert!((got - expected).abs() < 1e-6, "em pedaços {got} × inteiro {expected}");
     }
 
     #[test]

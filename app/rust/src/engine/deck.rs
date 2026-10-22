@@ -75,7 +75,9 @@ impl Handoff {
             if cancel.load(Ordering::Relaxed) {
                 return None;
             }
-            self.cond.wait_for(&mut st, Duration::from_millis(50));
+            // A oferta e a recusa acordam pelo `cond`; o tempo é só para ver o
+            // cancelamento. A próxima faixa espera aqui a música atual inteira.
+            self.cond.wait_for(&mut st, Duration::from_millis(500));
         }
     }
 }
@@ -393,7 +395,7 @@ where
                 true
             }
         };
-        if !push_all(&mut ring, &out, sh) {
+        if !push_all(&mut ring, &out, sh, p.device_rate) {
             return Ok(());
         }
         produced += (out.len() / 2) as u64;
@@ -520,16 +522,30 @@ impl TempoStretcher {
     }
 }
 
+/// Espaço livre no anel (em segundos de música) que a produtora espera juntar
+/// antes de voltar a decodificar.
+const REFILL_SECS: f64 = 0.1;
+
 /// Empurra tudo no ring, esperando espaço. Retorna `false` se cancelado.
-fn push_all(ring: &mut rtrb::Producer<f32>, mut data: &[f32], sh: &DeckShared) -> bool {
+///
+/// Com o anel cheio, dorme até caber [`REFILL_SECS`] de uma vez, e não 5 ms
+/// por vez: a música pausada (ou a próxima faixa já pronta, esperando a vez)
+/// acordava cada produtora 200 vezes por segundo, horas a fio, só para ver
+/// que continuava cheio. Com 2 s de anel, sobra 1,9 s mesmo no pior caso —
+/// e até o disco de vinil girando a 10× é servido a tempo.
+fn push_all(ring: &mut rtrb::Producer<f32>, mut data: &[f32], sh: &DeckShared, rate: u32) -> bool {
+    let refill = ((rate as f64 * REFILL_SECS) as usize * 2).min(ring.buffer().capacity() / 2);
     while !data.is_empty() {
         if sh.cancel.load(Ordering::Relaxed) || ring.is_abandoned() {
             return false;
         }
         // Mantém a escrita alinhada em frames estéreo.
         let slots = ring.slots() & !1;
-        if slots == 0 {
-            std::thread::sleep(Duration::from_millis(5));
+        let wanted = refill.min(data.len());
+        if slots < wanted {
+            // O mixer consome em tempo real: o que falta leva esse tempo para abrir.
+            let secs = ((wanted - slots) / 2) as f64 / rate.max(1) as f64;
+            std::thread::sleep(Duration::from_secs_f64(secs.clamp(0.002, REFILL_SECS)));
             continue;
         }
         let n = slots.min(data.len());

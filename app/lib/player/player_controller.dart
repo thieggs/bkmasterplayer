@@ -253,6 +253,18 @@ class PlayerController extends Notifier<PlayerState> {
   File get _queueFile => File('${ref.read(supportDirProvider).path}/queue.json');
 
   void _persistSoon() {
+  /// Posição tocando, gravada à parte a cada 15 s: regravar a fila inteira
+  /// (até 1000 músicas em JSON, na thread da tela) só para mudar a posição
+  /// dava um engasgo de tempos em tempos.
+  File get _positionFile => File('${ref.read(supportDirProvider).path}/queue_pos.json');
+
+  /// O que está em `queue.json` agora: a fila (mesma instância), onde começa a
+  /// fatia gravada, quantas músicas e a marca que casa com `queue_pos.json`.
+  List<QueueItem>? _savedQueue;
+  int _savedStart = 0;
+  int _savedLength = 0;
+  int _savedStamp = 0;
+
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 1), _persistNow);
     _syncSoon();
@@ -269,10 +281,13 @@ class PlayerController extends Notifier<PlayerState> {
     if (p == null) return;
     // Guarda até 1000 faixas em volta da atual.
     final start = max(0, state.index - 200);
-    final items = state.queue.skip(start).take(1000).toList();
+    final queue = state.queue;
+    final items = queue.skip(start).take(1000).toList();
+    final stamp = DateTime.now().microsecondsSinceEpoch;
     final data = {
       'account': p.accountId,
       'index': state.index - start,
+      'stamp': stamp,
       'position': state.position.inMilliseconds,
       'radio': state.radio,
       'dj': state.dj,
@@ -283,11 +298,40 @@ class PlayerController extends Notifier<PlayerState> {
       await tmp.writeAsString(jsonEncode(data));
       await tmp.rename(_queueFile.path);
     } catch (e) {
+      _savedQueue = queue;
+      _savedStart = start;
+      _savedLength = items.length;
+      _savedStamp = stamp;
       debugPrint('salvando fila: $e');
     }
   }
 
   void _syncSoon() {
+  /// Grava só a posição (e qual música da fila gravada está tocando). Se a
+  /// fila mudou desde a última gravação, grava tudo.
+  Future<void> _savePosition() => _saveChain = _saveChain.then((_) {
+        final p = _provider;
+        if (p == null) return null;
+        final rel = state.index - _savedStart;
+        if (!identical(state.queue, _savedQueue) || rel < 0 || rel >= _savedLength) return _writeQueue();
+        return _writePosition(p.accountId, rel);
+      });
+
+  Future<void> _writePosition(String account, int index) async {
+    try {
+      final tmp = File('${_positionFile.path}.tmp');
+      await tmp.writeAsString(jsonEncode({
+        'account': account,
+        'stamp': _savedStamp,
+        'index': index,
+        'position': state.position.inMilliseconds,
+      }));
+      await tmp.rename(_positionFile.path);
+    } catch (e) {
+      debugPrint('salvando posição: $e');
+    }
+  }
+
     if (!ref.read(settingsProvider).syncQueue) return;
     _syncTimer?.cancel();
     _syncTimer = Timer(const Duration(seconds: 5), _syncNow);
@@ -323,6 +367,14 @@ class PlayerController extends Notifier<PlayerState> {
           radio = j['radio'] == true;
           dj = j['dj'] == true;
         }
+          // A posição gravada depois, à parte, se for desta mesma fila.
+          try {
+            final pos = jsonDecode(await _positionFile.readAsString()) as Map<String, dynamic>;
+            if (j['stamp'] != null && pos['stamp'] == j['stamp'] && pos['account'] == p.accountId) {
+              index = (pos['index'] as int?) ?? index;
+              position = Duration(milliseconds: (pos['position'] as int?) ?? position.inMilliseconds);
+            }
+          } catch (_) {}
       }
     } catch (e) {
       debugPrint('fila salva ilegível: $e');
@@ -826,16 +878,15 @@ class PlayerController extends Notifier<PlayerState> {
         final now = DateTime.now();
         if (now.difference(_lastPositionSave) > const Duration(seconds: 15)) {
           _lastPositionSave = now;
-          _persistNow();
+          _savePosition();
         }
-        if (now.difference(_lastServerSync) > const Duration(seconds: 60)) {
+        // Só agenda se não houver um agendado: remarcar a cada evento (4 por
+        // segundo) empurrava o timer para frente sem parar, e a fila nunca ia
+        // para o servidor com uma música carregada.
+        if (now.difference(_lastServerSync) > const Duration(seconds: 60) && !(_syncTimer?.isActive ?? false)) {
           _syncSoon();
         }
-        state = state.copyWith(
-          position: pos,
-          duration: durationMs != null ? Duration(milliseconds: durationMs) : state.duration,
-          buffered: buffered ?? state.buffered,
-        );
+        state = state.copyWith(position: pos, duration: duration, buffered: buf);
       case engine.PlayerEvent_State(:final playing, :final buffering, :final hasTrack):
         _engineHasTrack = hasTrack;
         state = state.copyWith(playing: playing, buffering: buffering);
@@ -874,6 +925,10 @@ class PlayerController extends Notifier<PlayerState> {
   void _preAnalyze(int index) {
     final s = ref.read(settingsProvider);
     if (!s.automixEnabled || !s.preAnalyze) return;
+        final duration = durationMs != null ? Duration(milliseconds: durationMs) : state.duration;
+        final buf = buffered ?? state.buffered;
+        // Nada mudou: não acorda quem observa o player (tela, notificação, Connect).
+        if (pos == state.position && duration == state.duration && buf == state.buffered) return;
     for (var j = index + 2; j < state.queue.length && j <= index + 3; j++) {
       final src = _source(state.queue[j]);
       if (src != null) engine.playerAnalyze(track: src);

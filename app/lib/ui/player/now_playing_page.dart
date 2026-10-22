@@ -196,9 +196,11 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
         fit: StackFit.expand,
         children: [
           if (bg != null && ui.nowPlayingBlur > 0)
-            ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-              child: Image(image: bg, fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox()),
+            RepaintBoundary(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+                child: Image(image: bg, fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox()),
+              ),
             ),
           Container(color: theme.colorScheme.surface.withValues(alpha: 1.0 - 0.4 * ui.nowPlayingBlur)),
           SafeArea(

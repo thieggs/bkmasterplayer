@@ -404,32 +404,39 @@ class _VinylDiscState extends ConsumerState<VinylDisc> with TickerProviderStateM
       _spin.stop();
     }
 
-    final disc = AnimatedBuilder(
-      animation: _spin,
-      builder: (context, child) => Transform.rotate(angle: (_spin.value + _turns) * 2 * math.pi, child: child),
-      child: Container(
-        width: size,
-        height: size,
-        padding: EdgeInsets.all(size * 0.06),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
-          gradient: RadialGradient(
-            colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900, Colors.black],
-            stops: const [0.3, 0.55, 0.8, 1],
-          ),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(child: CustomPaint(painter: const _Grooves())),
-            CoverArt(coverArtId: widget.song?.coverArt, size: size * 0.88, radius: size),
-            Container(
-              width: size * 0.05,
-              height: size * 0.05,
-              decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+    // Girando, só muda o ângulo: o disco (sulcos, capa, sombra) é desenhado uma
+    // vez na camada de dentro, e a de fora impede que cada quadro do giro
+    // redesenhe a tela inteira em volta.
+    final disc = RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _spin,
+        builder: (context, child) => Transform.rotate(angle: (_spin.value + _turns) * 2 * math.pi, child: child),
+        child: RepaintBoundary(
+          child: Container(
+            width: size,
+            height: size,
+            padding: EdgeInsets.all(size * 0.06),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
+              gradient: RadialGradient(
+                colors: [Colors.grey.shade900, Colors.black, Colors.grey.shade900, Colors.black],
+                stops: const [0.3, 0.55, 0.8, 1],
+              ),
             ),
-          ],
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned.fill(child: CustomPaint(painter: const _Grooves())),
+                CoverArt(coverArtId: widget.song?.coverArt, size: size * 0.88, radius: size),
+                Container(
+                  width: size * 0.05,
+                  height: size * 0.05,
+                  decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
