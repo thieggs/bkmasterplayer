@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use std::fs::{self, File};
+use std::io::{Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::UNIX_EPOCH;
@@ -14,10 +15,21 @@ use serde::{Deserialize, Serialize};
 use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::{MediaSourceStream, MediaSourceStreamOptions};
-use symphonia::core::meta::{MetadataOptions, StandardTag, StandardVisualKey, Tag, Visual};
+use symphonia::core::meta::{MetadataOptions, MetadataReader, MetadataRevision, StandardTag, StandardVisualKey, Tag, Visual};
+use symphonia::default::meta::{ApeReader, Id3v1Reader, Id3v2Reader};
 
-/// Extensões que o motor sabe tocar.
-const AUDIO_EXT: &[&str] = &["mp3", "flac", "ogg", "oga", "m4a", "mp4", "m4b", "aac", "wav", "aiff", "aif", "aifc", "mka", "caf"];
+use crate::engine::decoder::Decoder;
+
+/// Extensões que o motor sabe tocar em qualquer aparelho.
+const AUDIO_EXT: &[&str] = &[
+    "mp3", "mp2", "mp1", "mpa", "flac", "ogg", "oga", "opus", "m4a", "mp4", "m4b", "aac", "wav", "aiff", "aif", "aifc", "mka",
+    "webm", "weba", "caf", "dsf", "dff", "ape", "wv",
+];
+/// No computador, com o ffmpeg do sistema, também estas (ver
+/// `engine/decoder/ffmpeg.rs`).
+#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+const FFMPEG_EXT: &[&str] =
+    &["wma", "asf", "mpc", "mp+", "mpp", "tta", "ac3", "eac3", "dts", "amr", "awb", "spx", "tak", "ofr", "ofs", "shn", "ra", "au", "snd"];
 /// Imagens de capa na pasta do álbum, em ordem de preferência.
 const COVER_NAMES: &[&str] = &["cover", "folder", "front", "album", "albumart"];
 
@@ -66,9 +78,21 @@ fn save_index(index: &Path, tracks: &[LocalTrack]) -> Result<()> {
 }
 
 fn is_audio(p: &Path) -> bool {
-    p.extension()
-        .and_then(|e| e.to_str())
-        .is_some_and(|e| AUDIO_EXT.contains(&e.to_ascii_lowercase().as_str()))
+    p.extension().and_then(|e| e.to_str()).is_some_and(|e| {
+        let e = e.to_ascii_lowercase();
+        AUDIO_EXT.contains(&e.as_str()) || via_ffmpeg(&e)
+    })
+}
+
+/// Formato que só o ffmpeg do sistema lê (e há um ffmpeg).
+fn via_ffmpeg(ext: &str) -> bool {
+    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    return FFMPEG_EXT.contains(&ext) && crate::engine::decoder::ffmpeg::available();
+    #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+    {
+        let _ = ext;
+        false
+    }
 }
 
 fn walk(dir: &Path, out: &mut Vec<PathBuf>, depth: usize) {
@@ -133,8 +157,30 @@ fn year_of(s: &str) -> Option<i32> {
     }
 }
 
+/// Tag sem tradução padrão no symphonia (o MKV/WebM só traduz parte dos
+/// nomes; o APE do WavPack usa "Year"): pelo nome, sem passar por cima do
+/// que veio traduzido.
+fn apply_raw_tag(t: &mut LocalTrack, raw: &symphonia::core::meta::RawTag) {
+    let symphonia::core::meta::RawValue::String(v) = &raw.value else { return };
+    let v = v.trim();
+    if v.is_empty() {
+        return;
+    }
+    let number = |v: &str| v.split('/').next().and_then(|n| n.trim().parse::<u32>().ok());
+    match raw.key.to_ascii_lowercase().as_str() {
+        "artist" => t.artist = t.artist.take().or_else(|| Some(v.to_string())),
+        "album" => t.album = t.album.take().or_else(|| Some(v.to_string())),
+        "album_artist" | "albumartist" | "album artist" => t.album_artist = t.album_artist.take().or_else(|| Some(v.to_string())),
+        "date" | "year" | "date_released" | "date_recorded" => t.year = t.year.or_else(|| year_of(v)),
+        "track" | "tracknumber" | "part_number" => t.track = t.track.or_else(|| number(v)),
+        "disc" | "discnumber" => t.disc = t.disc.or_else(|| number(v)),
+        "genre" => t.genre = t.genre.take().or_else(|| Some(v.to_string())),
+        _ => {}
+    }
+}
+
 fn apply_tag(t: &mut LocalTrack, tag: &Tag) {
-    let Some(std) = &tag.std else { return };
+    let Some(std) = &tag.std else { return apply_raw_tag(t, &tag.raw) };
     let s = |v: &std::sync::Arc<String>| {
         let v = v.trim();
         (!v.is_empty()).then(|| v.to_string())
@@ -171,19 +217,23 @@ fn pick_visual(visuals: &[Visual]) -> Option<&Visual> {
         .or_else(|| visuals.first())
 }
 
+type Cover = Option<(Vec<u8>, Option<String>)>;
+
+/// Junta à faixa as tags de uma revisão de metadados e guarda a primeira capa.
+fn apply_revision(t: &mut LocalTrack, rev: &MetadataRevision, cover: &mut Cover) {
+    for tag in rev.media.tags.iter().chain(rev.per_track.iter().flat_map(|p| p.metadata.tags.iter())) {
+        apply_tag(t, tag);
+    }
+    if cover.is_none() {
+        if let Some(v) = pick_visual(&rev.media.visuals) {
+            *cover = Some((v.data.to_vec(), v.media_type.clone()));
+        }
+    }
+}
+
 /// Lê um arquivo. `covers` guarda as capas extraídas; `dir_cover` é a capa
 /// da pasta (tem prioridade sobre a embutida).
 fn read_track(path: &Path, size: i64, mtime: i64, dir_cover: Option<String>, covers: &Path) -> Result<LocalTrack> {
-    let file = File::open(path)?;
-    let mss = MediaSourceStream::new(Box::new(file), MediaSourceStreamOptions::default());
-    let mut hint = Hint::new();
-    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-        hint.with_extension(ext);
-    }
-    let mut format = symphonia::default::get_probe()
-        .probe(&hint, mss, FormatOptions::default(), MetadataOptions::default())
-        .context("formato não reconhecido")?;
-
     let mut t = LocalTrack {
         path: path.to_string_lossy().into_owned(),
         size,
@@ -191,46 +241,17 @@ fn read_track(path: &Path, size: i64, mtime: i64, dir_cover: Option<String>, cov
         title: path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default(),
         ..Default::default()
     };
-
-    if let Some(track) = format.default_track(TrackType::Audio).or_else(|| format.first_track_known_codec(TrackType::Audio)) {
-        if let Some(p) = track.codec_params.as_ref().and_then(|p| p.audio()) {
-            t.sample_rate = p.sample_rate;
-            t.bit_depth = p.bits_per_sample;
-            t.channels = p.channels.as_ref().map(|c| c.count() as u32);
-            if let (Some(frames), Some(rate)) = (track.num_frames, p.sample_rate) {
-                if rate > 0 {
-                    t.duration_ms = Some((frames as u128 * 1000 / rate as u128) as i64);
-                }
-            }
-        }
+    let mut cover: Cover = None;
+    if let Err(e) = read_with_symphonia(path, &mut t, &mut cover) {
+        // DSD, APE, WavPack ou formato do ffmpeg: o symphonia não abre.
+        read_other(path, &mut t, &mut cover).map_err(|e2| e2.context(format!("{e:#}")))?;
     }
     if let Some(ms) = t.duration_ms.filter(|ms| *ms > 0) {
         t.bitrate_kbps = Some((size as u128 * 8 / ms as u128) as u32);
     }
 
-    // Todas as revisões de metadados (ex.: ID3v2 antes do áudio + tags do contêiner).
-    let mut cover_data: Option<(Vec<u8>, Option<String>)> = None;
-    {
-        let mut md = format.metadata();
-        loop {
-            if let Some(rev) = md.current() {
-                for tag in rev.media.tags.iter().chain(rev.per_track.iter().flat_map(|p| p.metadata.tags.iter())) {
-                    apply_tag(&mut t, tag);
-                }
-                if cover_data.is_none() && dir_cover.is_none() {
-                    if let Some(v) = pick_visual(&rev.media.visuals) {
-                        cover_data = Some((v.data.to_vec(), v.media_type.clone()));
-                    }
-                }
-            }
-            if md.pop().is_none() {
-                break;
-            }
-        }
-    }
-
     t.cover = dir_cover.or_else(|| {
-        let (data, mime) = cover_data?;
+        let (data, mime) = cover?;
         let ext = match mime.as_deref() {
             Some("image/png") => "png",
             Some("image/webp") => "webp",
@@ -251,6 +272,155 @@ fn read_track(path: &Path, size: i64, mtime: i64, dir_cover: Option<String>, cov
         Some(out.to_string_lossy().into_owned())
     });
     Ok(t)
+}
+
+fn read_with_symphonia(path: &Path, t: &mut LocalTrack, cover: &mut Cover) -> Result<()> {
+    let file = File::open(path)?;
+    let mss = MediaSourceStream::new(Box::new(file), MediaSourceStreamOptions::default());
+    let mut hint = Hint::new();
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        hint.with_extension(ext);
+    }
+    let mut format = symphonia::default::get_probe()
+        .probe(&hint, mss, FormatOptions::default(), MetadataOptions::default())
+        .context("formato não reconhecido")?;
+
+    if let Some(track) = format.default_track(TrackType::Audio).or_else(|| format.first_track_known_codec(TrackType::Audio)) {
+        if let Some(p) = track.codec_params.as_ref().and_then(|p| p.audio()) {
+            t.sample_rate = p.sample_rate;
+            t.bit_depth = p.bits_per_sample;
+            t.channels = p.channels.as_ref().map(|c| c.count() as u32);
+            if let (Some(frames), Some(rate)) = (track.num_frames, p.sample_rate) {
+                if rate > 0 {
+                    t.duration_ms = Some((frames as u128 * 1000 / rate as u128) as i64);
+                }
+            }
+        }
+        // Sem contagem de frames (MKV/WebM): a duração que o contêiner declara.
+        if t.duration_ms.is_none() {
+            let info = format.media_info();
+            let declared = track.duration.zip(track.time_base).or(info.duration.zip(info.time_base));
+            t.duration_ms = declared.map(|(d, tb)| (d.get() as u128 * tb.numer.get() as u128 * 1000 / tb.denom.get() as u128) as i64);
+        }
+    }
+
+    // Todas as revisões de metadados (ex.: ID3v2 antes do áudio + tags do contêiner).
+    let mut md = format.metadata();
+    loop {
+        if let Some(rev) = md.current() {
+            apply_revision(t, rev, cover);
+        }
+        if md.pop().is_none() {
+            break;
+        }
+    }
+    Ok(())
+}
+
+/// O arquivo como `MediaSourceStream` já na posição `offset` (o leitor de
+/// tags começa dali).
+fn stream_at(file: &File, offset: u64) -> Option<MediaSourceStream<'static>> {
+    let mut mss = MediaSourceStream::new(Box::new(file.try_clone().ok()?), MediaSourceStreamOptions::default());
+    mss.seek(SeekFrom::Start(offset)).ok()?;
+    Some(mss)
+}
+
+fn id3v2_at(file: &File, offset: u64) -> Option<MetadataRevision> {
+    let mut r = Id3v2Reader::try_new(stream_at(file, offset)?, MetadataOptions::default()).ok()?;
+    r.read_all().ok().map(|b| b.revision)
+}
+
+/// Tag APEv1/v2 no fim do arquivo (antes de uma ID3v1, se houver), a do
+/// Monkey's Audio e do WavPack.
+fn ape_tag_at_end(file: &File, len: u64) -> Option<MetadataRevision> {
+    [32u64, 160].into_iter().filter(|&back| len >= back).find_map(|back| {
+        let mut r = ApeReader::try_new(stream_at(file, len - back)?, MetadataOptions::default()).ok()?;
+        r.read_all().ok().map(|b| b.revision)
+    })
+}
+
+fn id3v1_at_end(file: &File, len: u64) -> Option<MetadataRevision> {
+    let mut r = Id3v1Reader::try_new(stream_at(file, len.checked_sub(128)?)?, MetadataOptions::default()).ok()?;
+    r.read_all().ok().map(|b| b.revision)
+}
+
+/// Formatos que o symphonia não abre: os números vêm do decodificador do
+/// motor e as tags de onde cada formato as guarda.
+fn read_other(path: &Path, t: &mut LocalTrack, cover: &mut Cover) -> Result<()> {
+    let ext = path.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase);
+    #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+    if ext.as_deref().is_some_and(via_ffmpeg) {
+        // Só o ffprobe: abrir o decodificador do ffmpeg para cada arquivo da
+        // varredura seria lento.
+        let p = crate::engine::decoder::ffmpeg::probe(path).context("o ffmpeg não reconhece")?;
+        t.sample_rate = p.sample_rate;
+        t.channels = p.channels;
+        t.bit_depth = p.bits_per_sample;
+        t.duration_ms = p.duration_ms.map(|ms| ms as i64);
+        apply_text_tags(t, &p.tags);
+        return Ok(());
+    }
+    let dec = Decoder::open_file(Box::new(File::open(path)?), ext.as_deref(), None, Some(path))?;
+    t.channels = Some(dec.channels as u32);
+    t.duration_ms = dec.total_frames.map(|f| (f as u128 * 1000 / dec.sample_rate as u128) as i64);
+    if let Some(mult) = dec.codec.strip_prefix("dsd").and_then(|m| m.parse::<u32>().ok()) {
+        // DSD: mostra a taxa e os bits do original, não os do PCM convertido.
+        t.sample_rate = Some(mult * if dec.sample_rate == 88_200 { 44_100 } else { 48_000 });
+        t.bit_depth = Some(1);
+    } else {
+        t.sample_rate = Some(dec.sample_rate);
+        t.bit_depth = dec.bits_per_sample;
+    }
+    drop(dec);
+
+    let mut file = File::open(path)?;
+    let len = file.metadata()?.len();
+    let mut revs = Vec::new();
+    if let Some(at) = crate::engine::decoder::dsf_id3_offset(&mut file) {
+        revs.extend(id3v2_at(&file, at));
+    }
+    if let Ok(layout) = crate::engine::decoder::dff_layout(&mut file) {
+        if let Some((at, _)) = layout.id3 {
+            revs.extend(id3v2_at(&file, at));
+        }
+        t.title = layout.title.unwrap_or(std::mem::take(&mut t.title));
+        t.artist = layout.artist.or(t.artist.take());
+    }
+    revs.extend(id3v2_at(&file, 0));
+    revs.extend(ape_tag_at_end(&file, len));
+    revs.extend(id3v1_at_end(&file, len));
+    for rev in &revs {
+        apply_revision(t, rev, cover);
+    }
+    Ok(())
+}
+
+/// Tags em texto (chave em minúsculas), como as do ffprobe.
+#[cfg_attr(not(any(target_os = "linux", target_os = "windows", target_os = "macos")), allow(dead_code))]
+fn apply_text_tags(t: &mut LocalTrack, tags: &[(String, String)]) {
+    let number = |v: &str| v.split('/').next().and_then(|n| n.trim().parse::<u32>().ok());
+    for (k, v) in tags {
+        let v = v.trim();
+        if v.is_empty() {
+            continue;
+        }
+        match k.as_str() {
+            "title" => t.title = v.to_string(),
+            "artist" => t.artist = Some(v.to_string()),
+            "album_artist" | "albumartist" | "album artist" => t.album_artist = Some(v.to_string()),
+            "album" => t.album = Some(v.to_string()),
+            "genre" => t.genre = Some(v.to_string()),
+            "track" | "tracknumber" => t.track = number(v),
+            "disc" | "discnumber" => t.disc = number(v),
+            "date" | "year" | "originaldate" => t.year = t.year.or_else(|| year_of(v)),
+            "bpm" | "tbpm" => t.bpm = v.parse::<f32>().ok().map(|b| b.round() as u32),
+            "replaygain_track_gain" => t.rg_track_gain = parse_gain(v),
+            "replaygain_album_gain" => t.rg_album_gain = parse_gain(v),
+            "replaygain_track_peak" => t.rg_track_peak = parse_gain(v),
+            "replaygain_album_peak" => t.rg_album_peak = parse_gain(v),
+            _ => {}
+        }
+    }
 }
 
 /// Lê um arquivo avulso (ex.: escolhido para mandar numa Jam).
@@ -345,6 +515,37 @@ mod tests {
         let again = scan(&[dir.to_string_lossy().into_owned()], &index, &covers).unwrap();
         assert_eq!(again.len(), 1);
         assert_eq!(load_index(&index).len(), 1);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// Tag ID3v2.3 mínima com título, artista e faixa.
+    fn id3(title: &str, artist: &str) -> Vec<u8> {
+        let frame = |id: &[u8], text: &str| {
+            let mut f = id.to_vec();
+            f.extend_from_slice(&(text.len() as u32 + 1).to_be_bytes());
+            f.extend_from_slice(&[0, 0, 3]);
+            f.extend_from_slice(text.as_bytes());
+            f
+        };
+        let body = [frame(b"TIT2", title), frame(b"TPE1", artist), frame(b"TRCK", "2/9")].concat();
+        let n = body.len() as u32;
+        let size = [(n >> 21) as u8 & 0x7f, (n >> 14) as u8 & 0x7f, (n >> 7) as u8 & 0x7f, n as u8 & 0x7f];
+        [&b"ID3\x03\x00\x00"[..], &size, &body].concat()
+    }
+
+    #[test]
+    fn scans_dsd_with_its_id3_tag() {
+        use crate::engine::decoder::dsd_tests::{dsf_file_with_tag, modulate};
+        let dir = std::env::temp_dir().join(format!("bk-lib-dsd-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let rate = 2_822_400;
+        let ch = modulate(|t| 0.4 * (2.0 * std::f64::consts::PI * 500.0 * t).sin(), rate, 0.5);
+        fs::write(dir.join("faixa.dsf"), dsf_file_with_tag(&[ch.clone(), ch], rate, &id3("Tema Lírico", "Cantora"))).unwrap();
+        let tracks = scan(&[dir.to_string_lossy().into_owned()], &dir.join("index.json"), &dir.join("covers")).unwrap();
+        assert_eq!(tracks.len(), 1);
+        let t = &tracks[0];
+        assert_eq!((t.title.as_str(), t.artist.as_deref(), t.track), ("Tema Lírico", Some("Cantora"), Some(2)));
+        assert_eq!((t.sample_rate, t.bit_depth, t.channels, t.duration_ms), (Some(rate), Some(1), Some(2), Some(500)));
         let _ = fs::remove_dir_all(&dir);
     }
 }
