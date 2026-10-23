@@ -41,10 +41,16 @@ rtrb = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 symphonia = { version = "0.6.1", default-features = false, features = [
-    "aac", "alac", "flac", "mp3", "pcm", "vorbis", "adpcm",
+    "aac", "alac", "flac", "mp1", "mp2", "mp3", "pcm", "vorbis", "adpcm",
     "isomp4", "mkv", "ogg", "wav", "aiff", "caf",
     "id3v1", "id3v2", "ape",
 ] }
+# Formatos que o symphonia não decodifica (ver src/engine/decoder.rs):
+# Opus pela libopus de referência (compilada junto, precisa do cmake), e
+# Monkey's Audio e WavPack em Rust puro. O DSD é conversão nossa.
+symphonia-adapter-libopus = "0.3.0"
+ape-decoder = "0.3.2"
+wavicle = "0.1.0"
 cpal = "0.18.2"
 rubato = { version = "5.0", default-features = false }
 audioadapter-buffers = "5.2"
