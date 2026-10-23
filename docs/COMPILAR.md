@@ -71,12 +71,14 @@ rm -rf app/build/linux                   # after switching compilers, start clea
 
 ## Android
 
-Needs the Android SDK with **NDK 28.2**. Android Studio installs both; if you
-only want the command line, install the command-line tools and:
+Needs the Android SDK with **NDK 28.2**, plus CMake (the Opus decoder,
+libopus, is compiled with it: the system one or the SDK's `cmake` package).
+Android Studio installs everything; if you only want the command line,
+install the command-line tools and:
 
 ```bash
 export ANDROID_HOME="$HOME/android-sdk"
-"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.2.13676358" "platforms;android-36" "build-tools;36.0.0"
+"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.2.13676358" "platforms;android-36" "build-tools;36.0.0" "cmake;3.22.1"
 
 rustup target add aarch64-linux-android
 ./dev/build_apk.sh                       # dist/bkmasterplayer_*_arm64.apk
@@ -105,6 +107,7 @@ winget install Microsoft.VisualStudio.2022.BuildTools --override `
   "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --includeRecommended"
 winget install Rustlang.Rustup
 winget install LLVM.LLVM
+winget install Kitware.CMake
 winget install JRSoftware.InnoSetup
 
 # bindgen needs libclang.dll
@@ -135,6 +138,7 @@ Two traps that cost real time:
 ```bash
 xcode-select --install
 sudo xcodebuild -license accept
+brew install cmake
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
 ./dev/build_macos.sh                     # dist/BKmasterplayer-*.dmg
@@ -245,11 +249,12 @@ rm -rf app/build/linux                   # depois de trocar de compilador, comec
 
 ### Android
 
-Precisa do SDK do Android com **NDK 28.2**.
+Precisa do SDK do Android com **NDK 28.2** e do CMake (o decodificador de
+Opus, a libopus, é compilado com ele: o do sistema ou o pacote `cmake` do SDK).
 
 ```bash
 export ANDROID_HOME="$HOME/android-sdk"
-"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.2.13676358" "platforms;android-36" "build-tools;36.0.0"
+"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.2.13676358" "platforms;android-36" "build-tools;36.0.0" "cmake;3.22.1"
 
 rustup target add aarch64-linux-android
 ./dev/build_apk.sh                       # dist/bkmasterplayer_*_arm64.apk
@@ -270,6 +275,7 @@ winget install Microsoft.VisualStudio.2022.BuildTools --override `
   "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.ATL --includeRecommended"
 winget install Rustlang.Rustup
 winget install LLVM.LLVM
+winget install Kitware.CMake
 winget install JRSoftware.InnoSetup
 
 $env:LIBCLANG_PATH = "C:\Program Files\LLVM\bin"
@@ -296,6 +302,7 @@ Duas pegadinhas que custam tempo:
 ```bash
 xcode-select --install
 sudo xcodebuild -license accept
+brew install cmake
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
 ./dev/build_macos.sh                     # dist/BKmasterplayer-*.dmg

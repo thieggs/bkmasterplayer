@@ -37,6 +37,7 @@ Priority: optional
 Architecture: amd64
 Maintainer: thieggs <thiago123azfr@gmail.com>
 Depends: libgtk-3-0t64 | libgtk-3-0, libayatana-appindicator3-1, libsecret-1-0, libasound2t64 | libasound2, libepoxy0
+Recommends: ffmpeg
 Description: BKmasterplayer - player de música com AutoMix DJ
  Player para Navidrome/OpenSubsonic com transições de DJ sincronizadas por
  BPM (AutoMix), gapless, equalizador, rádio sônica (AudioMuse) e offline.

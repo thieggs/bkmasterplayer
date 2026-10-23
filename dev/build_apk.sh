@@ -9,6 +9,15 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
+# A libopus (decodificador de Opus) compila com o cmake, que precisa saber
+# onde está o NDK: o mesmo do Gradle (flutter.ndkVersion; o CI instala ele).
+NDK_VER=28.2.13676358
+[ -d "$ANDROID_HOME/ndk/$NDK_VER" ] && export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VER"
+# Sem cmake no sistema (ex.: o notebook, sem sudo): o do SDK, que traz o ninja.
+if ! command -v cmake >/dev/null; then
+  SDK_CMAKE=$(ls -d "$ANDROID_HOME"/cmake/*/bin 2>/dev/null | sort -V | tail -1 || true)
+  [ -n "$SDK_CMAKE" ] && export PATH="$SDK_CMAKE:$PATH"
+fi
 BASE=$(grep -m1 '^version:' "$ROOT/app/pubspec.yaml" | sed 's/version: *//; s/+.*//')
 # versionCode crescente a cada build (o Android só atualiza para um código maior).
 CODE=$(( $(date +%s) / 60 - 29000000 ))
