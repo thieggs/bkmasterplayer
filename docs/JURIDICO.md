@@ -20,7 +20,9 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 | Nomes "Connect", "AutoMix", "Modo DJ" | ✅ baixo risco | ✅ comparações com Spotify/Apple tiradas do README e do plano |
 | Nome "BKmasterplayer" (antes BKplayer, BKT Player, BK Music Player) | ✅ nenhum app com esse nome achado; há "MasterPlayer" sem o "BK" | pesquisar no INPI antes de divulgar |
 | Patentes de transição automática | ✅ a única ativa (Spotify, EUA, até 2031) exige um passo que o app não faz; as outras venceram | regra de projeto anotada no código |
-| Codecs (MP3, AAC-LC, FLAC, Vorbis, ALAC) | ✅ patentes vencidas ou livres | nada |
+| Codecs (MP3, AAC-LC, FLAC, Vorbis, ALAC, Opus, Monkey's Audio, WavPack) | ✅ patentes vencidas ou livres | nada |
+| DSD (SACD) | ⚠️ as patentes devem ter vencido (1999), mas sem confirmação oficial | rever antes de vender o app |
+| Formatos fechados (WMA, HE-AAC, AC-3, DTS) | ✅ o app não decodifica: o servidor converte, ou o ffmpeg que a pessoa instalou | nada |
 
 ## 1. Direito autoral
 
@@ -28,11 +30,11 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 
 **Bibliotecas.** O app usa código de terceiros, e todas as licenças permitem o uso num projeto MIT:
 
-- **Motor em Rust:** 432 pacotes. Quase todos MIT/Apache/BSD/ISC/Zlib, mais o `symphonia` (decodificador, MPL-2.0) e o `webpki-roots` (CDLA-Permissive-2.0).
+- **Motor em Rust:** 447 pacotes. Quase todos MIT/Apache/BSD/ISC/Zlib, mais o `symphonia` (decodificador, MPL-2.0) e o `webpki-roots` (CDLA-Permissive-2.0). Os decodificadores que o symphonia não tem são a libopus (BSD-3, da Xiph.Org, compilada junto pelo `opusic-sys`), o `ape-decoder` e o `wavicle` (MIT/Apache, Rust puro); o DSD é conversão própria. O ffmpeg não vem junto: no computador, o app usa o que estiver instalado no sistema, se houver.
 - **Dart/Flutter:** 150 pacotes. BSD/MIT/Apache, mais `dbus` e `nm` (MPL-2.0, só no Linux).
 - **Android:** AndroidX (Apache-2.0) e `play-services-nearby` do Google (proprietário, com uso gratuito permitido nos apps).
 - **MPL-2.0:** é copyleft só por arquivo. Pode ser usada num app MIT, desde que os arquivos MPL continuem MPL e com o código disponível (continuam, estão no crates.io/pub.dev sem mudanças).
-- **Avisos de licença:** MIT, Apache e BSD pedem que o texto da licença acompanhe o app. Em Ajustes → Sobre → Licenças aparecem os pacotes Dart (o Flutter lista sozinho), os 431 do motor Rust (`app/assets/licenses/rust.json`, gerado por `dev/gen_licenses.py`) e os do Android (`android.json`).
+- **Avisos de licença:** MIT, Apache e BSD pedem que o texto da licença acompanhe o app. Em Ajustes → Sobre → Licenças aparecem os pacotes Dart (o Flutter lista sozinho), os 447 do motor Rust (`app/assets/licenses/rust.json`, gerado por `dev/gen_licenses.py`) e os do Android (`android.json`).
 
 **Fontes dos temas.** Nunito, Space Grotesk, JetBrains Mono, Playfair Display e Bebas Neue são SIL Open Font License: podem ir dentro do app, com o texto da licença junto (já está).
 
@@ -120,7 +122,10 @@ O AutoMix do BKmasterplayer não faz o passo 3: o ponto de saída de A vem da es
 **Codecs.**
 - MP3: patentes vencidas desde 2017.
 - AAC-LC: patentes americanas vencidas; o jurídico da Red Hat confirmou em 2017 e o Fedora passou a distribuir. O `symphonia` só decodifica AAC-LC, não HE-AAC.
-- FLAC, Vorbis, Opus e ALAC (liberado pela Apple em Apache-2.0): livres.
+- FLAC, Vorbis, Opus e ALAC (liberado pela Apple em Apache-2.0): livres. O Opus (RFC 6716) tem licenças de patente gratuitas dos donos (Xiph.Org, Broadcom, Microsoft).
+- Monkey's Audio e WavPack: formatos abertos, com as bibliotecas de referência em BSD-3.
+- DSD: formato da Sony e da Philips para o SACD (1999). Patente vale 20 anos a partir do pedido, então as do lançamento já devem ter vencido; mas não achei confirmação oficial (busca de 22/10/2026). Players livres, como o MPD e o Kodi, leem DSF/DFF há anos. A conversão para PCM aqui é um filtro passa-baixas comum, escrito no projeto. Se um dia o app for vendido, entra na análise de patentes do item 3 das recomendações.
+- HE-AAC, WMA, AC-3 e DTS: o app não decodifica. Quem converte é o servidor da pessoa, ou o ffmpeg que ela instalou.
 
 **Outros.**
 - Time-stretch (Signalsmith, MIT) e detecção de batidas (Beat This!, pesquisa acadêmica, MIT): algoritmos publicados.

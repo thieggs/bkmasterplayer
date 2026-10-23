@@ -82,6 +82,8 @@ real.
   - Na invasão de teste, deu 401 sem login ou com cookie inventado, 415 para formulário de outro site e 429 na 9ª senha errada.
 - **Painel sem XSS:** título, artista, álbum e nome de trabalhador com `<script>`, `<img onerror>` e `<svg onload>` aparecem como texto; zero elementos injetados no DOM.
 - **Decodificador robusto:** ~623 mil arquivos corrompidos (mp3, flac, ogg, opus, m4a) sem pânico nem travamento; o planejador passou em milhares de análises aleatórias sem pânico nem `NaN`.
+- **Decodificadores novos (22/10/2026):** DSD (DSF/DFF), Monkey's Audio, WavPack, Opus (Ogg, WebM, MP4) e MP2 passaram por ~89 mil arquivos corrompidos em 4 min, sem pânico nem travamento.
+- **ffmpeg do sistema** (só no computador, para arquivo do aparelho que nenhum decodificador embutido lê): chamado sem shell, com o caminho depois de `file:`. Um nome começando com `-` não vira opção, e `concat:` ou `http:` não viram protocolo. No Windows abre sem janela de console.
 - **Android:** o provedor de capas exportado só aceita chave hexadecimal e abre só para leitura (sem path traversal); o Nearby grava arquivo com nome numérico; nada com `debuggable`.
 
 ## Checkup final (depois das correções e das funções novas)

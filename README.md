@@ -57,6 +57,12 @@ Three gaps this was built around:
   Styles: bass swap, filter, echo, blend or cut.
 - **Gapless** that is actually sample-exact, even across sample-rate changes.
   Crossfade, ReplayGain, 10-band equaliser.
+- **Every common format** — MP3, AAC, ALAC, FLAC, Vorbis, Opus (Ogg, WebM,
+  MKA, MP4), WAV/AIFF/CAF, MP2, Monkey's Audio, WavPack and DSD (DSF/DFF,
+  converted to 88.2 kHz PCM). Whatever none of these decoders reads (WMA,
+  Musepack, TTA, AC-3, DTS, HE-AAC…) the server converts on the fly, and on
+  the desktop the system's ffmpeg plays local files. Seeking lands on the
+  exact sample in every format.
 - **Streaming with cache** — seek instantly while still downloading; LRU cache;
   downloads for offline listening.
 
@@ -167,6 +173,7 @@ comandos em ordem estão em [`docs/COMPILAR.md`](docs/COMPILAR.md).
 
 - **Streaming com cache:** seek imediato mesmo baixando, cache LRU, downloads para ouvir offline.
 - **Gapless:** perfeito, amostra por amostra, mesmo com conversão de taxa. Crossfade, ReplayGain, equalizador de 10 bandas.
+- **Todo formato comum:** MP3, AAC, ALAC, FLAC, Vorbis, Opus (Ogg, WebM, MKA, MP4), WAV/AIFF/CAF, MP2, Monkey's Audio, WavPack e DSD (DSF/DFF, convertido para PCM de 88,2 kHz). O que nenhum desses decodificadores lê (WMA, Musepack, TTA, AC-3, DTS, HE-AAC…) o servidor converte na hora, e no computador o ffmpeg do sistema toca as músicas do aparelho. O seek cai na amostra exata em todos os formatos.
 - **AutoMix DJ:**
   - Análise por rede neural (Beat This!): batidas, compassos, BPM, tom Camelot, intro/outro.
   - Transição em compassos com time-stretch sem mudar o tom.
