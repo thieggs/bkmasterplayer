@@ -573,6 +573,12 @@ class TrackSource {
   /// de analisar no aparelho. Só quando o arquivo tocado é o mesmo analisado.
   final String? analysisUrl;
 
+  /// O mesmo áudio convertido pelo servidor (ex.: para MP3), tocado se o
+  /// motor não souber ler o formato do original.
+  final String? fallbackUrl;
+  final String? fallbackCacheKey;
+  final String? fallbackFormatHint;
+
   const TrackSource({
     required this.id,
     required this.url,
@@ -588,6 +594,9 @@ class TrackSource {
     this.coverKey,
     this.analysisKey,
     this.analysisUrl,
+    this.fallbackUrl,
+    this.fallbackCacheKey,
+    this.fallbackFormatHint,
   });
 
   @override
@@ -605,7 +614,10 @@ class TrackSource {
       coverUrl.hashCode ^
       coverKey.hashCode ^
       analysisKey.hashCode ^
-      analysisUrl.hashCode;
+      analysisUrl.hashCode ^
+      fallbackUrl.hashCode ^
+      fallbackCacheKey.hashCode ^
+      fallbackFormatHint.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -625,7 +637,10 @@ class TrackSource {
           coverUrl == other.coverUrl &&
           coverKey == other.coverKey &&
           analysisKey == other.analysisKey &&
-          analysisUrl == other.analysisUrl;
+          analysisUrl == other.analysisUrl &&
+          fallbackUrl == other.fallbackUrl &&
+          fallbackCacheKey == other.fallbackCacheKey &&
+          fallbackFormatHint == other.fallbackFormatHint;
 }
 
 @freezed

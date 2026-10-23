@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
 use player_engine::engine::analysis::{Analyzer, BeatModel, TrackAnalysis, ANALYSIS_VERSION};
+use player_engine::engine::decoder::is_unsupported;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -166,13 +167,18 @@ impl Ctx {
         }
     }
 
-    fn download(&self, id: &str) -> Result<Vec<u8>> {
+    /// O áudio da música, original ou (`format`) convertido pelo Navidrome.
+    fn download(&self, id: &str, format: Option<&str>) -> Result<Vec<u8>> {
         let mut last = anyhow!("?");
+        let mut path = format!("audio/{}", crate::navidrome::enc(id));
+        if let Some(f) = format {
+            path.push_str(&format!("?format={f}"));
+        }
         for attempt in 0..2 {
             if attempt > 0 {
                 std::thread::sleep(Duration::from_secs(5));
             }
-            let resp = match self.agent.get(&self.url(&format!("audio/{}", crate::navidrome::enc(id)))).header("Authorization", &self.auth()).call() {
+            let resp = match self.agent.get(&self.url(&path)).header("Authorization", &self.auth()).call() {
                 Ok(r) => r,
                 Err(e) => {
                     last = anyhow!("download: {e}");
@@ -219,13 +225,22 @@ impl Ctx {
                     }
                 }
             });
-            let r = self.download(&job.id).and_then(|data| {
-                let ext = (!job.suffix.is_empty()).then_some(job.suffix.as_str());
-                match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| analyzer.analyze_uncached(Box::new(Cursor::new(data)), ext))) {
-                    Ok(r) => r.context("análise"),
-                    Err(p) => Err(anyhow!("a análise travou: {}", panic_text(&p))),
+            let analyze = |data: Vec<u8>, ext: Option<&str>| match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                analyzer.analyze_uncached(Box::new(Cursor::new(data)), ext)
+            })) {
+                Ok(r) => r.context("análise"),
+                Err(p) => Err(anyhow!("a análise travou: {}", panic_text(&p))),
+            };
+            let ext = (!job.suffix.is_empty()).then_some(job.suffix.as_str());
+            let r = match self.download(&job.id, None).and_then(|data| analyze(data, ext)) {
+                // Formato que o motor não lê: analisa a conversão para MP3, a
+                // mesma que o app toca nesse caso.
+                Err(e) if is_unsupported(&e) && job.suffix != "mp3" => {
+                    eprintln!("· {} — {}: {e:#}; analisando a conversão", job.artist, job.title);
+                    self.download(&job.id, Some("mp3")).and_then(|data| analyze(data, Some("mp3")))
                 }
-            });
+                r => r,
+            };
             done.store(true, Ordering::Relaxed);
             r
         });

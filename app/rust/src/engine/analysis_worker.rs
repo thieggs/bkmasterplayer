@@ -15,14 +15,15 @@ use std::time::{Duration, Instant};
 use parking_lot::{Condvar, Mutex};
 
 use super::analysis::{Analyzer, TrackAnalysis, ANALYSIS_VERSION};
+use super::{open_track, AudioSource};
 use crate::stream::DownloadManager;
 
 #[derive(Clone, Debug)]
 pub struct AnalysisJob {
     pub key: String,
-    pub url: String,
-    pub cache_key: Option<String>,
-    pub ext: Option<String>,
+    pub source: AudioSource,
+    /// Conversão do servidor, se o original não abrir (ver `open_track`).
+    pub fallback: Option<AudioSource>,
     /// Análise pronta no servidor (tentada antes da local).
     pub remote: Option<String>,
     /// 0 = urgente (atual/próxima), maior = menos urgente.
@@ -327,9 +328,7 @@ impl AnalysisWorker {
             // Um pânico numa música (arquivo estranho, bug) não pode parar as
             // análises da sessão inteira: vira falha só dessa música.
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                downloads
-                    .open(job.cache_key.as_deref(), &job.url, cancel)
-                    .and_then(|opened| self.analyzer.analyze(&job.key, opened.source, job.ext.as_deref()))
+                self.analyzer.analyze(&job.key, || open_track(&downloads, &job.source, job.fallback.as_ref(), &cancel, |_| {}))
             }))
             .unwrap_or_else(|_| Err(anyhow::anyhow!("pânico na análise")));
             release_free_memory();

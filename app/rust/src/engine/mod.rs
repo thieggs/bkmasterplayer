@@ -16,7 +16,7 @@ mod bluetooth;
 #[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
 mod desktop;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
@@ -69,6 +69,67 @@ pub struct TrackRequest {
     pub analysis_key: Option<String>,
     /// Análise pronta no servidor (tentada antes da local).
     pub analysis_url: Option<String>,
+    /// O mesmo áudio convertido pelo servidor para um formato que o motor lê:
+    /// tocado quando o original não abre (ver [`open_track`]).
+    pub fallback: Option<AudioSource>,
+}
+
+/// Onde está um áudio e como ele se chama no cache.
+#[derive(Clone, Debug, Default)]
+pub struct AudioSource {
+    pub url: String,
+    pub cache_key: Option<String>,
+    pub format_hint: Option<String>,
+}
+
+impl TrackRequest {
+    fn source(&self) -> AudioSource {
+        AudioSource { url: self.url.clone(), cache_key: self.cache_key.clone(), format_hint: self.format_hint.clone() }
+    }
+}
+
+/// Chaves (do cache) de originais que o motor já viu que não sabe ler, nesta
+/// sessão: o seek, a repetição e a análise vão direto para a conversão do
+/// servidor, sem baixar e testar o original de novo.
+fn undecodable() -> &'static Mutex<HashSet<String>> {
+    static SET: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    SET.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn cache_key_of(src: &AudioSource) -> String {
+    src.cache_key.clone().unwrap_or_else(|| format!("url:{}", src.url))
+}
+
+/// Abre uma faixa para decodificar. Se o motor não lê o formato do original
+/// (erro [`decoder::Unsupported`]) e há `fallback`, toca a conversão do
+/// servidor. `on_download` recebe o download que acabou valendo.
+pub(crate) fn open_track(
+    downloads: &DownloadManager,
+    primary: &AudioSource,
+    fallback: Option<&AudioSource>,
+    cancel: &Arc<AtomicBool>,
+    mut on_download: impl FnMut(Option<Arc<Download>>),
+) -> Result<Decoder> {
+    let key = cache_key_of(primary);
+    let skip_primary = fallback.is_some() && undecodable().lock().contains(&key);
+    if !skip_primary {
+        let opened = downloads.open(primary.cache_key.as_deref(), &primary.url, cancel.clone())?;
+        on_download(opened.download.clone());
+        let r = Decoder::open_file(opened.source, primary.format_hint.as_deref(), opened.content_type.as_deref(), opened.path.as_deref());
+        match (r, fallback) {
+            (Err(e), Some(_)) if decoder::is_unsupported(&e) => {
+                log::info!("{key}: {e:#}; tocando a conversão do servidor");
+                undecodable().lock().insert(key.clone());
+                // O original não serve para tocar: não precisa terminar de baixar.
+                downloads.abandon(&key);
+            }
+            (r, _) => return r,
+        }
+    }
+    let fb = fallback.ok_or_else(|| anyhow!("sem conversão do servidor"))?;
+    let opened = downloads.open(fb.cache_key.as_deref(), &fb.url, cancel.clone())?;
+    on_download(opened.download.clone());
+    Decoder::open_file(opened.source, fb.format_hint.as_deref(), opened.content_type.as_deref(), opened.path.as_deref())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -356,7 +417,7 @@ impl Inner {
         let dl_slot: Arc<Mutex<Option<Arc<Download>>>> = Arc::new(Mutex::new(None));
         let slot = dl_slot.clone();
         let downloads = self.downloads.clone();
-        let (key, url, ext) = (req.cache_key.clone(), req.url.clone(), req.format_hint.clone());
+        let (primary, fallback) = (req.source(), req.fallback.clone());
         let params = ProducerParams {
             device_rate: rate,
             handoff_in: handoff,
@@ -366,9 +427,7 @@ impl Inner {
             tempo,
         };
         let src = spawn_deck(token, gain, params, move |cancel| {
-            let opened = downloads.open(key.as_deref(), &url, cancel)?;
-            *slot.lock() = opened.download.clone();
-            Decoder::open(opened.source, ext.as_deref(), opened.content_type.as_deref())
+            open_track(&downloads, &primary, fallback.as_ref(), &cancel, |dl| *slot.lock() = dl)
         });
         // Posição provisória até a produtora fazer o seek exato (a UI e o
         // planejador do AutoMix já veem a posição certa logo após um seek).
@@ -851,8 +910,13 @@ impl Engine {
     }
 
     pub fn prefetch(&self, req: &TrackRequest) {
-        if let Some(key) = &req.cache_key {
-            self.inner.downloads.prefetch(key, &req.url);
+        // Original que já se sabe que não abre: adianta a conversão.
+        let src = match &req.fallback {
+            Some(fb) if undecodable().lock().contains(&cache_key_of(&req.source())) => fb.clone(),
+            _ => req.source(),
+        };
+        if let Some(key) = &src.cache_key {
+            self.inner.downloads.prefetch(key, &src.url);
         }
     }
 
@@ -1173,9 +1237,8 @@ fn on_track_started(inner: &Arc<Inner>, token: u64, req: &TrackRequest) {
 fn analysis_job(req: &TrackRequest, priority: u8) -> Option<AnalysisJob> {
     Some(AnalysisJob {
         key: req.analysis_key.clone()?,
-        url: req.url.clone(),
-        cache_key: req.cache_key.clone(),
-        ext: req.format_hint.clone(),
+        source: req.source(),
+        fallback: req.fallback.clone(),
         remote: req.analysis_url.clone(),
         priority,
     })
@@ -1224,4 +1287,48 @@ fn update_desktop_playback(inner: &Arc<Inner>) {
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     let _ = inner;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn wav(path: &std::path::Path) {
+        let spec = hound::WavSpec { channels: 1, sample_rate: 8000, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
+        let mut w = hound::WavWriter::create(path, spec).unwrap();
+        for i in 0..800 {
+            w.write_sample(((i as f32 * 0.1).sin() * 9000.0) as i16).unwrap();
+        }
+        w.finalize().unwrap();
+    }
+
+    #[test]
+    fn unreadable_original_plays_the_server_conversion() {
+        let dir = std::env::temp_dir().join(format!("bk-open-track-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let downloads = DownloadManager::new(dir.join("cache"), u64::MAX).unwrap();
+        // "Original" num formato que nenhum decodificador lê (nem o ffmpeg).
+        let bad = dir.join("musica.xyz");
+        std::fs::write(&bad, b"TTA1 isto nao e audio de verdade").unwrap();
+        let good = dir.join("convertida.wav");
+        wav(&good);
+        let primary = AudioSource { url: bad.to_string_lossy().into(), cache_key: Some("conta:song:1".into()), format_hint: Some("xyz".into()) };
+        let fallback = AudioSource { url: good.to_string_lossy().into(), cache_key: None, format_hint: Some("wav".into()) };
+        let cancel = Arc::new(AtomicBool::new(false));
+
+        // Sem conversão: o erro é de formato não suportado.
+        let e = open_track(&downloads, &primary, None, &cancel, |_| {}).err().unwrap();
+        assert!(decoder::is_unsupported(&e), "{e:#}");
+        // Com conversão: toca ela, e lembra que o original não abre.
+        let d = open_track(&downloads, &primary, Some(&fallback), &cancel, |_| {}).unwrap();
+        assert_eq!((d.sample_rate, d.channels), (8000, 1));
+        assert!(undecodable().lock().contains("conta:song:1"));
+        // Da próxima vez nem abre o original (que agora nem existe mais).
+        std::fs::remove_file(&bad).unwrap();
+        assert!(open_track(&downloads, &primary, Some(&fallback), &cancel, |_| {}).is_ok());
+        // Erro que não é de formato (arquivo sumiu) não cai na conversão.
+        let gone = AudioSource { url: dir.join("nao-existe.flac").to_string_lossy().into(), ..Default::default() };
+        assert!(open_track(&downloads, &gone, Some(&fallback), &cancel, |_| {}).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

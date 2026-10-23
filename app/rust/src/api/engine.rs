@@ -51,6 +51,11 @@ pub struct TrackSource {
     /// Análise pronta no servidor (BK Analyzer), já com o login: tentada antes
     /// de analisar no aparelho. Só quando o arquivo tocado é o mesmo analisado.
     pub analysis_url: Option<String>,
+    /// O mesmo áudio convertido pelo servidor (ex.: para MP3), tocado se o
+    /// motor não souber ler o formato do original.
+    pub fallback_url: Option<String>,
+    pub fallback_cache_key: Option<String>,
+    pub fallback_format_hint: Option<String>,
 }
 
 impl From<TrackSource> for engine::TrackRequest {
@@ -70,6 +75,11 @@ impl From<TrackSource> for engine::TrackRequest {
             cover_key: t.cover_key,
             analysis_key: t.analysis_key,
             analysis_url: t.analysis_url,
+            fallback: t.fallback_url.map(|url| engine::AudioSource {
+                url,
+                cache_key: t.fallback_cache_key,
+                format_hint: t.fallback_format_hint,
+            }),
         }
     }
 }

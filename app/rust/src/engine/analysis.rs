@@ -430,18 +430,23 @@ impl Analyzer {
         Self::write_cache(self.cache_path_for(key, "server"), a);
     }
 
-    /// Analisa (ou devolve do cache). Bloqueia: rode fora da thread de áudio/UI.
-    pub fn analyze(&self, key: &str, source: Box<dyn MediaSource>, ext: Option<&str>) -> Result<TrackAnalysis> {
+    /// Analisa (ou devolve do cache; `open` só abre a música se precisar).
+    /// Bloqueia: rode fora da thread de áudio/UI.
+    pub fn analyze(&self, key: &str, open: impl FnOnce() -> Result<Decoder>) -> Result<TrackAnalysis> {
         if let Some(a) = self.cached(key) {
             return Ok(a);
         }
-        let a = self.analyze_uncached(source, ext)?;
+        let a = self.analyze_decoder(open()?)?;
         self.store(key, &a);
         Ok(a)
     }
 
     pub fn analyze_uncached(&self, source: Box<dyn MediaSource>, ext: Option<&str>) -> Result<TrackAnalysis> {
-        let audio = decode_all(source, ext)?;
+        self.analyze_decoder(Decoder::open(source, ext, None)?)
+    }
+
+    pub fn analyze_decoder(&self, dec: Decoder) -> Result<TrackAnalysis> {
+        let audio = decode_decoder(dec)?;
         let model = self.model();
         let mut guard = self.tracker.lock();
         if guard.as_ref().is_none_or(|(m, _)| *m != model) {
@@ -489,7 +494,10 @@ pub struct DecodedAudio {
 const RESERVE_MAX_SECS: usize = 30 * 60;
 
 pub fn decode_all(source: Box<dyn MediaSource>, ext: Option<&str>) -> Result<DecodedAudio> {
-    let mut dec = Decoder::open(source, ext, None)?;
+    decode_decoder(Decoder::open(source, ext, None)?)
+}
+
+pub fn decode_decoder(mut dec: Decoder) -> Result<DecodedAudio> {
     let rate = dec.sample_rate;
     let reserve = dec.total_frames.map_or(0, |n| n as usize).min(rate as usize * RESERVE_MAX_SECS);
     let mut buf = Vec::new();

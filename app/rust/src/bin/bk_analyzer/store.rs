@@ -91,10 +91,12 @@ pub struct Song {
     pub version: u32,
 }
 
-/// Formatos que o motor do app não decodifica: o player recebe convertido
+/// Formatos que nenhum decodificador do motor lê: o player recebe convertido
 /// para MP3 pelo servidor (ver `_undecodable` em player_controller.dart), e a
-/// análise tem de ser desse mesmo arquivo.
-const UNDECODABLE: &[&str] = &["opus", "wma", "ape", "wv", "dsf", "dff", "mpc", "tta", "ac3", "dts"];
+/// análise tem de ser desse mesmo arquivo. Para os outros, se o original não
+/// abrir, os dois (app e trabalhador) passam para a mesma conversão.
+const UNDECODABLE: &[&str] =
+    &["wma", "asf", "mpc", "mp+", "mpp", "tta", "ac3", "eac3", "dts", "amr", "awb", "spx", "tak", "ofr", "ofs", "shn", "ra", "rm"];
 
 impl Song {
     /// Conversão pedida ao Navidrome (None = arquivo original).

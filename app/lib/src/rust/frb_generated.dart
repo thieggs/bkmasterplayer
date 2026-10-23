@@ -2169,8 +2169,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TrackSource dco_decode_track_source(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 14)
-      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
+    if (arr.length != 17)
+      throw Exception('unexpected arr length: expect 17 but see ${arr.length}');
     return TrackSource(
       id: dco_decode_String(arr[0]),
       url: dco_decode_String(arr[1]),
@@ -2186,6 +2186,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       coverKey: dco_decode_opt_String(arr[11]),
       analysisKey: dco_decode_opt_String(arr[12]),
       analysisUrl: dco_decode_opt_String(arr[13]),
+      fallbackUrl: dco_decode_opt_String(arr[14]),
+      fallbackCacheKey: dco_decode_opt_String(arr[15]),
+      fallbackFormatHint: dco_decode_opt_String(arr[16]),
     );
   }
 
@@ -2946,6 +2949,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_coverKey = sse_decode_opt_String(deserializer);
     var var_analysisKey = sse_decode_opt_String(deserializer);
     var var_analysisUrl = sse_decode_opt_String(deserializer);
+    var var_fallbackUrl = sse_decode_opt_String(deserializer);
+    var var_fallbackCacheKey = sse_decode_opt_String(deserializer);
+    var var_fallbackFormatHint = sse_decode_opt_String(deserializer);
     return TrackSource(
       id: var_id,
       url: var_url,
@@ -2961,6 +2967,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       coverKey: var_coverKey,
       analysisKey: var_analysisKey,
       analysisUrl: var_analysisUrl,
+      fallbackUrl: var_fallbackUrl,
+      fallbackCacheKey: var_fallbackCacheKey,
+      fallbackFormatHint: var_fallbackFormatHint,
     );
   }
 
@@ -3649,6 +3658,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.coverKey, serializer);
     sse_encode_opt_String(self.analysisKey, serializer);
     sse_encode_opt_String(self.analysisUrl, serializer);
+    sse_encode_opt_String(self.fallbackUrl, serializer);
+    sse_encode_opt_String(self.fallbackCacheKey, serializer);
+    sse_encode_opt_String(self.fallbackFormatHint, serializer);
   }
 
   @protected

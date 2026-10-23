@@ -34,8 +34,8 @@ final cacheSizeProvider = FutureProvider.autoDispose<int>((ref) => engine.player
 
 bool get _isDesktop => Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
-/// Qualidades do streaming (kbps, MP3; 0 = original). Só MP3: é o que o motor
-/// decodifica (Opus, por exemplo, não).
+/// Qualidades do streaming (kbps, MP3; 0 = original). Só MP3: toda instalação
+/// do Navidrome converte para ele.
 const _qualities = [0, 320, 256, 192, 128];
 const _mobileQualities = [0, 320, 256, 192, 128, 96];
 

@@ -144,7 +144,7 @@ impl App {
                 }
                 json_resp(200, &json!({})).with_header(hdr("Set-Cookie", &format!("{COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict")))
             }
-            (_, p) if p.starts_with("/api/worker/") => self.worker_api(&mut req, &method, &p["/api/worker/".len()..]),
+            (_, p) if p.starts_with("/api/worker/") => self.worker_api(&mut req, &method, &p["/api/worker/".len()..], &q),
             (Method::Get, p) if p.starts_with("/api/analysis/") => self.analysis(&req, &pct_decode(&p["/api/analysis/".len()..]), &q),
             (Method::Get, "/api/summary") if self.player_ok(&req, &q) => {
                 let s = self.store.status();
@@ -386,7 +386,7 @@ impl App {
 
     // ---------- trabalhadores ----------
 
-    fn worker_api(&self, req: &mut Request, method: &Method, rest: &str) -> Resp {
+    fn worker_api(&self, req: &mut Request, method: &Method, rest: &str, q: &HashMap<String, String>) -> Resp {
         let expected = format!("Bearer {}", self.store.worker_token());
         if !header(req, "Authorization").is_some_and(|h| const_eq(h.as_bytes(), expected.as_bytes())) {
             return err(401, "token de trabalhador inválido");
@@ -424,7 +424,10 @@ impl App {
             (Method::Get, "audio") => {
                 let Some(song) = self.store.song(&id) else { return err(404, "música fora da biblioteca") };
                 let Some(login) = self.store.config().navidrome else { return err(503, "sem Navidrome configurado") };
-                match Navidrome::new(login).stream(&id, song.stream_format()) {
+                // `format=mp3`: o trabalhador não conseguiu ler o original e
+                // analisa a conversão, a mesma que o app toca nesse caso.
+                let format = if q.get("format").is_some_and(|f| f == "mp3") { Some("mp3") } else { song.stream_format() };
+                match Navidrome::new(login).stream(&id, format) {
                     Ok((len, ctype, body)) => {
                         let ctype = if ctype.is_ascii() && !ctype.contains(['\r', '\n']) { ctype.as_str() } else { "application/octet-stream" };
                         Response::new(StatusCode(200), vec![hdr("Content-Type", ctype)], body, len.map(|l| l as usize), None)

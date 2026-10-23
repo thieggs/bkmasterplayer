@@ -350,6 +350,9 @@ pub struct OpenedSource {
     pub source: Box<dyn MediaSource>,
     pub download: Option<Arc<Download>>,
     pub content_type: Option<String>,
+    /// O arquivo inteiro no disco (local ou já no cache), para quem lê por
+    /// caminho (o ffmpeg do sistema).
+    pub path: Option<PathBuf>,
 }
 
 pub struct DownloadManager {
@@ -470,7 +473,7 @@ impl DownloadManager {
     pub fn open(&self, key: Option<&str>, url: &str, cancel: Arc<AtomicBool>) -> Result<OpenedSource> {
         if let Some(path) = Self::is_local(url) {
             let f = File::open(&path).map_err(|e| anyhow!("abrir {path:?}: {e}"))?;
-            return Ok(OpenedSource { source: Box::new(f), download: None, content_type: None });
+            return Ok(OpenedSource { source: Box::new(f), download: None, content_type: None, path: Some(path) });
         }
         let key = key.map(str::to_string).unwrap_or_else(|| format!("url:{url}"));
         match self.ensure_download(&key, url) {
@@ -478,7 +481,7 @@ impl DownloadManager {
                 let (_, fin) = self.paths(&key);
                 let f = File::open(&fin)?;
                 let _ = f.set_modified(SystemTime::now());
-                Ok(OpenedSource { source: Box::new(f), download: None, content_type: None })
+                Ok(OpenedSource { source: Box::new(f), download: None, content_type: None, path: Some(fin) })
             }
             Some(dl) => {
                 // Pode ter acabado de completar e renomear: tenta o .part e cai pro final.
@@ -488,6 +491,7 @@ impl DownloadManager {
                     source: Box::new(HttpSource { dl: dl.clone(), file, pos: 0, cancel }),
                     download: Some(dl),
                     content_type,
+                    path: None,
                 })
             }
         }
@@ -503,6 +507,14 @@ impl DownloadManager {
     pub fn cancel(&self, key: &str) {
         if let Some(dl) = self.active.lock().remove(key) {
             dl.cancel();
+        }
+    }
+
+    /// Desiste de um download que não serve para tocar (formato que o motor
+    /// não lê), a não ser que ele tenha sido pedido para ouvir offline.
+    pub fn abandon(&self, key: &str) {
+        if !self.pinned.lock().contains(key) {
+            self.cancel(key);
         }
     }
 

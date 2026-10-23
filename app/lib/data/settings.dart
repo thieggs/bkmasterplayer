@@ -360,7 +360,7 @@ class AppSettings {
       outputDeviceId: j['outputDeviceId'] as String?,
       cacheLimitMb: pick('cacheLimitMb', d.cacheLimitMb),
       downloadParallel: pick('downloadParallel', d.downloadParallel).clamp(1, 8),
-      // Só MP3: o motor não decodifica Opus (versões antigas ofereciam Opus).
+      // Só MP3 (versões antigas ofereciam Opus, quando o motor ainda não o lia).
       transcodeFormat: j['transcodeFormat'] is String ? 'mp3' : null,
       maxBitRate: pick('maxBitRate', d.maxBitRate),
       // Ajuste salvo antes da qualidade de download existir: "a mesma do Wi-Fi"

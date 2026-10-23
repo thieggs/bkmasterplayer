@@ -158,8 +158,12 @@ class PlayerState {
       );
 }
 
-/// Formatos que o motor ainda não decodifica.
-const _undecodable = {'opus', 'wma', 'ape', 'wv', 'dsf', 'dff', 'mpc', 'tta', 'ac3', 'dts'};
+/// Formatos que nenhum decodificador do motor lê, em nenhum aparelho: o
+/// servidor já entrega convertidos (MP3). Os outros vão como estão, e se o
+/// motor não abrir o arquivo (ex.: HE-AAC num .m4a), ele mesmo passa para a
+/// conversão (`fallbackUrl`). Tem de bater com `UNDECODABLE` do BK Analyzer
+/// (rust/src/bin/bk_analyzer/store.rs), que analisa o mesmo arquivo tocado.
+const _undecodable = {'wma', 'asf', 'mpc', 'mp+', 'mpp', 'tta', 'ac3', 'eac3', 'dts', 'amr', 'awb', 'spx', 'tak', 'ofr', 'ofs', 'shn', 'ra', 'rm'};
 
 class PlayerController extends Notifier<PlayerState> {
   StreamSubscription<engine.PlayerEvent>? _sub;
@@ -863,10 +867,10 @@ class PlayerController extends Notifier<PlayerState> {
     final s = ref.read(settingsProvider);
     // Qualidade da cópia baixada (0 = original); null = não baixada.
     final dl = offline ? downloadBitRate : ref.read(offlineProvider.notifier).bitRateFor(song.id);
-    // Formato que o motor não decodifica (Opus etc.): o servidor converte, até no download.
+    // Formato que o motor não decodifica (WMA etc.): o servidor converte, até no download.
     final convert = _undecodable.contains(song.suffix?.toLowerCase());
     // Nos dados móveis, a qualidade escolhida para eles. Conversão sempre para
-    // MP3: é o que o motor decodifica (Opus, por exemplo, não).
+    // MP3: toda instalação do Navidrome converte para ele.
     final rate = streamBitRate(s, metered: ref.read(meteredProvider));
     final want = dl ?? rate; // kbps pedido ao servidor; 0 = original
     final format = convert || want > 0 ? 'mp3' : null;
@@ -878,6 +882,9 @@ class PlayerController extends Notifier<PlayerState> {
     final server = s.analysisServer;
     final sameFile = bitrate == null && (format == null || (convert && format == 'mp3'));
     final analysisUrl = server != null && sameFile ? p.analyzerUri(server, '/api/analysis/${Uri.encodeComponent(song.id)}')?.toString() : null;
+    // Original num formato que o motor acabe não abrindo (um codec dentro do
+    // contêiner que ele não conhece): toca a conversão para MP3.
+    final fallback = format == null;
     return engine.TrackSource(
       id: uid ?? song.id,
       url: p.streamUri(song, format: format, maxBitRate: bitrate).toString(),
@@ -893,6 +900,9 @@ class PlayerController extends Notifier<PlayerState> {
       coverKey: p.coverCacheKey(song.coverArt, size: 600),
       analysisKey: '${p.accountId}:song:${song.id}',
       analysisUrl: analysisUrl,
+      fallbackUrl: fallback ? p.streamUri(song, format: 'mp3', maxBitRate: bitrate).toString() : null,
+      fallbackCacheKey: fallback ? p.streamCacheKey(song, format: 'mp3', maxBitRate: bitrate) : null,
+      fallbackFormatHint: fallback ? 'mp3' : null,
     );
   }
 
