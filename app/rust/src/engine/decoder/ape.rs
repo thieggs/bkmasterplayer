@@ -2,14 +2,34 @@
 //! diante). Cada quadro do APE (alguns segundos de áudio) decodifica sozinho:
 //! o seek vai direto ao quadro certo pela tabela do cabeçalho.
 
+use std::io::{self, Read, Seek, SeekFrom};
+
 use anyhow::Result;
 use ape_decoder::{ApeDecoder, ApeError};
 use symphonia::core::io::MediaSource;
 
-use super::{frame_at, unsupported, Backend, Decoder};
+use super::{frame_at, read_up_to, unsupported, Backend, Decoder};
+
+/// Leitor que só devolve menos bytes que o pedido no fim do arquivo. O
+/// `ape-decoder` lê um quadro inteiro com um `read` só, e a fonte do
+/// streaming entrega o que já chegou: com o resto do quadro ainda vindo, a
+/// música falhava com "short read".
+pub(super) struct FullReads(pub Box<dyn MediaSource>);
+
+impl Read for FullReads {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        read_up_to(&mut self.0, buf)
+    }
+}
+
+impl Seek for FullReads {
+    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+        self.0.seek(pos)
+    }
+}
 
 struct Ape {
-    dec: ApeDecoder<Box<dyn MediaSource>>,
+    dec: ApeDecoder<FullReads>,
     /// Próximo quadro do APE.
     frame: u32,
     frames: u32,
@@ -77,7 +97,7 @@ fn ape_error(e: ApeError) -> anyhow::Error {
 }
 
 pub fn open(src: Box<dyn MediaSource>) -> Result<Decoder> {
-    let dec = ApeDecoder::new(src).map_err(ape_error)?;
+    let dec = ApeDecoder::new(FullReads(src)).map_err(ape_error)?;
     let info = dec.info();
     let sample = match (info.bits_per_sample, info.is_floating_point) {
         (8, _) => Sample::U8,

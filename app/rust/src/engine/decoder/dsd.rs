@@ -310,7 +310,7 @@ pub fn open_dsf(mut src: Box<dyn MediaSource>) -> Result<Decoder> {
     if !(1..=8).contains(&channels) || !(1..=1 << 20).contains(&block) || !matches!(bits, 1 | 8) {
         return Err(bad("formato fora do padrão"));
     }
-    let data_pos = fmt_pos + fmt_size;
+    let data_pos = fmt_pos.checked_add(fmt_size).ok_or_else(|| bad("chunk fmt grande demais"))?;
     src.seek(SeekFrom::Start(data_pos))?;
     let mut data = [0u8; 12];
     src.read_exact(&mut data)?;
@@ -328,7 +328,7 @@ pub fn open_dsf(mut src: Box<dyn MediaSource>) -> Result<Decoder> {
         channels,
         rate: out_rate,
         total,
-        data_start: data_pos + 12,
+        data_start: data_pos.saturating_add(12),
         block,
         lsb_first: (bits == 1).then(reverse_table),
         bytes_per_channel,
@@ -351,7 +351,8 @@ impl Backend for Dsf {
             let block = self.block as u64;
             let (g, off) = (self.next / block, (self.next % block) as usize);
             let avail = (block - off as u64).min(self.bytes_per_channel - self.next) as usize;
-            self.src.seek(SeekFrom::Start(self.data_start + g * block * self.channels as u64))?;
+            let at = g.saturating_mul(block * self.channels as u64).saturating_add(self.data_start);
+            self.src.seek(SeekFrom::Start(at))?;
             let n = read_up_to(&mut self.src, &mut self.group)?;
             if n == 0 {
                 break;
@@ -427,7 +428,7 @@ pub(crate) fn dff_layout(src: &mut (impl Read + Seek), all: bool) -> Result<DffL
     if &head[0..4] != b"FRM8" || &head[12..16] != b"DSD " {
         return Err(bad("sem cabeçalho FRM8"));
     }
-    let end = 12 + be64(&head, 4);
+    let end = be64(&head, 4).saturating_add(12);
     let mut layout = DffLayout::default();
     let mut pos = 16u64;
     while pos + 12 <= end {
@@ -551,7 +552,7 @@ impl Backend for Dff {
     fn next_chunk(&mut self, out: &mut Vec<f32>) -> Result<Option<usize>> {
         while self.next < self.bytes_per_channel {
             let want = (DFF_CHUNK as u64).min(self.bytes_per_channel - self.next) as usize * self.channels;
-            self.src.seek(SeekFrom::Start(self.data_start + self.next * self.channels as u64))?;
+            self.src.seek(SeekFrom::Start(self.next.saturating_mul(self.channels as u64).saturating_add(self.data_start)))?;
             let n = read_up_to(&mut self.src, &mut self.buf[..want])? / self.channels * self.channels;
             if n == 0 {
                 break;
