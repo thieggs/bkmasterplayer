@@ -3,6 +3,40 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.4.0
+
+### Todos os formatos de música
+
+- **Opus agora toca**, em `.opus`, `.webm` (o áudio do YouTube), `.mka` e
+  `.mp4`. Ele é decodificado no próprio app, com a biblioteca de referência
+  (libopus). Antes, música em Opus dava "formato não suportado".
+- **Formatos de audiófilo, sem perda nenhuma:**
+  - DSD (`.dsf` e `.dff`, o formato do SACD), convertido para PCM de 88,2 kHz;
+  - Monkey's Audio (`.ape`);
+  - WavPack (`.wv`).
+  E MP2/MP1.
+- **Formatos que o app não lê** (WMA, Musepack, TTA, AC-3, DTS, HE-AAC, AAC
+  5.1…) o Navidrome converte na hora. Agora isso também acontece sozinho
+  quando o problema só aparece ao abrir o arquivo, como um `.m4a` com HE-AAC:
+  o app troca para a conversão em vez de dar erro.
+- **No computador**, músicas do aparelho nesses formatos tocam pelo ffmpeg do
+  sistema, se houver um. O pacote `.deb` já recomenda instalar.
+- **Músicas do aparelho:** a biblioteca local passa a achar esses formatos e
+  a ler as tags e a duração deles.
+
+### Seek no ponto exato
+
+- **Pular para um ponto da música cai exatamente lá**, em todos os formatos.
+  Antes, o Vorbis caía 23 ms adiantado e o Opus em WebM 5 ms, e o MP3 e o AAC
+  davam um estalinho logo depois do pulo. As transições do AutoMix que
+  começam no meio da música também ficam alinhadas na batida.
+
+### BK Analyzer
+
+- **Analisa os formatos novos.** Se o original não abrir, ele analisa a mesma
+  conversão que o app toca nesse caso. Para valer, atualize o coordenador e os
+  trabalhadores.
+
 ## v1.3.0
 
 ### Atualização automática
