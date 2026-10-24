@@ -1331,4 +1331,61 @@ mod tests {
         assert!(open_track(&downloads, &gone, Some(&fallback), &cancel, |_| {}).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// Servidor que responde 200 com `body` a tudo, como o Navidrome faz com erro.
+    fn serve_body(content_type: &'static str, body: &'static str) -> String {
+        use std::io::{BufRead, BufReader, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                let mut line = String::new();
+                while reader.read_line(&mut line).unwrap_or(0) > 0 && line != "\r\n" {
+                    line.clear();
+                }
+                let mut s = stream;
+                let head = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len()
+                );
+                let _ = s.write_all(head.as_bytes());
+                let _ = s.write_all(body.as_bytes());
+            }
+        });
+        format!("http://{addr}/rest/stream")
+    }
+
+    /// Música trocada no servidor (o MP3 virou FLAC com outro id): o id velho
+    /// responde 200 com o erro em JSON. Era guardado no cache como se fosse a
+    /// música e virava "formato não reconhecido"; o app precisa do texto do
+    /// servidor para procurar a versão nova.
+    #[test]
+    fn server_error_body_is_an_error_not_audio() {
+        let dir = std::env::temp_dir().join(format!("bk-server-error-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let downloads = DownloadManager::new(dir.join("cache"), u64::MAX).unwrap();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let json = serve_body(
+            "application/json",
+            r#"{"subsonic-response":{"status":"failed","version":"1.16.1","error":{"code":0,"message":"Internal Server Error: open /music/a/01 - Big Mode.mp3: no such file or directory"}}}"#,
+        );
+        let src = AudioSource { url: json.clone(), cache_key: Some("conta:song:velho".into()), format_hint: Some("mp3".into()) };
+        let conv = AudioSource { url: format!("{json}?format=mp3"), cache_key: Some("conta:song:velho:mp3".into()), format_hint: Some("mp3".into()) };
+        let e = format!("{:#}", open_track(&downloads, &src, Some(&conv), &cancel, |_| {}).err().unwrap());
+        assert!(e.contains("servidor: Internal Server Error: open /music/a/01 - Big Mode.mp3: no such file"), "{e}");
+        assert!(!downloads.is_cached("conta:song:velho"), "o erro não pode virar música no cache");
+
+        // O que o Navidrome 0.63 manda de verdade (o app não pede f=json no stream).
+        let xml = serve_body(
+            "application/xml",
+            r#"<subsonic-response xmlns="http://subsonic.org/restapi" status="failed" version="1.16.1" type="navidrome" serverVersion="0.63.2 (be10f89c)" openSubsonic="true"><error code="0" message="Internal Server Error: open /music/Mandragora - BIG MODE/01 - Big Mode.mp3: no such file or directory"></error></subsonic-response>"#,
+        );
+        let src = AudioSource { url: xml.clone(), cache_key: Some("conta:song:xml".into()), format_hint: Some("mp3".into()) };
+        let conv = AudioSource { url: format!("{xml}?format=mp3"), cache_key: Some("conta:song:xml:mp3".into()), format_hint: Some("mp3".into()) };
+        let e = format!("{:#}", open_track(&downloads, &src, Some(&conv), &cancel, |_| {}).err().unwrap());
+        assert!(e.contains("servidor: Internal Server Error: open /music/Mandragora - BIG MODE/01 - Big Mode.mp3"), "{e}");
+        assert!(!downloads.is_cached("conta:song:xml") && !downloads.is_cached("conta:song:xml:mp3"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

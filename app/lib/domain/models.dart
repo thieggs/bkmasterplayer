@@ -58,6 +58,7 @@ class Song {
     this.musicBrainzId,
     this.comment,
     this.explicitStatus,
+    this.isrc = const [],
     this.path,
   });
 
@@ -92,6 +93,10 @@ class Song {
   final String? comment;
   final String? explicitStatus;
 
+  /// Código da gravação: a mesma em outro arquivo (a versão trocada por uma
+  /// melhor) tem o mesmo.
+  final List<String> isrc;
+
   /// Arquivo no aparelho (biblioteca local ou música recebida numa Jam).
   final String? path;
 
@@ -123,6 +128,7 @@ class Song {
         if (starred != null) 'starred': starred!.toIso8601String(),
         if (bpm != null) 'bpm': bpm,
         if (path != null) 'path': path,
+        if (isrc.isNotEmpty) 'isrc': isrc,
         if (replayGain != null)
           'rg': [replayGain!.trackGain, replayGain!.albumGain, replayGain!.trackPeak, replayGain!.albumPeak, replayGain!.baseGain, replayGain!.fallbackGain],
       };
@@ -152,6 +158,7 @@ class Song {
       starred: j['starred'] is String ? DateTime.tryParse(j['starred'] as String) : null,
       bpm: j['bpm'] as int?,
       path: j['path'] as String?,
+      isrc: [for (final c in (j['isrc'] as List?) ?? const []) if (c is String) c],
       replayGain: rg == null
           ? null
           : ReplayGain(trackGain: d(rg, 0), albumGain: d(rg, 1), trackPeak: d(rg, 2), albumPeak: d(rg, 3), baseGain: d(rg, 4), fallbackGain: d(rg, 5)),
@@ -189,6 +196,7 @@ class Song {
         musicBrainzId: musicBrainzId,
         comment: comment,
         explicitStatus: explicitStatus,
+        isrc: isrc,
         path: path,
       );
 }

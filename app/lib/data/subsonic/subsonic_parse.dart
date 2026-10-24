@@ -95,6 +95,8 @@ Song parseSong(Json j) {
     musicBrainzId: _str(j['musicBrainzId']),
     comment: _str(j['comment']),
     explicitStatus: _str(j['explicitStatus']),
+    // OpenSubsonic manda lista; servidor antigo pode mandar um texto só.
+    isrc: [for (final c in j['isrc'] is List ? j['isrc'] as List : [j['isrc']]) if (c is String && c.isNotEmpty) c],
   );
 }
 

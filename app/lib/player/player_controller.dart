@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../connect/connect_service.dart';
 import '../core/providers.dart';
+import '../data/current_version.dart';
 import '../data/recommend.dart';
 import '../data/settings.dart';
 import '../data/similar.dart';
@@ -930,8 +931,8 @@ class PlayerController extends Notifier<PlayerState> {
         }
       case engine.PlayerEvent_TrackEnded(:final id, :final error):
         if (error != null) {
-          final title = state.queue.where((q) => q.uid == id).firstOrNull?.song.title ?? '';
-          state = state.copyWith(message: 'Não foi possível tocar "$title": $error');
+          final item = state.queue.where((q) => q.uid == id).firstOrNull;
+          if (item != null) unawaited(_recover(item, error));
         }
       case engine.PlayerEvent_Position(:final id, :final positionMs, :final durationMs, :final buffered):
         if (state.current?.uid != id) return;
@@ -988,6 +989,100 @@ class PlayerController extends Notifier<PlayerState> {
   Timer? _mixTimer;
 
   /// Pré-análise das próximas faixas da fila (AutoMix pronto na hora da troca).
+  /// Entradas da fila que já ganharam a segunda chance (uid): falhou de novo,
+  /// aí sim é erro.
+  final _retried = <String>{};
+
+  /// Não tocou: antes de mostrar o erro, atualiza a música no servidor e tenta
+  /// de novo. Quase sempre é música trocada por um arquivo melhor, com id novo
+  /// no Navidrome (ver `currentVersion`), guardada com o id velho na fila, numa
+  /// lista aberta antes ou num download; às vezes é só o servidor ocupado.
+  Future<void> _recover(QueueItem item, String error) async {
+    final p = _provider;
+    if (item.song.path != null || p == null || !_retried.add(item.uid)) {
+      _failed(item, error);
+      return;
+    }
+    // Caiu no meio (servidor ocupado, rede): volta de onde parou.
+    final at = state.current?.uid == item.uid ? state.position : Duration.zero;
+    final failedAt = DateTime.now();
+    Song? now;
+    try {
+      now = await currentVersion(p, item.song);
+    } catch (e) {
+      debugPrint('atualizando "${item.song.title}": $e');
+    }
+    final i = state.queue.indexWhere((q) => q.uid == item.uid);
+    if (i < 0) return;
+    if (now == null) {
+      _failed(item, error);
+      return;
+    }
+    final fresh = _item(now);
+    _retried.add(fresh.uid);
+    _replace(i, fresh);
+    // O motor já passou para a seguinte: volta para esta, se foi agora há pouco.
+    final justNow = DateTime.now().difference(failedAt) < const Duration(seconds: 10);
+    if (state.index == i || (justNow && state.index == i + 1 && state.position < const Duration(seconds: 10))) {
+      _startAt(i, start: at);
+    } else {
+      _scheduleNext();
+    }
+    if (now.id != item.song.id) unawaited(_refreshUpcoming(p, i + 1));
+  }
+
+  void _failed(QueueItem item, String error) {
+    // O motor junta as camadas ("formato não reconhecido: …: servidor: …");
+    // o que interessa é o que o servidor disse.
+    final i = error.indexOf('servidor: ');
+    final why = error.contains('no such file')
+        ? 'o arquivo não existe mais no servidor, e não achei outra versão dela'
+        : i >= 0
+            ? error.substring(i)
+            : error;
+    state = state.copyWith(message: 'Não foi possível tocar "${item.song.title}": $why');
+  }
+
+  void _replace(int i, QueueItem fresh) {
+    final old = state.queue[i];
+    final q = List.of(state.queue)..[i] = fresh;
+    final j = _unshuffled?.indexWhere((e) => e.uid == old.uid) ?? -1;
+    if (j >= 0) _unshuffled![j] = fresh;
+    state = state.copyWith(queue: q);
+  }
+
+  bool _refreshing = false;
+
+  /// Achou uma música trocada: as outras da fila provavelmente foram guardadas
+  /// na mesma época. Confere as próximas antes de chegar nelas, para não
+  /// engasgar uma por uma, e as últimas que tocaram, para o "anterior".
+  Future<void> _refreshUpcoming(MusicProvider p, int from) async {
+    if (_refreshing) return;
+    _refreshing = true;
+    try {
+      final q = state.queue;
+      final before = from - 1;
+      final upcoming = [...q.skip(from).take(50), ...q.sublist(max(0, before - 20), max(0, before)).reversed];
+      for (final item in upcoming) {
+        if (item.song.path != null || _provider != p) continue;
+        Song? now;
+        try {
+          now = await currentVersion(p, item.song, strict: true);
+        } catch (_) {
+          return;
+        }
+        if (now == null || now.id == item.song.id) continue;
+        final i = state.queue.indexWhere((q) => q.uid == item.uid);
+        if (i < 0 || i == state.index) continue;
+        _replace(i, _item(now));
+        if (i == state.index + 1) _scheduleNext();
+      }
+      _persistSoon();
+    } finally {
+      _refreshing = false;
+    }
+  }
+
   void _preAnalyze(int index) {
     final s = ref.read(settingsProvider);
     if (!s.automixEnabled || !s.preAnalyze) return;

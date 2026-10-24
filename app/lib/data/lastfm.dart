@@ -94,7 +94,8 @@ class LastFm {
 /// Nome para comparar entre Last.fm e a biblioteca: minúsculas, sem acento,
 /// sem "(Remastered…)", "[Live]", "feat. X" e pontuação.
 String matchKey(String s) {
-  var t = s.toLowerCase();
+  // Acento decomposto (NFD, comum em nome de arquivo): sai a marca, fica a letra.
+  var t = s.toLowerCase().replaceAll(RegExp(r'\p{M}', unicode: true), '');
   const from = 'áàâãäåéèêëíìîïóòôõöúùûüçñýÿ';
   const to = 'aaaaaaeeeeiiiiooooouuuucnyy';
   final b = StringBuffer();

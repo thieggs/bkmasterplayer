@@ -165,6 +165,14 @@ impl Download {
                     .map(|s| s.to_string())
             };
             let content_type = header("content-type");
+            // O Subsonic avisa erro com HTTP 200 e um JSON/XML no corpo (o
+            // arquivo sumiu do disco, banco ocupado…). Isso não é música: se
+            // fosse para o cache, a faixa ficaria estragada até o cache girar.
+            if content_type.as_deref().is_some_and(is_error_body) {
+                let mut body = Vec::new();
+                let _ = resp.into_body().into_reader().take(64 * 1024).read_to_end(&mut body);
+                return self.set_error(server_error(&body));
+            }
             let content_length = header("content-length").and_then(|v| v.parse::<u64>().ok());
             let (write_pos, total, ranged) = if status == 206 {
                 let total = header("content-range")
@@ -254,6 +262,38 @@ impl Download {
         }
         self.cond.notify_all();
     }
+}
+
+/// Resposta que o servidor manda no lugar da música quando dá erro.
+fn is_error_body(content_type: &str) -> bool {
+    let ct = content_type.to_ascii_lowercase();
+    ["application/json", "application/xml", "text/xml", "text/html"].iter().any(|t| ct.starts_with(t))
+}
+
+/// Começo de um arquivo do cache que é uma resposta de erro, não música
+/// (versões até a 1.4.0 guardavam assim).
+fn is_error_file(path: &Path) -> bool {
+    let mut head = [0u8; 32];
+    let n = File::open(path).and_then(|mut f| f.read(&mut head)).unwrap_or(0);
+    let head = String::from_utf8_lossy(&head[..n]);
+    let head = head.trim_start();
+    head.starts_with("{\"subsonic-response\"") || head.starts_with("<?xml") || head.starts_with("<subsonic-response")
+}
+
+/// A mensagem do erro, como o motor repassa ao app: "servidor: <mensagem>".
+/// O app reconhece o prefixo e procura a versão atual da música.
+pub(crate) fn server_error(body: &[u8]) -> String {
+    let json = serde_json::from_slice::<serde_json::Value>(body).ok().and_then(|v| {
+        v.pointer("/subsonic-response/error/message").and_then(|m| m.as_str()).map(str::to_string)
+    });
+    // XML: <error code="70" message="..."/>
+    let xml = || {
+        let s = String::from_utf8_lossy(body);
+        let rest = &s[s.find("message=\"")? + 9..];
+        Some(rest[..rest.find('"')?].to_string())
+    };
+    let msg = json.or_else(xml).unwrap_or_else(|| "respondeu outra coisa no lugar da música".into());
+    format!("servidor: {msg}")
 }
 
 /// Leitor bloqueante de um [`Download`] em andamento. Implementa `MediaSource`.
@@ -443,7 +483,10 @@ impl DownloadManager {
             active.remove(key);
         }
         if fin.exists() {
-            return None;
+            if !is_error_file(&fin) {
+                return None;
+            }
+            let _ = fs::remove_file(&fin);
         }
         // Cria o .part antes da thread, para leitores poderem abrir na hora.
         if let Err(e) = File::create(&part) {
@@ -774,6 +817,34 @@ mod tests {
         wait_status(&mgr, 20, |st| st.failed == 1);
         mgr.clear_offline_finished();
         assert_eq!(mgr.offline_status().total, 0);
+    }
+
+    /// Versões até a 1.4.0 guardavam a resposta de erro do servidor como se
+    /// fosse a música: na próxima vez, joga fora e baixa de novo.
+    #[test]
+    fn error_body_left_in_cache_is_downloaded_again() {
+        let d = data(300_000);
+        let url = serve(d.clone(), true);
+        let mgr = DownloadManager::new(tmpdir("estragado"), u64::MAX).unwrap();
+        let (_, fin) = mgr.paths("k");
+        fs::write(&fin, br#"{"subsonic-response":{"status":"failed","error":{"code":0}}}"#).unwrap();
+        let mut got = Vec::new();
+        mgr.open(Some("k"), &url, Arc::new(AtomicBool::new(false))).unwrap().source.read_to_end(&mut got).unwrap();
+        assert_eq!(got, *d);
+        let t = std::time::Instant::now();
+        while !(fin.exists() && fs::metadata(&fin).unwrap().len() == d.len() as u64) {
+            assert!(t.elapsed() < Duration::from_secs(5), "não terminou de guardar no cache");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+
+        // Música de verdade no cache continua valendo, sem baixar de novo
+        // (outra sessão, com um endereço que nem responde).
+        let mgr2 = DownloadManager::new(mgr.cache_dir.clone(), u64::MAX).unwrap();
+        let mut opened = mgr2.open(Some("k"), "http://127.0.0.1:1/nada", Arc::new(AtomicBool::new(false))).unwrap();
+        assert!(opened.download.is_none(), "saiu do cache");
+        let mut again = Vec::new();
+        opened.source.read_to_end(&mut again).unwrap();
+        assert_eq!(again, *d);
     }
 
     fn tmpdir(name: &str) -> PathBuf {
