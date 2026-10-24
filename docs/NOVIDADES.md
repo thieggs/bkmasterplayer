@@ -3,6 +3,37 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.4.1
+
+### Música trocada no servidor volta a tocar
+
+- **Quando o servidor troca uma música por outro arquivo** (um MP3 trocado
+  pela versão FLAC, por exemplo), o Navidrome dá a ela um id novo. A fila, as
+  listas abertas antes e os downloads continuavam com o antigo, e tocar dava
+  "formato não reconhecido". Agora, se uma música não toca, o app procura a
+  versão atual dela no servidor (pelo ISRC, pelo título, pelo artista e pela
+  duração) e toca essa, do ponto onde parou. Só mostra o erro se não achar
+  nenhuma. Ele também atualiza o resto da fila, para não engasgar uma por uma.
+- **Erro do servidor não vai mais para o cache.** A resposta de erro que o
+  servidor manda no lugar da música era guardada como se fosse ela, e a música
+  ficava estragada até o cache girar. O que ficou guardado assim é baixado de
+  novo.
+
+### Rádio
+
+- **Cada método volta a dar a sua lista** mesmo quando a música de partida
+  ainda não foi analisada (recém-trocada ou nova). Antes, os sete métodos davam
+  as mesmas músicas. Agora a parecida mais próxima que tem análise faz o papel
+  dela. O app também busca as análises novas sozinho quando encontra uma
+  música sem.
+- Para quem usa o AudioMuse: os scripts de manutenção passam a exportar as
+  análises de hora em hora e pedem a análise das músicas novas (ver README).
+
+### Monkey's Audio pelo streaming
+
+- **`.ape` grande vindo do servidor não falha mais no começo** com "short
+  read": o app espera o pedaço inteiro chegar antes de decodificar.
+
 ## v1.4.0
 
 ### Todos os formatos de música
