@@ -67,6 +67,16 @@ Future<List<(Song, double)>> findSimilarScored(
     try {
       final r = await local.similar(seed, count: count, style: escolhido);
       if (r.isNotEmpty) return _ranked(r);
+      // A semente não tem vetor: música nova, ou trocada depois do último
+      // arquivo. Antes o servidor respondia no lugar e os sete métodos davam as
+      // mesmas — de novo em 22/10/2026, quando a troca pelo hi-fi deixou um
+      // terço da biblioteca sem vetor no app. A parecida mais próxima que tem
+      // vetor faz o papel dela, e o método escolhido continua valendo.
+      final ponte = await _standIn(p, seed, local, lastFm);
+      if (ponte != null) {
+        final r = await local.similar(ponte, count: count, style: escolhido);
+        if (r.isNotEmpty) return _ranked([ponte, ...r].take(count).toList());
+      }
     } catch (e) {
       debugPrint('parecidas no aparelho: $e');
     }
@@ -109,6 +119,33 @@ Future<List<(Song, double)>> findSimilarScored(
     }
   }
   return const [];
+}
+
+/// Quem faz o papel de [seed] nos vetores, quando ela não tem: a primeira das
+/// parecidas que o servidor conhece e que tem vetor. A análise sônica vem
+/// primeiro (o AudioMuse costuma conhecer a música antes do arquivo do
+/// aparelho, que é exportado de hora em hora); sem ela, o "similar" do
+/// servidor ou o Last.fm, que ao menos ficam no mesmo artista ou estilo.
+Future<Song?> _standIn(MusicProvider p, Song seed, LocalSimilar local, LastFm? lastFm) async {
+  const quantas = 10;
+  final fontes = <Future<List<Song>> Function()>[
+    if (p.serverInfo?.sonicSimilarity ?? false)
+      () async => [for (final m in await p.sonicSimilar(seed.id, count: quantas)) m.song],
+    () => p.similarSongs(seed.id, count: quantas),
+    if (lastFm != null && p is! LocalProvider) () => similarViaLastFm(p, lastFm, seed, count: quantas),
+  ];
+  for (final fonte in fontes) {
+    final List<Song> candidatas;
+    try {
+      candidatas = await fonte();
+    } catch (_) {
+      continue;
+    }
+    for (final c in candidatas) {
+      if (c.id != seed.id && await local.knows(c.id)) return c;
+    }
+  }
+  return null;
 }
 
 /// Mesma coisa sem as notas, para quem só quer a fila.

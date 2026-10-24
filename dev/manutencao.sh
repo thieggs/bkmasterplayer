@@ -103,7 +103,7 @@ titulo "Limpando o banco do AudioMuse"
 ./dev/limpa_audiomuse.py --aplicar
 
 titulo "Re-casando o AudioMuse com o Navidrome"
-./dev/audiomuse_manutencao.sh alinhar || echo "${amarelo}Não deu para re-casar agora; o timer diário tenta de novo.${off}"
+./dev/audiomuse_manutencao.sh alinhar || echo "${amarelo}Não deu para re-casar agora; o timer tenta de novo daqui a uma hora.${off}"
 
 titulo "Refazendo os vetores para o celular"
 ./dev/exporta_audiomuse.py

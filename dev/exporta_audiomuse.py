@@ -11,6 +11,7 @@ comparar uma música com as outras 5 mil são poucos milissegundos.
 Uso:  ./dev/exporta_audiomuse.py [saída]
       (padrão: ~/.local/share/bk-analyzer/vetores.bkvec)
 """
+import filecmp
 import os
 import struct
 import subprocess
@@ -107,15 +108,18 @@ def main() -> None:
         JOIN embedding e ON e.item_id = s.item_id
         LEFT JOIN lyrics_embedding l ON l.item_id = s.item_id
         LEFT JOIN clap_embedding c ON c.item_id = s.item_id
+        ORDER BY s.item_id
     """)
     if not linhas:
         sys.exit("nada para exportar (o AudioMuse já analisou a biblioteca?)")
     # A mesma música costuma existir em vários arquivos (single, álbum,
     # coletânea): o vetor vai uma vez só e todos os ids apontam para ele.
-    # Sem isso, "parecidas" traria a mesma faixa repetida.
+    # Sem isso, "parecidas" traria a mesma faixa repetida. As duas listas vão
+    # em ordem fixa: o mesmo banco tem de dar o mesmo arquivo, byte a byte.
     ordem = {r[0]: i for i, r in enumerate(linhas)}
     ids = [(sid, ordem[item]) for item, sid in psql(
-        "SELECT item_id, provider_track_id FROM track_server_map WHERE provider_track_id <> ''")
+        "SELECT item_id, provider_track_id FROM track_server_map WHERE provider_track_id <> '' "
+        "ORDER BY provider_track_id")
         if item in ordem]
     print(f"  {len(linhas)} músicas distintas, {len(ids)} arquivos na biblioteca", file=sys.stderr)
 
@@ -151,6 +155,14 @@ def main() -> None:
             f.write(vetor("\\x" + emb if emb else "", AUDIO_DIMS))
             f.write(vetor("\\x" + lyr if lyr else "", LYRICS_DIMS))
             f.write(clap8(clap))
+    # Igual ao que já está lá: fica o de antes. O analyzer põe tamanho e data
+    # do arquivo na versão (ETag), e o app só baixa de novo quando ela muda —
+    # regravar o mesmo conteúdo de hora em hora faria cada aparelho baixar os
+    # 35 MB toda vez que abre.
+    if saida.exists() and filecmp.cmp(tmp, saida, shallow=False):
+        tmp.unlink()
+        print(f"{saida}: nada mudou ({len(linhas)} músicas, {len(ids)} arquivos)")
+        return
     tmp.replace(saida)
     mb = saida.stat().st_size / 1048576
     print(f"{saida} ({mb:.1f} MB, {len(linhas)} músicas, {len(ids)} arquivos)")

@@ -317,11 +317,18 @@ mesmo, para valer também no mix instantâneo e na fila infinita:
 ./dev/exporta_audiomuse.py                    # gera ~/.local/share/bk-analyzer/vetores.bkvec
 ```
 
-Vale automatizar com um timer do systemd (`bk-vetores.timer`), para o aparelho
-acompanhar a biblioteca, e re-casar o AudioMuse antes de exportar
-(`./dev/audiomuse_manutencao.sh alinhar`): música trocada ganha outro id no
-Navidrome e, sem o alinhamento, o AudioMuse não a conhece mais — a rádio não
-acha parecidas dela, e ela nunca aparece como sugestão. O mesmo script tem o
+Vale automatizar com um timer do systemd (`bk-vetores.timer`, **de hora em
+hora**), para o aparelho acompanhar a biblioteca, e re-casar o AudioMuse antes
+de exportar (`./dev/audiomuse_manutencao.sh alinhar`): música trocada ganha
+outro id no Navidrome e, sem o alinhamento, o AudioMuse não a conhece mais — a
+rádio não acha parecidas dela, e ela nunca aparece como sugestão. Depois de
+exportar, `./dev/audiomuse_manutencao.sh analisar` pede ao AudioMuse a análise
+do que é novo (ele não analisa sozinho), e o resultado entra no arquivo da hora
+seguinte. Uma vez por dia não basta quando a biblioteca muda o dia inteiro (a
+troca automática pelo hi-fi): em 22/10/2026 um terço dela ficou sem vetor no
+app. O arquivo só é regravado quando muda, então o aparelho só baixa de novo
+quando há o que baixar; e o app confere de novo sozinho (no máximo a cada dez
+minutos) quando a rádio esbarra numa música sem vetor. O mesmo script tem o
 `vigia`, que conserta o AudioMuse quando ele não sobe direito depois de
 reiniciar o PC (`audiomuse-vigia.timer`, a cada 15 min). A mesma faixa costuma existir em vários arquivos
 (single, álbum, coletânea): o vetor vai uma vez e os ids apontam para ele,

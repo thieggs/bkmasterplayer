@@ -46,6 +46,9 @@ abstract interface class LocalSimilar {
   RecommendStyle get style;
 
   Future<List<Song>> similar(Song seed, {RecommendStyle? style, int count, List<Song>? pool});
+
+  /// Esta música tem vetor? Sem ele não dá para contar a partir dela.
+  Future<bool> knows(String songId);
 }
 
 class RecommendState {
@@ -195,7 +198,24 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
   }
 
   /// Esta música tem vetor? Sem ele não dá para recomendar a partir dela.
+  @override
   Future<bool> knows(String songId) async => state.ready && await rust.recommendKnows(id: songId);
+
+  /// Última vez que uma música sem vetor fez pedir o arquivo de novo.
+  DateTime? _missSync;
+
+  /// Música sem vetor: o servidor provavelmente já tem um arquivo mais novo
+  /// (ele exporta de hora em hora, e a biblioteca muda o dia inteiro com a
+  /// troca pelo hi-fi). Antes o arquivo só era conferido ao abrir o app, e no
+  /// celular, que fica dias aberto, a rádio dessas músicas não seguia o método
+  /// escolhido. No máximo a cada dez minutos; sem mudança o servidor responde
+  /// 304 e não baixa nada.
+  void _seedUnknown() {
+    final agora = DateTime.now();
+    if (_missSync != null && agora.difference(_missSync!) < const Duration(minutes: 10)) return;
+    _missSync = agora;
+    unawaited(sync());
+  }
 
   /// As mais parecidas com [seed], do jeito escolhido nos ajustes.
   ///
@@ -214,7 +234,10 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
       allowed: porId.keys.toList(),
     );
     final ids = [for (final h in hits) h.id];
-    if (ids.isEmpty) return const [];
+    if (ids.isEmpty) {
+      if (!await rust.recommendKnows(id: seed.id)) _seedUnknown();
+      return const [];
+    }
     if (pool != null) return [for (final id in ids) ?porId[id]];
     try {
       final r = await ref.read(musicProvider).songsByIds(ids);

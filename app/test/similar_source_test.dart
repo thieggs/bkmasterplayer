@@ -58,9 +58,16 @@ class _FakeProvider implements MusicProvider {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-/// Quem conta no aparelho, de mentira: anota com que método foi chamado.
+/// Quem conta no aparelho, de mentira: anota com que método e a partir de
+/// quem foi chamado.
 class _FakeLocal implements LocalSimilar {
-  _FakeLocal({this.ready = true, this.style = RecommendStyle.sound, this.gives = true, this.throws = false});
+  _FakeLocal({
+    this.ready = true,
+    this.style = RecommendStyle.sound,
+    this.gives = true,
+    this.throws = false,
+    this.unknown = const {},
+  });
 
   @override
   final bool ready;
@@ -68,15 +75,24 @@ class _FakeLocal implements LocalSimilar {
   @override
   final RecommendStyle style;
 
+  /// false = o arquivo não conhece música nenhuma.
   final bool gives;
   final bool throws;
+
+  /// Músicas sem vetor (ex.: trocadas depois do último arquivo).
+  final Set<String> unknown;
   final pedidos = <RecommendStyle>[];
+  final sementes = <String>[];
+
+  @override
+  Future<bool> knows(String songId) async => gives && !unknown.contains(songId);
 
   @override
   Future<List<Song>> similar(Song seed, {RecommendStyle? style, int count = 50, List<Song>? pool}) async {
     pedidos.add(style ?? this.style);
+    sementes.add(seed.id);
     if (throws) throw Exception('arquivo de vetores quebrado');
-    return gives ? [_s('local-1'), _s('local-2')] : const [];
+    return await knows(seed.id) ? [_s('local-1'), _s('local-2')] : const [];
   }
 }
 
@@ -147,7 +163,7 @@ void main() {
       expect(r.map((s) => s.id), ['sonica-1', 'sonica-2']);
     });
 
-    test('vetores sem essa música: o servidor responde', () async {
+    test('vetores sem essa música nem as parecidas dela: o servidor responde', () async {
       final p = _FakeProvider(sonic: true);
       final local = _FakeLocal(gives: false);
       final r = await findSimilar(p, _seed, local: local, style: RecommendStyle.sound);
@@ -182,6 +198,54 @@ void main() {
       final p = _FakeProvider(similarGives: false);
       final r = await findSimilar(p, _seed, local: _FakeLocal(ready: false));
       expect(r, isEmpty);
+    });
+  });
+
+  // O defeito de 22/10/2026: a troca pelo hi-fi deu id novo a um terço da
+  // biblioteca, o arquivo do aparelho ainda tinha os antigos, e a rádio de
+  // cada uma dessas caía no servidor — os sete métodos davam as mesmas.
+  group('semente sem vetor', () {
+    test('a parecida mais próxima com vetor faz o papel dela, e o método vale', () async {
+      final p = _FakeProvider(sonic: true);
+      final local = _FakeLocal(unknown: {'semente'});
+      final r = await findSimilar(p, _seed, local: local, style: RecommendStyle.mood);
+      expect(local.sementes, ['semente', 'sonica-1']);
+      expect(local.pedidos, [RecommendStyle.mood, RecommendStyle.mood]);
+      expect(r.map((s) => s.id), ['sonica-1', 'local-1', 'local-2']);
+    });
+
+    test('cada método chega no motor, mesmo sem vetor da semente', () async {
+      final p = _FakeProvider(sonic: true);
+      for (final e in RecommendStyle.values.where(styleNeedsVectors)) {
+        final local = _FakeLocal(unknown: {'semente'});
+        await findSimilar(p, _seed, local: local, style: e);
+        expect(local.pedidos.toSet(), {e}, reason: 'sem isto o servidor respondia por todos');
+      }
+    });
+
+    test('pula as parecidas que também não têm vetor', () async {
+      final p = _FakeProvider(sonic: true);
+      final local = _FakeLocal(unknown: {'semente', 'sonica-1'});
+      final r = await findSimilar(p, _seed, local: local, style: RecommendStyle.sound);
+      expect(local.sementes, ['semente', 'sonica-2']);
+      expect(r.first.id, 'sonica-2');
+    });
+
+    test('nem o AudioMuse conhece: a ponte sai do similar do servidor', () async {
+      final p = _FakeProvider(sonic: true, sonicGives: false);
+      final local = _FakeLocal(unknown: {'semente'});
+      final r = await findSimilar(p, _seed, local: local, style: RecommendStyle.era, strict: true);
+      expect(p.chamadas, ['sonicSimilar', 'similarSongs']);
+      expect(local.sementes, ['semente', 'servidor-1']);
+      expect(r.map((s) => s.id), ['servidor-1', 'local-1', 'local-2']);
+    });
+
+    test('"deixar o servidor escolher" não usa ponte', () async {
+      final p = _FakeProvider(sonic: true);
+      final local = _FakeLocal(unknown: {'semente'});
+      final r = await findSimilar(p, _seed, local: local, style: RecommendStyle.server);
+      expect(local.sementes, isEmpty);
+      expect(r.map((s) => s.id), ['sonica-1', 'sonica-2']);
     });
   });
 

@@ -13,13 +13,23 @@
 #            outro id à música trocada, e o AudioMuse deixa de conhecê-la — em
 #            22/10/2026, depois da troca pela versão hi-fi, 25% da biblioteca
 #            estava assim.
+#   analisar Pede ao AudioMuse para analisar o que ainda não tem análise, sem
+#            esperar. A troca automática pelo hi-fi (melhora_qualidade.py) põe
+#            música nova o dia inteiro, e o AudioMuse não analisa sozinho:
+#            sem análise a música não tem vetor, e a rádio que parte dela não
+#            tem como seguir o método escolhido.
 #
-# Uso: ./dev/audiomuse_manutencao.sh vigia|alinhar
+# O bk-vetores.service roda alinhar, exporta e roda analisar, de hora em hora:
+# o que a análise terminar entra no arquivo da hora seguinte.
+#
+# Uso: ./dev/audiomuse_manutencao.sh vigia|alinhar|analisar
 set -uo pipefail
 COMPOSE=/media/thieggs/RAID0/audiomuse/docker-compose.yml
 DB=audiomuse-postgres
 WEB=audiomuse-ai-flask-app
 URL=http://localhost:8010/api/health
+NAVIDROME_DB=/media/thieggs/RAID0/navidrome/data/navidrome.db
+MARCA=$HOME/.local/share/bk-analyzer/analise-pedida
 
 de_pe() {
   # O Postgres precisa estar numa rede (sem ela ninguém acha o nome "postgres")
@@ -63,6 +73,10 @@ with app.app_context():
     case "$linha" in
       SUCCESS*) echo "${linha#*|}"; return 0 ;;
       FAILURE*|REVOKED*) echo "alinhamento falhou: ${linha#*|}" >&2; return 1 ;;
+      # A linha nasce junto com o pedido; se some, o AudioMuse apagou o
+      # registro (o fim de uma análise limpa o task_status, visto em
+      # 23/10/2026). Esperar por ela só travava o timer por 20 minutos.
+      "") echo "o registro do alinhamento sumiu; fica para a próxima" >&2; return 1 ;;
     esac
     sleep 10
   done
@@ -70,8 +84,47 @@ with app.app_context():
   return 1
 }
 
+analisar() {
+  vigia || return 1
+  # As músicas do Navidrome que o AudioMuse não conhece: "quantas id id id...".
+  local pendentes n
+  pendentes=$(docker exec "$DB" psql -U audiomuse -d audiomusedb -Atc \
+      "select provider_track_id from track_server_map where provider_track_id <> ''" |
+    python3 -I -c '
+import sqlite3, sys
+conhecidas = set(sys.stdin.read().split())
+db = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
+falta = sorted(i for (i,) in db.execute("select id from media_file where missing = 0") if i not in conhecidas)
+print(len(falta), *falta)
+' "$NAVIDROME_DB") || return 1
+  n=${pendentes%% *}
+  if [ "$n" = 0 ]; then
+    echo "nada sem análise"
+    return 0
+  fi
+  # Só pede de novo quando a lista muda: música que falha sempre (arquivo
+  # quebrado) não pode fazer o AudioMuse varrer a biblioteca toda de hora em hora.
+  if [ -f "$MARCA" ] && [ "$(cat "$MARCA")" = "$(md5sum <<<"$pendentes")" ]; then
+    echo "$n sem análise, já pedida"
+    return 0
+  fi
+  local codigo
+  codigo=$(docker exec "$WEB" sh -c 'cd /app && python3 -c "
+from flask_app import app
+from app_analysis import start_analysis_endpoint
+with app.test_request_context(json={}):
+    print(start_analysis_endpoint()[1])
+"' 2>/dev/null | tail -1)
+  case "$codigo" in
+    202) md5sum <<<"$pendentes" >"$MARCA"; echo "$n sem análise: análise pedida" ;;
+    409) echo "$n sem análise; o AudioMuse está ocupado, fica para a próxima" ;;
+    *) echo "não consegui pedir a análise (resposta: ${codigo:-nenhuma})" >&2; return 1 ;;
+  esac
+}
+
 case "${1:-}" in
   vigia) vigia ;;
   alinhar) alinhar ;;
-  *) echo "uso: $0 vigia|alinhar" >&2; exit 2 ;;
+  analisar) analisar ;;
+  *) echo "uso: $0 vigia|alinhar|analisar" >&2; exit 2 ;;
 esac
