@@ -32,7 +32,18 @@ for d in build-tools cmake cmdline-tools licenses ndk platforms platform-tools; 
 done
 
 echo "== JDK 21"
-$LENTO rsync -a -e "$SSH" "$JDK/" "$NOT:.local/jdk21/"
+# -L: o JDK do Debian é cheio de links para /etc/java-21-openjdk e /usr/share,
+# que o notebook não tem (lá o Java é o 25). Copiado com os links, o Gradle
+# morria em "Error loading java.security file".
+$LENTO rsync -aL --delete -e "$SSH" "$JDK/" "$NOT:.local/jdk21/"
+
+echo "== libclang (bindgen)"
+# O libclang do Debian acha o libLLVM por um caminho fixo de /usr/lib/llvm-19:
+# vão os dois (e o z3) para uma pasta só, e o build aponta LD_LIBRARY_PATH.
+$SSH "$NOT" "mkdir -p ~/.local/libclang"
+$LENTO rsync -L -e "$SSH" /usr/lib/x86_64-linux-gnu/libclang-19.so.19 "$NOT:.local/libclang/libclang.so"
+$LENTO rsync -L -e "$SSH" /usr/lib/llvm-19/lib/libLLVM.so.19.1 /lib/x86_64-linux-gnu/libz3.so.4 "$NOT:.local/libclang/"
+$LENTO rsync -aL -e "$SSH" /usr/lib/llvm-19/lib/clang/19/include/ "$NOT:.local/libclang/include/"
 
 echo "== chave de assinatura"
 STORE=$(sed -n 's/^storeFile=//p' "$ROOT/app/android/key.properties")

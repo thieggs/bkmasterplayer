@@ -22,7 +22,10 @@ cd "$ROOT"
 { git ls-files -co --exclude-standard; echo app/android/key.properties; } |
   rsync -a --ignore-missing-args --files-from=- -e "$SSH" "$ROOT/" "$NOT:$DEST/"
 
-ENV='export PATH=~/flutter/bin:~/.cargo/bin:$PATH ANDROID_HOME=~/android-sdk'
+# libclang (do bindgen, que o signalsmith-stretch usa): o notebook não tem o
+# LLVM; o notebook_prepara.sh copia o do PC para ~/.local/libclang, com os
+# cabeçalhos do próprio clang (stddef.h…), que fora de /usr/lib/llvm-19 ele não acha.
+ENV='export PATH=~/flutter/bin:~/.cargo/bin:$PATH ANDROID_HOME=~/android-sdk LIBCLANG_PATH=~/.local/libclang LD_LIBRARY_PATH=~/.local/libclang BINDGEN_EXTRA_CLANG_ARGS="-isystem $HOME/.local/libclang/include"'
 if [ "${1:-}" = --so-copiar ]; then
   $SSH "$NOT" "$ENV; cd $DEST/app && nice -n 15 flutter pub get >/dev/null && echo 'código no notebook, dependências baixadas'"
   exit 0
