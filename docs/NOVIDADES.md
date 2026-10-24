@@ -3,6 +3,42 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.5.0
+
+### Festa no player de sempre
+
+- **Quem entra numa Festa continua no player normal.** A tela da Festa agora
+  serve só para conectar. Ao entrar, a barra, a tela cheia, a fila e a
+  notificação passam a mostrar e controlar o que toca no aparelho de quem abriu
+  a Festa. Tocar, pausar, passar, voltar e arrastar a barra valem para todos.
+- **Mandar música é como tocar.** O "Tocar", o "Tocar a seguir" e o
+  "Adicionar à fila" de qualquer página (álbum, playlist, busca, Android Auto)
+  mandam para a Festa:
+  - "Tocar" e "a seguir" entram como próximas, sem cortar a música de ninguém;
+  - "Adicionar à fila" vai para o fim;
+  - se os dois aparelhos usam o mesmo servidor, a música entra na hora;
+  - se não, vai como arquivo, uma por vez, e o andamento aparece na fila.
+- **Fila da Festa no painel de fila**, com quem pediu cada música. Tocar numa
+  delas pula para ela. O botão **"Adicionar à Festa"** busca nas músicas do dono
+  ou manda um arquivo do aparelho, e funciona também para quem entrou sem conta.
+- **O que é do dono fica com o dono.** No convidado, aleatório, repetir, volume,
+  rádio, Modo DJ e favoritar não aparecem. O timer para dormir tira o convidado
+  da Festa, em vez de pausar a música de todo mundo.
+- **Ao sair, a fila volta** pausada onde estava. Escolher "Este aparelho" ou
+  outro aparelho no menu de aparelhos também sai da Festa.
+- A capa da música atual chega em tamanho grande na tela cheia.
+
+### Correções da Festa
+
+- **No computador, entrar pela lista de Festas por perto falhava** com "o
+  pedido não foi aceito". A descoberta pegava um endereço IPv6 de uma rede
+  virtual (do Docker, por exemplo) que não conecta. Agora usa o endereço IPv4.
+- **"Seu endereço" mostra a porta certa** quando outra cópia do app está aberta
+  no mesmo computador.
+- Quem quer tudo novo precisa atualizar os dois aparelhos. Um aparelho com a
+  versão antiga ainda entra, mas sem pular para uma música da fila e sem o
+  "adicionar no fim".
+
 ## v1.4.1
 
 ### Música trocada no servidor volta a tocar
