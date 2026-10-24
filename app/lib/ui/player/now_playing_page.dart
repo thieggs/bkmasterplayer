@@ -8,6 +8,7 @@ import '../../connect/devices_sheet.dart';
 import '../../core/providers.dart';
 import '../../domain/models.dart';
 import '../../jam/jam_bar.dart';
+import '../../jam/jam_page.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
 import '../actions.dart';
@@ -43,6 +44,12 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
     final layout = ui.nowPlayingLayout;
     final vinyl = layout == 'vinyl';
 
+    // A Festa acabou com o convidado sem conta aqui: o player dele não tem
+    // nada a mostrar; volta para a tela da Festa.
+    ref.listen(playerProvider.select((s) => s.jamHost != null), (was, now) {
+      if (was == true && !now && ref.read(sessionProvider).value == null) context.go('/jam');
+    });
+
     Widget cover(double size) {
       if (vinyl) {
         return VinylDisc(
@@ -71,8 +78,10 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
     // Celular deitado: pouca altura; a capa vai ao lado das informações.
     final short = MediaQuery.sizeOf(context).height < 560;
 
+    final jam = ref.watch(playerProvider.select((s) => s.jamHost != null));
     final details = <Widget>[
-      const RemoteLabel(),
+      // Na Festa quem diz onde toca é a faixa da Festa, logo abaixo.
+      const RemoteLabel(jam: false),
       Text(
         song?.title ?? l10n.nothingPlaying,
         textAlign: TextAlign.center,
@@ -118,14 +127,21 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (song != null)
+          if (jam)
+            IconButton(
+              tooltip: l10n.jamAddToParty,
+              icon: const Icon(Icons.playlist_add),
+              onPressed: () => showJamAddSheet(context),
+            ),
+          // Favoritar e rádio mexem na biblioteca e na fila daqui, não na do dono.
+          if (song != null && !jam)
             IconButton(
               tooltip: isSongStarred(ref, song) ? l10n.unfavorite : l10n.favorite,
               icon: Icon(isSongStarred(ref, song) ? Icons.favorite : Icons.favorite_border),
               color: isSongStarred(ref, song) ? theme.colorScheme.primary : null,
               onPressed: () => LibraryActions.toggleStar(context, ref, song),
             ),
-          if (song != null)
+          if (song != null && !jam)
             IconButton(
               tooltip: l10n.radioSheetTitle,
               icon: const Icon(Icons.radio),
@@ -211,7 +227,10 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
                   child: IconButton(
                     tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
                     icon: const Icon(Icons.keyboard_arrow_down),
-                    onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+                    // Sem conta (convidado da Festa) não há biblioteca para onde voltar.
+                    onPressed: () => context.canPop()
+                        ? context.pop()
+                        : context.go(ref.read(sessionProvider).value == null ? '/jam' : '/'),
                   ),
                 ),
                 Expanded(

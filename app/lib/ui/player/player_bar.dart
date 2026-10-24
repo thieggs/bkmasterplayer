@@ -80,8 +80,8 @@ class TransportControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final s = ref.watch(playerProvider.select((s) => (s.playing, s.buffering, s.shuffle, s.repeat, s.current != null)));
-    final (playing, buffering, shuffle, repeat, hasTrack) = s;
+    final s = ref.watch(playerProvider.select((s) => (s.playing, s.buffering, s.shuffle, s.repeat, s.current != null, s.jamHost != null)));
+    final (playing, buffering, shuffle, repeat, hasTrack, jam) = s;
     final p = ref.read(playerProvider.notifier);
     final scheme = Theme.of(context).colorScheme;
     final iconSize = big ? 32.0 : 22.0;
@@ -89,7 +89,8 @@ class TransportControls extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (big || buttons.contains('shuffle'))
+        // Na Festa a ordem é do dono: aleatório e repetir não são do convidado.
+        if (!jam && (big || buttons.contains('shuffle')))
           IconButton(
             tooltip: l10n.shuffle,
             iconSize: iconSize * 0.8,
@@ -133,7 +134,7 @@ class TransportControls extends ConsumerWidget {
           icon: const Icon(Icons.skip_next),
           onPressed: hasTrack ? p.next : null,
         ),
-        if (big || buttons.contains('repeat'))
+        if (!jam && (big || buttons.contains('repeat')))
           IconButton(
             tooltip: l10n.repeat,
             iconSize: iconSize * 0.8,
@@ -152,6 +153,8 @@ class VolumeControl extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final volume = ref.watch(playerProvider.select((s) => s.volume));
+    // Na Festa o volume é o do dono.
+    if (ref.watch(playerProvider.select((s) => s.jamHost != null))) return const SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -178,6 +181,7 @@ class PlayerBar extends ConsumerWidget {
     final item = ref.watch(playerProvider.select((s) => s.current));
     final song = item?.song;
     final buttons = ref.watch(uiPrefsProvider.select((p) => p.playerButtons));
+    final jam = ref.watch(playerProvider.select((s) => s.jamHost != null));
     return floatingFrame(ref, theme.colorScheme.surfaceContainer, Material(
       color: theme.colorScheme.surfaceContainer,
       // No mínimo 84 dp; com densidade padrão (tablet, ou escolhida nos ajustes)
@@ -222,7 +226,7 @@ class PlayerBar extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (song != null && buttons.contains('favorite'))
+                      if (song != null && !jam && buttons.contains('favorite'))
                         IconButton(
                           tooltip: isSongStarred(ref, song) ? l10n.unfavorite : l10n.favorite,
                           icon: Icon(isSongStarred(ref, song) ? Icons.favorite : Icons.favorite_border, size: 20),

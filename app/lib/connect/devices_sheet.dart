@@ -36,24 +36,27 @@ class DevicesButton extends ConsumerWidget {
   }
 }
 
-/// "Tocando em (aparelho)", só no modo remoto.
+/// "Tocando em (aparelho)" no modo remoto, ou "Na Festa de (dono)" para o
+/// convidado de uma Festa ([jam] falso esconde esse caso).
 class RemoteLabel extends ConsumerWidget {
-  const RemoteLabel({super.key, this.style});
+  const RemoteLabel({super.key, this.style, this.jam = true});
   final TextStyle? style;
+  final bool jam;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final remote = ref.watch(playerProvider.select((s) => s.remoteDevice));
-    if (remote == null) return const SizedBox.shrink();
+    final host = jam ? ref.watch(playerProvider.select((s) => s.jamHost)) : null;
+    if (remote == null && host == null) return const SizedBox.shrink();
     final color = Theme.of(context).colorScheme.primary;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.cast_connected, size: 14, color: color),
+        Icon(host != null ? Icons.groups : Icons.cast_connected, size: 14, color: color),
         const SizedBox(width: 4),
         Flexible(
           child: Text(
-            context.l10n.playingOn(remote),
+            host != null ? context.l10n.jamBarGuest(host) : context.l10n.playingOn(remote!),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: (style ?? Theme.of(context).textTheme.labelSmall)?.copyWith(color: color),
@@ -208,6 +211,7 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
     final theme = Theme.of(context);
     final devices = ref.watch(connectProvider);
     final remoteId = ref.watch(playerProvider.select((s) => s.remoteDeviceId));
+    final inJam = ref.watch(playerProvider.select((s) => s.jamHost != null));
     final online = devices.where((d) => d.online).toList();
     final offline = devices.where((d) => !d.online && d.manual).toList();
     final me = ref.read(connectProvider.notifier).me;
@@ -239,10 +243,15 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
               leading: Icon(deviceIcon(Platform.operatingSystem)),
               title: Text(l10n.thisDevice),
               subtitle: me == null ? null : Text(me.name),
-              trailing: check(remoteId == null),
+              trailing: check(remoteId == null && !inJam),
               onTap: () async {
                 Navigator.pop(context);
-                if (remoteId != null) await ref.read(playerProvider.notifier).playHere();
+                // Na Festa, tocar aqui é sair dela e voltar à fila daqui.
+                if (inJam) {
+                  await ref.read(jamGuestProvider.notifier).leave();
+                } else if (remoteId != null) {
+                  await ref.read(playerProvider.notifier).playHere();
+                }
               },
             ),
             for (final d in online)
@@ -289,13 +298,14 @@ class _DevicesSheetState extends ConsumerState<_DevicesSheet> {
             Consumer(builder: (context, ref, _) {
               final jam = ref.watch(jamHostProvider);
               final guest = ref.watch(jamGuestProvider.select((g) => g.phase == JamPhase.joined));
+              final host = ref.watch(jamGuestProvider.select((g) => g.hostName));
               return ListTile(
                 leading: Icon(Icons.groups_outlined, color: jam.active || guest ? theme.colorScheme.primary : null),
                 title: Text(l10n.party),
                 subtitle: Text(jam.active
                     ? l10n.jamPeople(jam.participants.length)
                     : guest
-                        ? l10n.jamInOne
+                        ? l10n.jamBarGuest(host ?? '?')
                         : l10n.jamMenuHint),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {

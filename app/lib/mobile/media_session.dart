@@ -95,10 +95,10 @@ class _BkAudioHandler extends BaseAudioHandler {
   DateTime _publishedAt = DateTime.now();
 
   /// Controlando outro aparelho: o som sai de lá; aqui a notificação só controla.
-  bool get _remote => _container.read(playerProvider).remoteDevice != null;
+  bool get _remote => _container.read(playerProvider).elsewhere;
 
   void _update(PlayerState s) {
-    if (s.playing && !_wasPlaying && s.remoteDevice == null) {
+    if (s.playing && !_wasPlaying && !s.elsewhere) {
       _stopped = false;
       // Pede o foco de áudio (os outros players pausam); negado = ligação em curso.
       _session.setActive(true).then((ok) {

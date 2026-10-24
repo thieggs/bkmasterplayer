@@ -3229,6 +3229,42 @@ abstract class AppLocalizations {
   /// **'Não deu para mandar'**
   String get jamSendFailed;
 
+  /// No description provided for @jamAddToParty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar à Festa'**
+  String get jamAddToParty;
+
+  /// No description provided for @jamTabParty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Da Festa'**
+  String get jamTabParty;
+
+  /// No description provided for @jamWaitingSend.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na fila para enviar'**
+  String get jamWaitingSend;
+
+  /// No description provided for @jamOpenPlayer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir o player'**
+  String get jamOpenPlayer;
+
+  /// No description provided for @jamJoinedHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use o player como sempre: o que você tocar ou puser na fila, de qualquer tela, vai para a Festa.'**
+  String get jamJoinedHint;
+
+  /// No description provided for @jamSentToParty.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 música indo para a Festa} other{{count} músicas indo para a Festa}}'**
+  String jamSentToParty(int count);
+
   /// No description provided for @jamInOne.
   ///
   /// In pt, this message translates to:

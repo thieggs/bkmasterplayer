@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/material.dart';
@@ -20,13 +22,20 @@ import 'jam_bluetooth.dart';
 import 'jam_core.dart';
 import 'jam_permissions.dart';
 
-/// Pedidos para entrar na Jam: aparece em qualquer tela (o shell chama).
+/// Avisos da Festa em qualquer tela (o shell chama): pedidos para entrar na
+/// deste aparelho e, para o convidado, músicas indo para lá e o fim da Festa.
 void listenJamRequests(WidgetRef ref, BuildContext context) {
   ref.listen(jamHostProvider.select((s) => s.pending), (prev, next) {
     final shown = prev ?? const [];
     for (final req in next.where((r) => !shown.contains(r))) {
       showJamRequestDialog(context, ref, req);
     }
+  });
+  ref.listen(jamGuestProvider.select((g) => g.sentTick), (prev, next) {
+    if (next > (prev ?? 0)) showSnack(context, context.l10n.jamSentToParty(ref.read(jamGuestProvider).sentCount));
+  });
+  ref.listen(jamGuestProvider.select((g) => g.phase), (prev, next) {
+    if (prev == JamPhase.joined && next == JamPhase.ended) showSnack(context, context.l10n.jamEnded);
   });
 }
 
@@ -86,18 +95,39 @@ class _JamPageState extends ConsumerState<JamPage> {
     });
   }
 
+  /// Entrou: o resto da Festa acontece no player normal.
+  void _openPlayer() {
+    if (!mounted) return;
+    context.canPop() ? context.pushReplacement('/now-playing') : context.go('/now-playing');
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final host = ref.watch(jamHostProvider);
     final guest = ref.watch(jamGuestProvider);
+    ref.listen(jamGuestProvider.select((g) => g.phase), (prev, next) {
+      if (next == JamPhase.joined && prev != JamPhase.joined) _openPlayer();
+      // Saiu da Festa com esta tela aberta: volta a procurar.
+      if (next == JamPhase.idle && prev == JamPhase.joined) unawaited(ref.read(jamGuestProvider.notifier).search());
+    });
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.party)),
+      appBar: AppBar(
+        title: Text(context.l10n.party),
+        // Sem conta e aberta direto (link, fim da Festa): o caminho de volta é o login.
+        leading: !context.canPop() && ref.watch(sessionProvider).value == null
+            ? IconButton(
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/login'),
+              )
+            : null,
+      ),
       body: SafeArea(
         child: host.active
             ? const _HostView()
             : switch (guest.phase) {
-                JamPhase.joined => const _GuestView(),
+                JamPhase.joined => const _JoinedView(),
                 JamPhase.waiting => _Centered(
                     icon: Icons.hourglass_top,
                     text: l10n.jamWaiting(guest.hostName ?? ''),
@@ -311,68 +341,60 @@ class _HostView extends ConsumerWidget {
 
 // ---- Convidado ----
 
-class _GuestView extends ConsumerWidget {
-  const _GuestView();
+/// Já na Festa: a tela só mostra onde se está. Tocar, ver a fila e mandar
+/// músicas é no player normal.
+class _JoinedView extends ConsumerWidget {
+  const _JoinedView();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final g = ref.watch(jamGuestProvider);
-    final notifier = ref.read(jamGuestProvider.notifier);
     final theme = Theme.of(context);
-    final cur = g.current;
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: [
-          ListTile(
-            leading: Icon(Icons.groups, color: theme.colorScheme.primary),
-            title: Text(l10n.jamOf(g.hostName ?? '')),
-            trailing: TextButton(onPressed: notifier.leave, child: Text(l10n.leaveJam)),
-          ),
-          if (cur != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  JamHostCover(id: cur['coverArt'] as String?, size: 64),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${cur['title'] ?? ''}', style: theme.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        Text('${cur['artist'] ?? ''}', style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 4),
-                        LinearProgressIndicator(
-                          value: g.duration.inMilliseconds == 0 ? 0 : (g.position.inMilliseconds / g.duration.inMilliseconds).clamp(0, 1),
-                        ),
-                      ],
+    final host = ref.watch(jamGuestProvider.select((g) => g.hostName)) ?? '';
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.groups, color: theme.colorScheme.primary),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(l10n.jamBarGuest(host), style: theme.textTheme.titleMedium)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(l10n.jamJoinedHint, style: theme.textTheme.bodySmall),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      icon: const Icon(Icons.play_circle_outline),
+                      label: Text(l10n.jamOpenPlayer),
+                      onPressed: () => context.push('/now-playing'),
                     ),
-                  ),
-                ],
-              ),
+                    OutlinedButton(
+                      onPressed: () => ref.read(jamGuestProvider.notifier).leave(),
+                      child: Text(l10n.leaveJam),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(icon: const Icon(Icons.skip_previous), onPressed: () => notifier.control('previous')),
-              IconButton.filled(
-                iconSize: 32,
-                icon: Icon(g.playing ? Icons.pause : Icons.play_arrow),
-                onPressed: () => notifier.control('toggle'),
-              ),
-              IconButton(icon: const Icon(Icons.skip_next), onPressed: () => notifier.control('next')),
-            ],
           ),
-          TabBar(tabs: [Tab(text: l10n.upNext), Tab(text: l10n.jamAdd), Tab(text: l10n.jamMine)]),
-          const Expanded(child: TabBarView(children: [JamUpNext(), _HostSearch(), _MySongs()])),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
+/// Capa de uma música do dono (chega pela conexão da Festa, em arquivo).
 class JamHostCover extends ConsumerWidget {
   const JamHostCover({super.key, required this.id, this.size = 44});
   final String? id;
@@ -383,49 +405,121 @@ class JamHostCover extends ConsumerWidget {
     final notifier = ref.read(jamGuestProvider.notifier);
     return ValueListenableBuilder(
       valueListenable: notifier.coverVersion,
-      builder: (context, _, _) {
-        final bytes = notifier.cover(id);
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: bytes == null
-              ? Container(
-                  width: size,
-                  height: size,
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Icon(Icons.music_note, size: size * 0.5),
-                )
-              : Image.memory(bytes, width: size, height: size, fit: BoxFit.cover, gaplessPlayback: true),
-        );
-      },
+      builder: (context, _, _) => CoverArt(coverArtId: notifier.coverFile(id), size: size, icon: Icons.music_note),
     );
   }
 }
 
-/// Fila do anfitrião. Também aparece no painel de fila do player,
-/// porque o convidado não controla a fila local — quem manda é o dono.
-class JamUpNext extends ConsumerWidget {
-  const JamUpNext({super.key});
+/// Fila da Festa no painel de fila do player, para o convidado: a do dono,
+/// com quem pediu cada música, o que está indo daqui e o botão de adicionar.
+/// Não dá para tirar nem mudar de lugar: a fila é de todos.
+class JamQueue extends ConsumerWidget {
+  const JamQueue({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final next = ref.watch(jamGuestProvider.select((g) => g.next));
-    if (next.isEmpty) return Center(child: Text(l10n.jamQueueEmpty));
-    return ListView.builder(
-      itemCount: next.length,
-      itemBuilder: (context, i) {
-        final s = next[i];
-        final by = s['by'] as String?;
-        return ListTile(
-          leading: JamHostCover(id: s['coverArt'] as String?),
-          title: Text('${s['title'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(
-            [s['artist'] ?? '', if (by != null) l10n.addedBy(by)].where((x) => '$x'.isNotEmpty).join(' • '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+    final theme = Theme.of(context);
+    final (queue, index) = ref.watch(playerProvider.select((s) => (s.queue, s.index)));
+    final g = ref.watch(jamGuestProvider);
+    final by = g.addedBy;
+    final canJump = g.hostVersion >= 2;
+    final notifier = ref.read(jamGuestProvider.notifier);
+    final pending = [for (final e in g.transfers.entries) if (!e.value.done) e];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+          child: Row(
+            children: [
+              Icon(Icons.groups, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.jamQueueTitle, style: theme.textTheme.titleMedium)),
+              FilledButton.tonalIcon(
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(l10n.jamAddToParty),
+                onPressed: () => showJamAddSheet(context),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+        const Divider(),
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              for (final e in pending)
+                ListTile(
+                  dense: true,
+                  leading: Icon(e.value.error != null
+                      ? Icons.error_outline
+                      : (e.value.waiting ? Icons.schedule : Icons.upload)),
+                  title: Text(e.value.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: e.value.error != null
+                      ? Text(l10n.jamSendFailed)
+                      : (e.value.waiting ? Text(l10n.jamWaitingSend) : LinearProgressIndicator(value: e.value.progress)),
+                  trailing: e.value.error != null ? const Icon(Icons.close, size: 18) : null,
+                  onTap: e.value.error != null ? () => notifier.dismissTransfer(e.key) : null,
+                ),
+              if (queue.isEmpty && pending.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(child: Text(l10n.jamQueueEmpty, style: theme.textTheme.bodyMedium)),
+                ),
+              for (final (i, q) in queue.indexed)
+                ListTile(
+                  dense: true,
+                  selected: i == index,
+                  leading: CoverArt(coverArtId: q.song.coverArt, size: 36, icon: Icons.music_note),
+                  title: Text(q.song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(
+                    [q.song.displayArtist, if (by[q.uid] case final b?) l10n.addedBy(b)].where((x) => x.isNotEmpty).join(' • '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Text(formatDuration(q.song.duration), style: theme.textTheme.bodySmall),
+                  onTap: canJump && i != index ? () => ref.read(playerProvider.notifier).jumpTo(i) : null,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Folha "Adicionar à Festa": buscar nas músicas do dono ou mandar daqui
+/// (arquivo do aparelho ou da biblioteca). As páginas normais da biblioteca
+/// também mandam — esta é para quem não tem conta, e para as do dono.
+Future<void> showJamAddSheet(BuildContext context) => showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (c) => SizedBox(
+        height: MediaQuery.sizeOf(c).height * 0.8,
+        child: const _JamAddSheet(),
+      ),
+    );
+
+class _JamAddSheet extends ConsumerWidget {
+  const _JamAddSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    // A Festa acabou com a folha aberta: não há mais para onde mandar.
+    ref.listen(jamGuestProvider.select((g) => g.phase), (_, next) {
+      if (next != JamPhase.joined && Navigator.of(context).canPop()) Navigator.of(context).pop();
+    });
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TabBar(tabs: [Tab(text: l10n.jamTabParty), Tab(text: l10n.jamMine)]),
+          const Expanded(child: TabBarView(children: [_HostSearch(), _MySongs()])),
+        ],
+      ),
     );
   }
 }
@@ -551,7 +645,7 @@ class _MySongsState extends ConsumerState<_MySongs> {
       coverArt: t?.cover,
       path: path,
     );
-    await ref.read(jamGuestProvider.notifier).sendSong(song);
+    ref.read(jamGuestProvider.notifier).sendSong(song);
   }
 
   @override
@@ -601,8 +695,9 @@ class _MySongsState extends ConsumerState<_MySongs> {
               overflow: TextOverflow.ellipsis,
             ),
             trailing: const Icon(Icons.send),
+            // Pelo id quando o dono tem a mesma música (mesmo servidor), senão o arquivo.
             onTap: () {
-              ref.read(jamGuestProvider.notifier).sendSong(s);
+              ref.read(jamGuestProvider.notifier).addSongs([s]);
               showSnack(context, l10n.jamSending(s.title));
             },
           ),
@@ -664,7 +759,8 @@ class _MeuEnderecoState extends ConsumerState<_MeuEndereco> {
   @override
   void initState() {
     super.initState();
-    jamAddressesFor(connectTcpPort).then((e) {
+    // A porta de verdade: com outra instância no computador ela não é a padrão.
+    jamAddressesFor(ref.read(connectProvider.notifier).jamPort).then((e) {
       if (mounted) setState(() => _enderecos = e);
     });
   }

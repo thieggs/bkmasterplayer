@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bonsoir/bonsoir.dart';
 import 'package:flutter/foundation.dart';
@@ -99,7 +100,12 @@ class JamBonjour {
   }
 
   LanJamOffer? _paraOferta(BonsoirService s) {
-    final host = s.hostAddresses.isNotEmpty ? s.hostAddresses.first : s.hostname;
+    // No Linux o primeiro endereço costuma ser um IPv6 de enlace (fe80::…,
+    // de uma ponte do Docker), que sem a interface não conecta: IPv4 primeiro.
+    final ips = [for (final a in s.hostAddresses) ?InternetAddress.tryParse(a)];
+    final ip = ips.where((a) => a.type == InternetAddressType.IPv4).firstOrNull ??
+        ips.where((a) => !a.isLinkLocal).firstOrNull;
+    final host = ip?.address ?? s.hostname;
     if (host == null || host.isEmpty) return null;
     final a = s.attributes;
     return LanJamOffer(

@@ -239,13 +239,16 @@ Future<void> showSongMenu(BuildContext context, WidgetRef ref, Song song, {Offse
   final info = ref.read(serverInfoProvider);
   final player = ref.read(playerProvider.notifier);
   final starred = ref.read(starOverridesProvider)[song.id] ?? song.isStarred;
+  // Na Festa tocar e pôr na fila mandam para o dono; rádio e Modo DJ
+  // encheriam a fila de todos, então ficam de fora.
+  final jam = player.inJam;
   final items = <(IconData, String, VoidCallback)>[
     (Icons.play_arrow, l10n.playNow, () => player.playSongs([song])),
     (Icons.playlist_play, l10n.playNext, () => player.playNext([song])),
     (Icons.queue_music, l10n.addToQueue, () => player.enqueue([song])),
-    (Icons.auto_awesome, l10n.instantMix, () => LibraryActions.instantMix(context, ref, song)),
-    (Icons.auto_awesome_motion, l10n.djModeFrom, () => ref.read(playerProvider.notifier).startDj(song)),
-    if (info?.sonicSimilarity ?? false) ...[
+    if (!jam) (Icons.auto_awesome, l10n.instantMix, () => LibraryActions.instantMix(context, ref, song)),
+    if (!jam) (Icons.auto_awesome_motion, l10n.djModeFrom, () => ref.read(playerProvider.notifier).startDj(song)),
+    if (!jam && (info?.sonicSimilarity ?? false)) ...[
       (Icons.graphic_eq, l10n.sonicRadio, () => LibraryActions.sonicRadio(context, ref, song)),
       (Icons.route, l10n.sonicPath, () => LibraryActions.sonicPath(context, ref, song)),
     ],

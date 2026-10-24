@@ -1816,6 +1816,33 @@ class AppLocalizationsPt extends AppLocalizations {
   String get jamSendFailed => 'Não deu para mandar';
 
   @override
+  String get jamAddToParty => 'Adicionar à Festa';
+
+  @override
+  String get jamTabParty => 'Da Festa';
+
+  @override
+  String get jamWaitingSend => 'Na fila para enviar';
+
+  @override
+  String get jamOpenPlayer => 'Abrir o player';
+
+  @override
+  String get jamJoinedHint =>
+      'Use o player como sempre: o que você tocar ou puser na fila, de qualquer tela, vai para a Festa.';
+
+  @override
+  String jamSentToParty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count músicas indo para a Festa',
+      one: '1 música indo para a Festa',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get jamInOne => 'Você está numa Festa';
 
   @override

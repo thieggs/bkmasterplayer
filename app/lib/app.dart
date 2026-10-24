@@ -56,8 +56,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
       if (session.isLoading && !session.hasValue) return null;
       final loggedIn = session.value != null;
       final atLogin = state.matchedLocation == '/login';
-      // A Jam funciona sem conta (o convidado usa as músicas do dono).
+      // A Jam funciona sem conta (o convidado usa as músicas do dono), e com
+      // ela o player em tela cheia, que é onde o convidado acompanha a Festa.
       if (!loggedIn && state.matchedLocation == '/jam') return null;
+      if (!loggedIn && state.matchedLocation == '/now-playing' && ref.read(playerProvider).jamHost != null) return null;
       if (!loggedIn && !atLogin) return '/login';
       if (loggedIn && atLogin) return '/';
       return null;

@@ -72,6 +72,7 @@ class PlayerState {
     this.dj = false,
     this.remoteDevice,
     this.remoteDeviceId,
+    this.jamHost,
   });
 
   final List<QueueItem> queue;
@@ -111,6 +112,13 @@ class PlayerState {
   final String? remoteDevice;
   final String? remoteDeviceId;
 
+  /// Convidado numa Festa: nome do dono. O estado acima é o de lá, e os
+  /// comandos vão para ele (ver [JamRemote]).
+  final String? jamHost;
+
+  /// O som sai de outro aparelho (Connect ou Festa): aqui o motor está parado.
+  bool get elsewhere => remoteDevice != null || jamHost != null;
+
   QueueItem? get current => index >= 0 && index < queue.length ? queue[index] : null;
   bool get hasNext => index + 1 < queue.length || repeat != LoopMode.off;
 
@@ -140,6 +148,7 @@ class PlayerState {
         dj: dj ?? this.dj,
         remoteDevice: remoteDevice,
         remoteDeviceId: remoteDeviceId,
+        jamHost: jamHost,
         queue: queue ?? this.queue,
         index: index ?? this.index,
         playing: playing ?? this.playing,
@@ -165,6 +174,17 @@ class PlayerState {
 /// conversão (`fallbackUrl`). Tem de bater com `UNDECODABLE` do BK Analyzer
 /// (rust/src/bin/bk_analyzer/store.rs), que analisa o mesmo arquivo tocado.
 const _undecodable = {'wma', 'asf', 'mpc', 'mp+', 'mpp', 'tta', 'ac3', 'eac3', 'dts', 'amr', 'awb', 'spx', 'tak', 'ofr', 'ofs', 'shn', 'ra', 'rm'};
+
+/// Festa em que este aparelho entrou como convidado: o som sai do dono, e é
+/// para lá que vão os comandos do player (ver `jam/jam_core.dart`).
+abstract class JamRemote {
+  /// Comando do player, com os mesmos nomes e argumentos do Connect
+  /// (toggle, next, seek, playSongs…).
+  void command(String c, Map<String, dynamic> args);
+
+  /// Sai da Festa.
+  Future<void> leave();
+}
 
 class PlayerController extends Notifier<PlayerState> {
   StreamSubscription<engine.PlayerEvent>? _sub;
@@ -212,7 +232,12 @@ class PlayerController extends Notifier<PlayerState> {
     });
     ref.listen(sessionProvider, (_, next) {
       final account = next.value?.provider.accountId;
-      if (account != null && _accountId != null && account != _accountId) {
+      if (account != null && _accountId != null && account != _accountId && _jam != null) {
+        // Trocou de conta no meio da Festa: a fila guardada para a volta era
+        // da outra conta; ao sair, carrega a desta.
+        _beforeJam = null;
+        _restored = false;
+      } else if (account != null && _accountId != null && account != _accountId) {
         // Outra conta (ou do servidor para as músicas do aparelho): a fila
         // antiga não toca aqui; carrega a desta conta.
         _mixTimer?.cancel();
@@ -284,7 +309,8 @@ class PlayerController extends Notifier<PlayerState> {
 
   Future<void> _writeQueue() async {
     final p = _provider;
-    if (p == null) return;
+    // A fila de outro aparelho não é a daqui: não vai para o disco.
+    if (p == null || _mirroring) return;
     // Guarda até 1000 faixas em volta da atual.
     final queue = state.queue;
     final start = max(0, state.index - 200);
@@ -316,7 +342,7 @@ class PlayerController extends Notifier<PlayerState> {
   /// fila mudou desde a última gravação, grava tudo.
   Future<void> _savePosition() => _saveChain = _saveChain.then((_) {
         final p = _provider;
-        if (p == null) return null;
+        if (p == null || _mirroring) return null;
         final rel = state.index - _savedStart;
         if (!identical(state.queue, _savedQueue) || rel < 0 || rel >= _savedLength) return _writeQueue();
         return _writePosition(p.accountId, rel);
@@ -346,7 +372,7 @@ class PlayerController extends Notifier<PlayerState> {
   Future<void> _syncNow() async {
     final p = _provider;
     final cur = state.current;
-    if (p == null || cur == null || !ref.read(settingsProvider).syncQueue) return;
+    if (p == null || cur == null || _mirroring || !ref.read(settingsProvider).syncQueue) return;
     _lastServerSync = DateTime.now();
     final start = max(0, state.index - 100);
     final ids = state.queue.skip(start).take(500).map((q) => q.song.id).toList();
@@ -438,7 +464,8 @@ class PlayerController extends Notifier<PlayerState> {
   /// se não achou nada.
   Future<bool> startRadio(Song seed, {RecommendStyle? style}) async {
     final p = _provider;
-    if (p == null) return false;
+    // Na Festa a fila é do dono: uma rádio daqui mandaria vinte músicas para lá.
+    if (p == null || _jam != null) return false;
     final session = RadioSession(seed, artists: _radioArtists);
     final first = await session.next(
       want: 20,
@@ -540,6 +567,11 @@ class PlayerController extends Notifier<PlayerState> {
 
   /// Toque numa música de uma lista, conforme a preferência do usuário.
   void playFrom(List<Song> songs, int index) {
+    // Na Festa, tocar numa música da lista manda só ela (não a lista inteira).
+    if (_jam != null) {
+      ref.read(uiPrefsProvider).songTap == 'enqueue' ? enqueue([songs[index]]) : playNext([songs[index]]);
+      return;
+    }
     switch (ref.read(uiPrefsProvider).songTap) {
       case 'playOne':
         playSongs([songs[index]]);
@@ -711,7 +743,7 @@ class PlayerController extends Notifier<PlayerState> {
   /// `null` solta o disco. Num aparelho remoto não há o que girar daqui: o som
   /// sai lá.
   void vinyl(double? speed, {double maxSpeed = 0}) {
-    if (_remote != null) return;
+    if (_mirroring) return;
     engine.playerSetVinyl(speed: speed ?? 1.0, maxSpeed: maxSpeed, active: speed != null);
   }
 
@@ -720,7 +752,7 @@ class PlayerController extends Notifier<PlayerState> {
   /// do gesto — memória que chega junto com a mão nasce vazia, e aí voltar o
   /// disco não toca nada. [memorySeconds] em 0 = a faixa inteira.
   void prepareVinyl(double memorySeconds) {
-    if (_remote != null) return;
+    if (_mirroring) return;
     final secs = memorySeconds > 0 ? memorySeconds : state.duration.inSeconds.toDouble();
     if (secs <= 0) return;
     engine.playerPrepareVinyl(memorySecs: secs);
@@ -744,7 +776,7 @@ class PlayerController extends Notifier<PlayerState> {
   /// Volume relativo ao salvo (timer para dormir), sem gravar. No modo remoto
   /// não mexe (o volume de lá é do outro aparelho).
   void fadeVolume(double factor) {
-    if (_remote != null) return;
+    if (_mirroring) return;
     engine.playerSetVolume(volume: _gain(state.volume) * factor.clamp(0.0, 1.0));
   }
 
@@ -787,6 +819,8 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void _scheduleNext() {
+    // Tocando em outro aparelho: o motor daqui não tem o que preparar.
+    if (_mirroring) return;
     _persistSoon();
     final cur = state.current;
     final n = cur == null ? null : _nextIndex();
@@ -908,8 +942,12 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void _onEvent(engine.PlayerEvent e) {
-    // Controlando outro aparelho: o motor daqui está parado.
-    if (_remote != null) return;
+    // Controlando outro aparelho: o motor daqui está parado. Os botões de
+    // mídia do sistema (MPRIS) ainda chegam por ele, e vão para lá.
+    if (_mirroring) {
+      if (e case engine.PlayerEvent_MediaControl(:final action)) _onMediaAction(action);
+      return;
+    }
     switch (e) {
       case engine.PlayerEvent_TrackStarted(:final id):
         final i = state.queue.indexWhere((q) => q.uid == id);
@@ -1131,7 +1169,7 @@ class PlayerController extends Notifier<PlayerState> {
 
   /// Começa pelo [seed] e deixa o AudioMuse e o AutoMix escolherem as próximas.
   void startDj(Song seed) {
-    if (_remote != null) return;
+    if (_mirroring) return;
     ref.read(settingsProvider.notifier).update((s) => s.automixEnabled ? s : s.copyWith(automixEnabled: true));
     _djHeard.clear();
     _startingDj = true;
@@ -1142,6 +1180,7 @@ class PlayerController extends Notifier<PlayerState> {
   }
 
   void setDj(bool on) {
+    if (_jam != null) return;
     state = state.copyWith(dj: on, radio: on ? false : state.radio);
     _persistSoon();
     if (on) _djExtend();
@@ -1176,7 +1215,7 @@ class PlayerController extends Notifier<PlayerState> {
   /// (ou Last.fm/servidor), as melhores analisadas pelo AutoMix (fora dos
   /// dados móveis) e a de melhor encaixe entra na fila.
   Future<void> _djExtend() async {
-    if (!state.dj || _djBusy || _remote != null) return;
+    if (!state.dj || _djBusy || _mirroring) return;
     final cur = state.current;
     final p = _provider;
     if (cur == null || p == null || state.queue.length - state.index - 1 >= 1) return;
@@ -1242,18 +1281,23 @@ class PlayerController extends Notifier<PlayerState> {
   final _jamUids = <String>{};
 
   /// Músicas pedidas na Jam: entram depois da atual e das outras já pedidas
-  /// (em ordem de chegada). Com nada tocando, começa por elas.
-  List<String> jamInsert(List<Song> songs) {
+  /// (em ordem de chegada), ou no fim da fila com [atEnd]. Com nada tocando,
+  /// começa por elas.
+  List<String> jamInsert(List<Song> songs, {bool atEnd = false}) {
     if (songs.isEmpty) return const [];
-    if (_fwd('playNext', {'songs': _json(songs)})) return const [];
+    if (_fwd(atEnd ? 'enqueue' : 'playNext', {'songs': _json(songs)})) return const [];
     final items = songs.map(_item).toList();
     var at = state.index + 1;
-    while (at < state.queue.length && _jamUids.contains(state.queue[at].uid)) {
-      at++;
+    if (atEnd) {
+      at = state.queue.length;
+    } else {
+      while (at < state.queue.length && _jamUids.contains(state.queue[at].uid)) {
+        at++;
+      }
+      _jamUids.addAll(items.map((e) => e.uid));
     }
     final q = List.of(state.queue)..insertAll(at, items);
     _unshuffled?.addAll(items);
-    _jamUids.addAll(items.map((e) => e.uid));
     state = state.copyWith(queue: q, index: state.index < 0 ? 0 : state.index);
     if (state.current == null || (!state.playing && !state.buffering && !_engineHasTrack)) {
       _startAt(at);
@@ -1263,21 +1307,108 @@ class PlayerController extends Notifier<PlayerState> {
     return [for (final e in items) e.uid];
   }
 
+  /// Pula para a entrada [uid] da fila (convidado da Festa tocou nela).
+  void jumpToUid(String uid) {
+    final i = state.queue.indexWhere((q) => q.uid == uid);
+    if (i >= 0) jumpTo(i);
+  }
+
+  // ---- Convidado numa Festa ----
+
+  JamRemote? _jam;
+
+  /// Como estava o player daqui ao entrar na Festa: volta assim, pausado.
+  PlayerState? _beforeJam;
+
+  /// O som sai de outro aparelho (Connect ou Festa).
+  bool get _mirroring => _remote != null || _jam != null;
+
+  bool get inJam => _jam != null;
+
+  /// Sai da Festa como convidado (o timer para dormir, por exemplo): o som
+  /// do dono segue para os outros.
+  Future<void> exitJam() async => _jam?.leave();
+
+  /// Entrou numa Festa: o som sai do dono, e este player passa a mostrar e
+  /// controlar o que toca lá — barra, tela cheia, fila, notificação e os
+  /// botões de tocar das páginas, como no Connect. A fila daqui fica guardada
+  /// para a volta.
+  Future<void> enterJam(JamRemote jam, String host) async {
+    if (_jam != null) {
+      _jam = jam;
+      state = PlayerState(volume: state.volume, jamHost: host);
+      return;
+    }
+    if (_remote != null) {
+      // Estava controlando outro aparelho: deixa ele tocando e volta para cá.
+      final remote = state;
+      await _dropRemote();
+      _adoptFromRemote(remote, play: false);
+    }
+    if (state.current != null) await _persistNow();
+    _mixTimer?.cancel();
+    engine.playerStop();
+    _engineHasTrack = false;
+    _scheduledKey = null;
+    _beforeJam = state;
+    _jam = jam;
+    state = PlayerState(volume: state.volume, jamHost: host);
+  }
+
+  /// O que toca na Festa agora, como o dono mandou: a atual e as próximas.
+  void jamMirror({
+    required String host,
+    required List<QueueItem> queue,
+    required bool playing,
+    required Duration position,
+    required Duration duration,
+  }) {
+    if (_jam == null) return;
+    state = PlayerState(
+      queue: queue,
+      index: queue.isEmpty ? -1 : 0,
+      playing: playing,
+      position: position,
+      duration: duration,
+      volume: state.volume,
+      jamHost: host,
+    );
+  }
+
+  /// Saiu da Festa (ou ela acabou): volta a fila daqui, pausada onde estava.
+  void leaveJam() {
+    if (_jam == null) return;
+    _jam = null;
+    final before = _beforeJam;
+    _beforeJam = null;
+    if (before == null) {
+      state = PlayerState(volume: state.volume);
+      return;
+    }
+    _resumeAt = before.position;
+    state = before.copyWith(playing: false, buffering: false, clearMix: true, clearPlanned: true, clearMessage: true);
+  }
+
   // ---- Tocar em outro aparelho (BKmasterplayer Connect) ----
 
   ConnectLink? _remote;
   StreamSubscription<Map<String, dynamic>>? _remoteSub;
   List<QueueItem> _remoteQueue = const [];
 
-  bool get isRemote => _remote != null;
+  bool get isRemote => _mirroring;
 
   static List<Map<String, dynamic>> _json(List<Song> songs) => [for (final s in songs) s.toJson()];
 
   /// No modo remoto, manda o comando para o outro aparelho (e devolve true).
   bool _fwd(String c, [Map<String, dynamic> args = const {}]) {
     final r = _remote;
-    if (r == null) return false;
-    r.cmd(c, args);
+    if (r != null) {
+      r.cmd(c, args);
+      return true;
+    }
+    final j = _jam;
+    if (j == null) return false;
+    j.command(c, args);
     return true;
   }
 
@@ -1287,6 +1418,8 @@ class PlayerController extends Notifier<PlayerState> {
     final p = _provider;
     final me = ref.read(connectProvider.notifier).me;
     if (p == null || me == null) throw StateError('Connect indisponível');
+    // Escolher um aparelho é sair da Festa: o som passa a ser o daqui.
+    await _jam?.leave();
     final key = p.connectKey;
     if (key == null) throw const ConnectAuthException('entre de novo na conta neste aparelho para usar o Connect');
     final link = await ConnectLink.open(device, key: key, me: me);

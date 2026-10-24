@@ -163,6 +163,8 @@ class CommandsNotifier extends Notifier<CommandsState> {
   }
 
   void _onVolume(double v) {
+    // Convidado da Festa: o volume daqui não toca no som do dono.
+    if (ref.read(playerProvider).jamHost != null) return;
     final player = ref.read(playerProvider.notifier);
     final playing = ref.read(playerProvider).playing;
     switch (volumeAction(volume: v, playing: playing, pausedByRule: _pausedByVolume)) {

@@ -1817,6 +1817,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get jamSendFailed => 'Couldn\'t send it';
 
   @override
+  String get jamAddToParty => 'Add to the Party';
+
+  @override
+  String get jamTabParty => 'From the Party';
+
+  @override
+  String get jamWaitingSend => 'Waiting to send';
+
+  @override
+  String get jamOpenPlayer => 'Open the player';
+
+  @override
+  String get jamJoinedHint =>
+      'Use the player as usual: whatever you play or queue, from any screen, goes to the Party.';
+
+  @override
+  String jamSentToParty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs going to the Party',
+      one: '1 song going to the Party',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get jamInOne => 'You\'re in a Party';
 
   @override

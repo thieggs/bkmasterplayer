@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
-import '../../jam/jam_core.dart';
 import '../../jam/jam_page.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
@@ -45,25 +44,7 @@ class _QueuePanelState extends ConsumerState<QueuePanel> {
         .fold<Duration>(Duration.zero, (acc, q) => acc + (q.song.duration ?? Duration.zero));
 
     // Convidado numa Festa: a fila que vale é a do dono, não a local.
-    final naFesta = ref.watch(jamGuestProvider.select((g) => g.phase == JamPhase.joined));
-    if (naFesta) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              children: [
-                Icon(Icons.groups, size: 18, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(child: Text(l10n.jamQueueTitle, style: theme.textTheme.titleMedium)),
-              ],
-            ),
-          ),
-          const Expanded(child: JamUpNext()),
-        ],
-      );
-    }
+    if (ref.watch(playerProvider.select((s) => s.jamHost != null))) return const JamQueue();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

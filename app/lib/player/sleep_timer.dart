@@ -52,10 +52,19 @@ class _PlayerTarget implements SleepTarget {
   Duration get duration => _s.duration;
   @override
   void fade(double factor) => ref.read(playerProvider.notifier).fadeVolume(factor);
+  /// Convidado da Festa: o som é do dono e de todos. O timer não pausa nem
+  /// volta a música de lá — este aparelho é que sai da Festa.
   @override
-  void pause() => ref.read(playerProvider.notifier).pause();
+  void pause() {
+    final p = ref.read(playerProvider.notifier);
+    p.inJam ? p.exitJam() : p.pause();
+  }
+
   @override
-  void rewind() => ref.read(playerProvider.notifier).seek(Duration.zero);
+  void rewind() {
+    final p = ref.read(playerProvider.notifier);
+    if (!p.inJam) p.seek(Duration.zero);
+  }
 }
 
 final sleepTargetProvider = Provider<SleepTarget>((ref) => _PlayerTarget(ref));

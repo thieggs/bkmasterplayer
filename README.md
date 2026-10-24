@@ -183,7 +183,7 @@ comandos em ordem estão em [`docs/COMPILAR.md`](docs/COMPILAR.md).
 - **AudioMuse-AI (via Navidrome):** Mix instantâneo, rádio sônica, caminho sônico entre duas músicas e rádio infinita.
 - **Modo DJ:** a partir de uma música, o AudioMuse e o AutoMix escolhem cada próxima pelo melhor encaixe (parecença, BPM e tom).
 - **Sem servidor:** toca as músicas do aparelho (pastas escolhidas); o Last.fm dá as parecidas quando não há AudioMuse.
-- **Festa:** quem está perto entra na sua música, adiciona (da sua biblioteca ou das dele) e controla. Pela rede local ou, no Android, por Bluetooth/Wi-Fi Direct; cada pessoa só entra com a sua aprovação (ou com o passe que ganhou ao ser posta em "aceitar sempre").
+- **Festa:** quem está perto entra na sua música, adiciona (da sua biblioteca ou das dele) e controla. Pela rede local ou, no Android, por Bluetooth/Wi-Fi Direct; cada pessoa só entra com a sua aprovação (ou com o passe que ganhou ao ser posta em "aceitar sempre"). Quem entra continua no player de sempre: a barra, a tela cheia, a fila e os botões de tocar de qualquer página passam a valer para a Festa.
 - **Fila:** salva no disco e sincronizada com o servidor (continuar em outro aparelho).
 - **Connect:** escolher em qual aparelho tocar e controlá-lo (PC, notebook, celular da mesma conta). Protegido por desafio e resposta com uma chave que vem da senha: o token do servidor nunca vai para outro aparelho.
 - **Timer para dormir:** 15 a 90 minutos ou no fim da música, com o volume descendo aos poucos antes de pausar.

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -77,6 +78,18 @@ const jamMaxUpload = 200 * 1024 * 1024;
 const jamMaxTotal = 2 * 1024 * 1024 * 1024;
 const _jamMaxPendingOffers = 20;
 const _jamMaxCoverB64 = 700 * 1024;
+
+/// Versão do protocolo da Festa que este app fala. A 2 trouxe play/pause,
+/// pular para uma música da fila, "no fim da fila", músicas pelo id ('want')
+/// e capa grande. O dono manda a dele na entrada; dono antigo não manda nada.
+const jamProtocol = 2;
+
+/// Até quantas músicas um "tocar" do convidado manda de uma vez.
+const jamMaxSongsPerAdd = 50;
+
+/// Músicas do dono vistas pelo convidado: o id leva este prefixo, para o
+/// player daqui não confundir com as da própria biblioteca.
+const jamHostPrefix = 'jamhost:';
 
 /// Bytes de uma imagem de verdade (JPEG, PNG, GIF, WebP, BMP)? Capa de arquivo
 /// só sai do aparelho se for imagem.
@@ -256,7 +269,9 @@ LanJamOffer? offerFromText(String texto, {required int portaPadrao}) {
 }
 
 Future<JamLink> joinLan(LanJamOffer offer, String myId, String myName, String? pass) async {
-  final ws = await WebSocket.connect('ws://${offer.host}:${offer.port}/jam').timeout(const Duration(seconds: 6));
+  // Pelo Uri: um endereço IPv6 precisa dos colchetes.
+  final url = Uri(scheme: 'ws', host: offer.host, port: offer.port, path: '/jam');
+  final ws = await WebSocket.connect(url.toString()).timeout(const Duration(seconds: 6));
   ws.pingInterval = const Duration(seconds: 8);
   ws.add(jsonEncode({'t': 'hello', 'id': myId, 'n': myName, 'k': ?pass}));
   // Espera o dono decidir (pode demorar: ele precisa tocar em "Aceitar").
@@ -357,10 +372,10 @@ Future<String> _myName(Ref ref) async {
   return (custom == null || custom.trim().isEmpty) ? await systemDeviceName() : custom.trim();
 }
 
-/// Capa pequena (para mandar pela Jam): PNG de até 160 px.
-Future<Uint8List?> _thumb(Uint8List bytes) async {
+/// Capa reduzida (para mandar pela Jam): PNG de até [width] px.
+Future<Uint8List?> _thumb(Uint8List bytes, {int width = 160}) async {
   try {
-    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 160);
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: width);
     final frame = await codec.getNextFrame();
     final data = await frame.image.toByteData(format: ui.ImageByteFormat.png);
     return data?.buffer.asUint8List();
@@ -587,7 +602,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
     final token = _randomId(20);
     final link = _LanLink(ws, sub, peerId: req.guestId, peerName: req.guestName);
     _tokens[token] = link;
-    link.send({'t': 'welcome', 'n': _name, 'jid': jamId, 'token': token, 'k': ?_passToSend.remove(req.guestId)});
+    link.send({'t': 'welcome', 'n': _name, 'jid': jamId, 'token': token, 'v': jamProtocol, 'k': ?_passToSend.remove(req.guestId)});
     _attach(link);
   }
 
@@ -628,7 +643,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   void _attach(JamLink link) {
     final pa = JamParticipant(link: link, id: link.peerId, name: link.peerName, via: link.via);
     state = state.copyWith(participants: [...state.participants.where((x) => x.id != pa.id), pa]);
-    if (link.via != 'wifi') link.send({'t': 'welcome', 'n': _name, 'jid': jamId, 'k': ?_passToSend.remove(link.peerId)});
+    if (link.via != 'wifi') link.send({'t': 'welcome', 'n': _name, 'jid': jamId, 'v': jamProtocol, 'k': ?_passToSend.remove(link.peerId)});
     link.send(_stateMessage());
     final offers = <String, Map<String, dynamic>>{};
     link.files.listen((f) => _fileReceived(pa, offers.remove(f.$1), f.$1, f.$2));
@@ -664,12 +679,29 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
           _shown[s.id] = s;
         }
         pa.link.send({'t': 'results', 'req': m['req'], 'songs': [for (final s in songs) _songJson(s)]});
+      case 'want':
+        // O convidado pergunta quais músicas dele este aparelho já tem (mesmo
+        // servidor): essas vão pelo id, sem mandar o arquivo.
+        final ids = [for (final e in (m['ids'] as List? ?? const []).take(jamMaxSongsPerAdd)) if (e is String) e];
+        final local = ref.read(sessionProvider).value?.isLocal ?? true;
+        var found = const <Song>[];
+        if (!local && ids.isNotEmpty) {
+          try {
+            found = await ref.read(musicProvider).songsByIds(ids);
+          } catch (_) {}
+        }
+        if (_shown.length > 3000) _shown.clear();
+        for (final s in found) {
+          _shown[s.id] = s;
+        }
+        pa.link.send({'t': 'have', 'req': m['req'], 'ids': [for (final s in found) s.id]});
       case 'add':
         final local = ref.read(sessionProvider).value?.isLocal ?? false;
+        final queue = ref.read(playerProvider).queue;
         final songs = <Song>[];
         for (final e in (m['songs'] as List? ?? const [])) {
           if (e is! Map) continue;
-          final known = _shown[e['id']];
+          final known = _shown[e['id']] ?? queue.where((q) => q.song.id == e['id']).firstOrNull?.song;
           if (known != null) {
             songs.add(known);
           } else if (!local && e['id'] is String) {
@@ -682,7 +714,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
             } catch (_) {}
           }
         }
-        final uids = player.jamInsert(songs);
+        final uids = player.jamInsert(songs, atEnd: m['end'] == true);
         for (final u in uids) {
           _addedBy[u] = pa.name;
         }
@@ -690,6 +722,12 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
         switch (m['c']) {
           case 'toggle':
             player.toggle();
+          case 'play':
+            player.play();
+          case 'pause':
+            player.pause();
+          case 'jump':
+            if (m['u'] is String) player.jumpToUid(m['u'] as String);
           case 'next':
             player.next();
           case 'previous':
@@ -712,8 +750,9 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
         // Só capa de música que este aparelho mostrou (fila ou buscas): o id
         // pode ser um caminho de arquivo, e o convidado não escolhe qual.
         if (id is! String || !_coverShared(id)) return;
-        final bytes = await _coverBytes(id);
-        if (bytes != null) pa.link.send({'t': 'cover', 'id': id, 'b64': base64Encode(bytes)});
+        final big = m['big'] == true;
+        final bytes = await _coverBytes(id, big: big);
+        if (bytes != null) pa.link.send({'t': 'cover', 'id': id, 'big': big, 'b64': base64Encode(bytes)});
       case 'bye':
         await pa.link.close();
     }
@@ -750,7 +789,7 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
       coverArt: cover,
       path: target,
     );
-    final uids = ref.read(playerProvider.notifier).jamInsert([song]);
+    final uids = ref.read(playerProvider.notifier).jamInsert([song], atEnd: offer['end'] == true);
     for (final u in uids) {
       _addedBy[u] = pa.name;
     }
@@ -761,7 +800,11 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
   bool _coverShared(String id) =>
       _shown.values.any((s) => s.coverArt == id) || ref.read(playerProvider).queue.any((q) => q.song.coverArt == id);
 
-  Future<Uint8List?> _coverBytes(String id) async {
+  /// Capa para mandar a um convidado: miniatura para listas ou, com [big], a
+  /// da tela cheia (até ~120 KB, para não segurar o Bluetooth).
+  Future<Uint8List?> _coverBytes(String id, {bool big = false}) async {
+    final size = big ? 600 : 150;
+    final limit = big ? 120 * 1024 : 40 * 1024;
     try {
       Uint8List bytes;
       if (isFileCover(id)) {
@@ -769,13 +812,17 @@ class JamHostNotifier extends Notifier<JamHostState> implements JamLanRoutes {
         if (!looksLikeImage(bytes)) return null;
       } else {
         final provider = ref.read(musicProvider);
-        final uri = provider.coverUri(id, size: 150);
-        final key = provider.coverCacheKey(id, size: 150);
+        final uri = provider.coverUri(id, size: size);
+        final key = provider.coverCacheKey(id, size: size);
         if (uri == null || key == null) return null;
         final dir = p.join(ref.read(cacheDirProvider).path, 'ui_covers');
         bytes = await (await CoverImageProvider.fetchFile(url: uri.toString(), cacheKey: key, cacheDir: dir)).readAsBytes();
       }
-      return bytes.length <= 40 * 1024 ? bytes : await _thumb(bytes);
+      if (bytes.length <= limit) return bytes;
+      // A reduzida sai em PNG, que numa foto pesa mais que o JPEG do
+      // servidor: grande demais, o convidado fica com a miniatura.
+      final t = await _thumb(bytes, width: big ? 320 : 160);
+      return big && t != null && t.length > 300 * 1024 ? null : t;
     } catch (_) {
       return null;
     }
@@ -832,10 +879,13 @@ final jamHostProvider = NotifierProvider<JamHostNotifier, JamHostState>(JamHostN
 enum JamPhase { idle, waiting, joined, rejected, ended }
 
 class JamTransfer {
-  const JamTransfer({required this.title, required this.progress, this.done = false, this.error});
+  const JamTransfer({required this.title, required this.progress, this.done = false, this.waiting = false, this.error});
   final String title;
   final double progress;
   final bool done;
+
+  /// Na fila de envio, esperando as anteriores (vão uma por vez).
+  final bool waiting;
   final String? error;
 }
 
@@ -844,6 +894,7 @@ class JamGuestState {
     this.phase = JamPhase.idle,
     this.offers = const [],
     this.hostName,
+    this.hostVersion = 1,
     this.playing = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
@@ -852,10 +903,15 @@ class JamGuestState {
     this.transfers = const {},
     this.bluetooth = JamBluetooth.ok,
     this.plainBtFailed = false,
+    this.sentTick = 0,
+    this.sentCount = 0,
   });
   final JamPhase phase;
   final List<JamOffer> offers;
   final String? hostName;
+
+  /// Versão do protocolo do dono ([jamProtocol]); 1 = app antigo.
+  final int hostVersion;
   final bool playing;
   final Duration position;
   final Duration duration;
@@ -873,10 +929,22 @@ class JamGuestState {
   /// A busca por Bluetooth sem Play Services não começou.
   final bool plainBtFailed;
 
+  /// Músicas mandadas para a Festa pelo player: o contador muda a cada envio
+  /// (o shell avisa), [sentCount] é quantas foram.
+  final int sentTick;
+  final int sentCount;
+
+  /// Quem pediu cada música da fila do dono (uid → nome).
+  Map<String, String> get addedBy => {
+        for (final e in [?current, ...next])
+          if (e['uid'] is String && e['by'] is String) e['uid'] as String: e['by'] as String,
+      };
+
   JamGuestState copyWith({
     JamPhase? phase,
     List<JamOffer>? offers,
     String? hostName,
+    int? hostVersion,
     bool? playing,
     Duration? position,
     Duration? duration,
@@ -886,11 +954,14 @@ class JamGuestState {
     Map<String, JamTransfer>? transfers,
     JamBluetooth? bluetooth,
     bool? plainBtFailed,
+    int? sentTick,
+    int? sentCount,
   }) =>
       JamGuestState(
         phase: phase ?? this.phase,
         offers: offers ?? this.offers,
         hostName: hostName ?? this.hostName,
+        hostVersion: hostVersion ?? this.hostVersion,
         playing: playing ?? this.playing,
         position: position ?? this.position,
         duration: duration ?? this.duration,
@@ -899,6 +970,8 @@ class JamGuestState {
         transfers: transfers ?? this.transfers,
         bluetooth: bluetooth ?? this.bluetooth,
         plainBtFailed: plainBtFailed ?? this.plainBtFailed,
+        sentTick: sentTick ?? this.sentTick,
+        sentCount: sentCount ?? this.sentCount,
       );
 }
 
@@ -913,7 +986,7 @@ enum JamBluetooth {
   failed,
 }
 
-class JamGuestNotifier extends Notifier<JamGuestState> {
+class JamGuestNotifier extends Notifier<JamGuestState> implements JamRemote {
   JamLink? _link;
   StreamSubscription<List<JamOffer>>? _nearbySub;
   StreamSubscription<List<JamOffer>>? _btSub;
@@ -924,19 +997,36 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
   VoidCallback? _lanListener;
   int _req = 0;
   final _results = <int, Completer<List<Song>>>{};
+  final _wants = <int, Completer<Set<String>>>{};
   final _accepts = <String, Completer<void>>{};
 
-  /// Capas pedidas ao dono (id → PNG).
-  final covers = <String, Uint8List>{};
+  /// Capas pedidas ao dono, guardadas em arquivo (id → caminho): assim a capa
+  /// do player, da notificação e do tema sai pelo caminho de sempre.
+  final _covers = <String, String>{};
+  final _bigCovers = <String, String>{};
   final _coverWaiting = <String>{};
   final coverVersion = ValueNotifier(0);
+  String _coversDir = '';
+
+  /// Último estado mandado pelo dono, e as entradas da fila já montadas
+  /// (uid → entrada): reaproveitar a mesma entrada evita que a tela ache que
+  /// a música mudou a cada aviso do dono (a letra, por exemplo, recarregava).
+  Map<String, dynamic>? _lastState;
+  final _mirrored = <String, (String?, QueueItem)>{};
+
+  /// Músicas esperando a vez de ir como arquivo (id do envio, música, no fim).
+  final _toSend = <(String, Song, bool)>[];
+  bool _sending = false;
 
   @override
   JamGuestState build() {
     jamPassFor = (hostId) => _passes()[hostId];
     ref.onDispose(() {
       _stopSearch();
-      _link?.close();
+      // Sem o link antes de fechar: o fim da conexão não mexe mais em nada.
+      final l = _link;
+      _link = null;
+      l?.close();
     });
     return const JamGuestState();
   }
@@ -1015,10 +1105,11 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
   }
 
   void _mergeOffers() {
-    // As duas descobertas podem achar a mesma Festa; vale uma vez só.
+    // As duas descobertas podem achar a mesma Festa; vale uma vez só, e a do
+    // anúncio na rede, cujo endereço é o de onde ele veio de fato.
     final porId = <String, LanJamOffer>{
-      for (final o in ref.read(connectProvider.notifier).jamOffers.value) o.deviceId: o,
       for (final o in _bonjourOffers) o.deviceId: o,
+      for (final o in ref.read(connectProvider.notifier).jamOffers.value) o.deviceId: o,
     };
     final lan = porId.values;
     final offers = <JamOffer>[
@@ -1087,11 +1178,17 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     try {
       final link = await offer.join(_myId(ref), await _myName(ref), _passes()[offer.hostId]);
       _stopSearch();
+      await _clearCovers();
       _link = link;
-      state = state.copyWith(phase: JamPhase.joined);
+      // O player daqui passa a ser o da Festa antes de a fase mudar: quem
+      // abre o player ao ver "entrou" (sem conta, a rota depende disso) já o
+      // encontra pronto. As mensagens esperam na fila do link até lá.
+      await ref.read(playerProvider.notifier).enterJam(this, state.hostName ?? offer.hostName);
+      state = state.copyWith(phase: JamPhase.joined, hostVersion: 1);
       link.messages.listen(_onHost, onDone: () {
         if (_link == link) {
           _link = null;
+          _ended();
           state = state.copyWith(phase: JamPhase.ended);
           _searchAgain();
         }
@@ -1112,23 +1209,48 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     unawaited(search());
   }
 
+  @override
   Future<void> leave() async {
     final l = _link;
     _link = null;
     l?.send({'t': 'bye'});
     await l?.close();
+    _ended();
     state = const JamGuestState();
   }
 
-  void reset() => state = JamGuestState(offers: state.offers);
+  /// Fim da Festa deste lado: o player volta à fila daqui.
+  void _ended() {
+    ref.read(playerProvider.notifier).leaveJam();
+    _lastState = null;
+    _toSend.clear();
+    unawaited(_clearCovers());
+  }
+
+  Future<void> _clearCovers() async {
+    _covers.clear();
+    _bigCovers.clear();
+    _coverWaiting.clear();
+    _mirrored.clear();
+    final base = p.join(ref.read(cacheDirProvider).path, 'jam_guest');
+    // Pasta nova a cada Festa: o cache de imagens da tela é pelo caminho, e
+    // outro dono pode ter outra capa com o mesmo id.
+    _coversDir = p.join(base, _randomId(8));
+    try {
+      final d = Directory(base);
+      if (await d.exists()) await d.delete(recursive: true);
+    } catch (_) {}
+  }
 
   void _onHost(Map<String, dynamic> m) {
     switch (m['t']) {
       case 'welcome':
-        state = state.copyWith(hostName: m['n'] as String?);
+        state = state.copyWith(hostName: m['n'] as String?, hostVersion: (m['v'] as num?)?.toInt() ?? 1);
         final pass = m['k'], host = _link?.peerId;
         if (pass is String && host != null) _savePass(host, pass);
+        _mirror();
       case 'state':
+        _lastState = m;
         state = state.copyWith(
           playing: m['playing'] == true,
           position: Duration(milliseconds: (m['pos'] as num?)?.toInt() ?? 0),
@@ -1137,11 +1259,14 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
           clearCurrent: m['cur'] == null,
           next: [for (final e in (m['next'] as List? ?? const [])) if (e is Map) Map<String, dynamic>.from(e)],
         );
+        _mirror();
       case 'results':
         final c = _results.remove(m['req']);
         c?.complete([
           for (final e in (m['songs'] as List? ?? const [])) if (e is Map) Song.fromJson(Map<String, dynamic>.from(e)),
         ]);
+      case 'have':
+        _wants.remove(m['req'])?.complete({for (final e in (m['ids'] as List? ?? const [])) if (e is String) e});
       case 'accept':
         _accepts.remove(m['fid'])?.complete();
       case 'queued':
@@ -1151,22 +1276,96 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
         state = state.copyWith(transfers: t);
       case 'cover':
         final id = m['id'], b64 = m['b64'];
-        if (id is String && b64 is String) {
-          covers[id] = base64Decode(b64);
-          _coverWaiting.remove(id);
-          coverVersion.value++;
-        }
+        if (id is String && b64 is String) unawaited(_saveCover(id, b64, big: m['big'] == true));
       case 'bye':
         _link?.close();
     }
   }
 
-  /// Capa de uma música do dono (pede na primeira vez).
-  Uint8List? cover(String? id) {
+  /// O estado do dono vira o do player daqui: a atual e as próximas.
+  void _mirror() {
+    if (_link == null) return;
+    final m = _lastState;
+    final cur = m?['cur'] is Map ? Map<String, dynamic>.from(m!['cur'] as Map) : null;
+    final items = <QueueItem>[];
+    if (cur != null) {
+      final next = [for (final e in (m!['next'] as List? ?? const [])) if (e is Map) Map<String, dynamic>.from(e)];
+      for (final (i, e) in [cur, ...next].indexed) {
+        final item = _hostItem(e, '${e['uid'] ?? 'h$i'}', big: i == 0);
+        if (item != null) items.add(item);
+      }
+    }
+    final uids = {for (final q in items) q.uid};
+    _mirrored.removeWhere((k, _) => !uids.contains(k));
+    Duration ms(Object? v) => Duration(milliseconds: (v as num?)?.toInt() ?? 0);
+    ref.read(playerProvider.notifier).jamMirror(
+          host: state.hostName ?? '',
+          queue: items,
+          playing: m?['playing'] == true,
+          position: ms(m?['pos']),
+          duration: ms(m?['dur']),
+        );
+  }
+
+  /// Entrada da fila para uma música do dono. O id ganha [jamHostPrefix] e
+  /// some o que só vale na biblioteca de lá (álbum, artista, arquivo).
+  QueueItem? _hostItem(Map<String, dynamic> e, String uid, {bool big = false}) {
+    final id = e['id'];
+    if (id is! String) return null;
+    final cover = coverFile(e['coverArt'] is String ? e['coverArt'] as String : null, big: big);
+    final old = _mirrored[uid];
+    if (old != null && old.$1 == cover) return old.$2;
+    final j = Map<String, dynamic>.from(e)
+      ..remove('uid')
+      ..remove('by')
+      ..remove('albumId')
+      ..remove('artistId')
+      ..remove('path')
+      ..remove('coverArt');
+    j['id'] = '$jamHostPrefix$id';
+    if (cover != null) j['coverArt'] = cover;
+    try {
+      final item = QueueItem(uid, Song.fromJson(j));
+      _mirrored[uid] = (cover, item);
+      return item;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Arquivo da capa [id] do dono; pede na primeira vez. Com [big] (música
+  /// atual), pede também a grande e usa a miniatura até ela chegar.
+  String? coverFile(String? id, {bool big = false}) {
     if (id == null) return null;
-    final c = covers[id];
-    if (c == null && _coverWaiting.add(id)) _link?.send({'t': 'cover', 'id': id});
-    return c;
+    if (big && state.hostVersion >= 2) {
+      final b = _bigCovers[id];
+      if (b != null) return b;
+      _askCover(id, big: true);
+    }
+    final small = _covers[id];
+    if (small == null) _askCover(id);
+    return small;
+  }
+
+  void _askCover(String id, {bool big = false}) {
+    if (_coverWaiting.add('${big ? 'b' : 's'}|$id')) _link?.send({'t': 'cover', 'id': id, if (big) 'big': true});
+  }
+
+  Future<void> _saveCover(String id, String b64, {required bool big}) async {
+    try {
+      final bytes = base64Decode(b64);
+      if (!looksLikeImage(bytes)) return;
+      final dir = _coversDir;
+      if (dir.isEmpty) return;
+      await Directory(dir).create(recursive: true);
+      final name = sha1.convert(utf8.encode(id)).toString().substring(0, 24);
+      final f = File(p.join(dir, '$name${big ? '_b' : ''}.img'));
+      await f.writeAsBytes(bytes);
+      if (dir != _coversDir) return; // a Festa acabou enquanto gravava
+      (big ? _bigCovers : _covers)[id] = f.path;
+      coverVersion.value++;
+      _mirror();
+    } catch (_) {}
   }
 
   Future<List<Song>> searchHost(String q) async {
@@ -1179,16 +1378,139 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
     return c.future.timeout(const Duration(seconds: 20), onTimeout: () => const []);
   }
 
-  void addFromHost(Song song) => _link?.send({'t': 'add', 'songs': [song.toJson()]});
+  void addFromHost(Song song, {bool atEnd = false}) =>
+      _link?.send({'t': 'add', 'songs': [song.toJson()..remove('path')], if (atEnd) 'end': true});
 
-  void control(String c, {int? ms}) => _link?.send({'t': 'cmd', 'c': c, 'ms': ?ms});
+  void control(String c, {int? ms, String? uid}) => _link?.send({'t': 'cmd', 'c': c, 'ms': ?ms, 'u': ?uid});
 
-  /// Manda uma música daqui para a Jam: arquivo do aparelho ou baixada do
-  /// servidor deste convidado.
-  Future<void> sendSong(Song song) async {
+  /// Comandos do player daqui (barra, tela cheia, notificação, páginas) indo
+  /// para o dono. Só vai o que um convidado pode fazer: o resto (volume,
+  /// aleatório, repetir, mexer na fila dos outros) a tela nem mostra.
+  @override
+  void command(String c, Map<String, dynamic> args) {
+    final v2 = state.hostVersion >= 2;
+    switch (c) {
+      case 'toggle' || 'next' || 'previous':
+        control(c);
+      case 'play' || 'pause':
+        if (v2) {
+          control(c);
+        } else if (state.playing != (c == 'play')) {
+          control('toggle');
+        }
+      case 'seek':
+        control('seek', ms: (args['ms'] as num?)?.toInt());
+      case 'jump':
+        final q = ref.read(playerProvider).queue;
+        final i = args['i'];
+        if (v2 && i is int && i >= 0 && i < q.length) control('jump', uid: q[i].uid);
+      case 'playSongs':
+        var songs = _songsArg(args);
+        final start = (args['start'] as num?)?.toInt() ?? 0;
+        if (start > 0 && start < songs.length) songs = songs.sublist(start);
+        if (args['shuffle'] == true) songs.shuffle();
+        unawaited(addSongs(songs));
+      case 'playNext':
+        unawaited(addSongs(_songsArg(args)));
+      case 'enqueue':
+        unawaited(addSongs(_songsArg(args), atEnd: true));
+    }
+  }
+
+  static List<Song> _songsArg(Map<String, dynamic> args) => [
+        for (final e in (args['songs'] as List? ?? const []))
+          if (e is Map) ?_tryParse(e),
+      ];
+
+  static Song? _tryParse(Map e) {
+    try {
+      return Song.fromJson(Map<String, dynamic>.from(e));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Músicas daqui para a Festa, na ordem. "Tocar" e "tocar a seguir" entram
+  /// como próximas (não cortam a música de ninguém); [atEnd], no fim da fila.
+  ///
+  /// As que o dono já tem — as dele mesmo ou, no mesmo servidor, as daqui —
+  /// vão pelo id, na hora. As outras vão como arquivo, uma por vez: todas
+  /// juntas engasgavam o Bluetooth.
+  Future<void> addSongs(List<Song> songs, {bool atEnd = false}) async {
+    final l = _link;
+    if (l == null || songs.isEmpty) return;
+    songs = songs.take(jamMaxSongsPerAdd).toList();
+    state = state.copyWith(sentTick: state.sentTick + 1, sentCount: songs.length);
+    final session = ref.read(sessionProvider).value;
+    final mine = [for (final s in songs) if (!s.id.startsWith(jamHostPrefix)) s.id];
+    final have = mine.isNotEmpty && state.hostVersion >= 2 && session != null && !session.isLocal
+        ? await _askHave(mine)
+        : const <String>{};
+    final byId = <Map<String, dynamic>>[];
+    final files = <Song>[];
+    for (final s in songs) {
+      if (s.id.startsWith(jamHostPrefix)) {
+        byId.add({...s.toJson()..remove('path')..remove('coverArt'), 'id': s.id.substring(jamHostPrefix.length)});
+      } else if (have.contains(s.id)) {
+        byId.add(s.toJson()..remove('path')..remove('coverArt'));
+      } else {
+        files.add(s);
+      }
+    }
+    if (byId.isNotEmpty) _link?.send({'t': 'add', 'songs': byId, if (atEnd) 'end': true});
+    _queueFiles(files, atEnd);
+  }
+
+  /// Pergunta ao dono quais destas músicas ele já tem (mesmo servidor).
+  Future<Set<String>> _askHave(List<String> ids) {
+    final l = _link;
+    if (l == null) return Future.value(const {});
+    final id = ++_req;
+    final c = Completer<Set<String>>();
+    _wants[id] = c;
+    l.send({'t': 'want', 'req': id, 'ids': ids});
+    return c.future.timeout(const Duration(seconds: 8), onTimeout: () {
+      _wants.remove(id);
+      return const <String>{};
+    });
+  }
+
+  /// Manda uma música daqui para a Festa como arquivo: do aparelho ou baixada
+  /// do servidor deste convidado.
+  void sendSong(Song song, {bool atEnd = false}) => _queueFiles([song], atEnd);
+
+  void _queueFiles(List<Song> songs, bool atEnd) {
+    if (songs.isEmpty) return;
+    // As que já entraram na fila do dono saem da lista.
+    final t = Map.of(state.transfers)..removeWhere((_, x) => x.done);
+    for (final s in songs) {
+      final fid = _randomId(16);
+      _toSend.add((fid, s, atEnd));
+      t[fid] = JamTransfer(title: s.title, progress: 0, waiting: true);
+    }
+    state = state.copyWith(transfers: t);
+    unawaited(_pumpFiles());
+  }
+
+  Future<void> _pumpFiles() async {
+    if (_sending) return;
+    _sending = true;
+    try {
+      while (_toSend.isNotEmpty && _link != null) {
+        final (fid, song, atEnd) = _toSend.removeAt(0);
+        await _sendFile(song, fid, atEnd: atEnd);
+      }
+    } finally {
+      _sending = false;
+    }
+  }
+
+  /// Tira da lista um envio que deu erro (o convidado tocou nele).
+  void dismissTransfer(String fid) => state = state.copyWith(transfers: Map.of(state.transfers)..remove(fid));
+
+  Future<void> _sendFile(Song song, String fid, {required bool atEnd}) async {
     final l = _link;
     if (l == null) return;
-    final fid = _randomId(16);
     void progress(double v, {String? error}) {
       // O "queued" do dono pode chegar antes do último aviso de progresso
       // (Bluetooth): o que já foi confirmado não volta a ser progresso.
@@ -1228,6 +1550,7 @@ class JamGuestNotifier extends Notifier<JamGuestState> {
         'size': await File(path).length(),
         'song': {...song.toJson()..remove('path')..remove('coverArt')..remove('id'), 'suffix': suffix},
         if (cover != null) 'cover': base64Encode(cover),
+        if (atEnd) 'end': true,
       });
       await accepted.future.timeout(const Duration(seconds: 30));
       final base = tmp == null ? 0.0 : 0.4;
@@ -1277,8 +1600,11 @@ final jamGuestProvider = NotifierProvider<JamGuestNotifier, JamGuestState>(JamGu
 /// Apaga as músicas que convidados mandaram para tocar na Festa (ficam só
 /// enquanto ela dura: não viram cópia no aparelho de quem recebeu).
 Future<void> clearJamFiles(String cacheDir) async {
-  try {
-    final dir = Directory(p.join(cacheDir, 'jam'));
-    if (await dir.exists()) await dir.delete(recursive: true);
-  } catch (_) {}
+  // 'jam_guest': capas da Festa em que este aparelho entrou.
+  for (final name in ['jam', 'jam_guest']) {
+    try {
+      final dir = Directory(p.join(cacheDir, name));
+      if (await dir.exists()) await dir.delete(recursive: true);
+    } catch (_) {}
+  }
 }
