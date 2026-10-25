@@ -10,7 +10,7 @@
 //! coletânea). O arquivo guarda o vetor uma vez e aponta todos os ids para
 //! ele, senão "parecidas" viria com a mesma música repetida.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
@@ -23,6 +23,25 @@ const OTHER_DIMS: usize = 6;
 /// Distância de som abaixo da qual é a mesma gravação (o
 /// `DUPLICATE_DISTANCE_THRESHOLD_COSINE` do AudioMuse).
 const SAME_SONG_DISTANCE: f32 = 0.01;
+
+// Réguas do aleatório smart, em distância de estilo (1 − nota de
+// [`Style::Genre`]). Medidas na biblioteca do usuário em 24/10/2026, 7.272
+// músicas: a 20ª mais parecida de uma música fica a ~0,05, a 350ª a ~0,10, e
+// duas músicas quaisquer a ~0,29.
+
+/// Gêmea de uma música pulada: some junto com ela. Umas vinte por música.
+const TWIN: f32 = 0.045;
+
+/// Raio de uma zona evitada: o estilo em volta das puladas, umas 350 músicas
+/// (5% da biblioteca), não a biblioteca inteira.
+const ZONE: f32 = 0.10;
+
+/// Duas puladas a menos que isto uma da outra são do mesmo estilo e formam
+/// zona; mais longe, cada uma leva só as gêmeas.
+const ZONE_LINK: f32 = 0.15;
+
+/// Quantas sorteadas a exploração compara para achar uma longe de tudo.
+const SAMPLE: usize = 150;
 
 /// De que jeito "parecida" é medido.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,6 +121,14 @@ pub struct Recommender {
 pub struct Hit {
     pub id: String,
     pub score: f32,
+}
+
+/// Uma candidata do aleatório smart: a música, quanto combina com o ímã que a
+/// trouxe e qual ímã foi (a posição dele na lista pedida).
+pub struct SmartHit {
+    pub id: String,
+    pub score: f32,
+    pub anchor: u32,
 }
 
 fn f32s(b: &[u8], n: usize) -> Vec<f32> {
@@ -191,6 +218,88 @@ fn era_match(a: u16, b: u16) -> f32 {
     }
     let d = (a as f32 - b as f32).abs();
     (-d / 8.0).exp()
+}
+
+/// Mesmo estilo musical, de 0 a 1.
+///
+/// O CLAP é quem sabe estilo (corrido com corrido, samba com samba); o som
+/// desempata. Medido contra o gênero das tags do Navidrome, 400 sementes:
+/// acerta 53%, contra 46% da conta antiga — que usava os rótulos de estilo do
+/// AudioMuse, um classificador de 45 gêneros ocidentais que põe corrido
+/// mexicano como "electronic, rock, indie". Sem CLAP de uma das duas, a antiga.
+fn genre_match(a: &Track, b: &Track) -> f32 {
+    match cosine_i8(&a.clap, &b.clap) {
+        Some(c) => 0.7 * unit(c) + 0.3 * unit(cosine(&a.audio, &b.audio)),
+        None => 0.8 * cosine(&a.style, &b.style) + 0.2 * unit(cosine(&a.audio, &b.audio)),
+    }
+}
+
+/// Quão longe no estilo (0 = igual). É a régua das zonas e da exploração do
+/// aleatório smart, seja qual for o jeito de recomendar escolhido.
+fn style_distance(a: &Track, b: &Track) -> f32 {
+    1.0 - genre_match(a, b)
+}
+
+/// O que o aleatório smart aprendeu a evitar (ver `player/smart_session.dart`).
+///
+/// Uma música pulada sozinha leva junto só as gêmeas dela ([`TWIN`]): um pulo
+/// pode ser "essa eu não aguento mais", e não "odeio o estilo". Duas ou mais
+/// puladas perto uma da outra ([`ZONE_LINK`]) já dizem o estilo, e aí a região
+/// em volta delas ([`ZONE`]) fica de fora — a não ser que ali também haja uma
+/// música aprovada (`liked`).
+///
+/// Essa ressalva veio da simulação (24/10/2026, `test/smart_sim_test.dart`):
+/// quem gosta de samba pula as vizinhas não-samba dos ímãs de samba, duas
+/// dessas puladas fechavam uma zona em volta do próprio ímã, e ele parava de
+/// trazer as vizinhas boas — metade da sessão virava amostra sorteada.
+struct Avoid<'a> {
+    skipped: Vec<&'a Track>,
+    zone: Vec<bool>,
+}
+
+impl<'a> Avoid<'a> {
+    fn new(r: &'a Recommender, ids: &[String], liked: &[String]) -> Self {
+        let mut seen = HashSet::new();
+        let skipped: Vec<&Track> = ids
+            .iter()
+            .filter_map(|id| r.by_id.get(id))
+            .filter(|&&i| seen.insert(i))
+            .map(|&i| &r.tracks[i as usize])
+            .collect();
+        let liked: Vec<&Track> = liked.iter().filter_map(|id| r.by_id.get(id)).map(|&i| &r.tracks[i as usize]).collect();
+        let zone = (0..skipped.len())
+            .map(|i| {
+                (0..skipped.len()).any(|j| j != i && style_distance(skipped[i], skipped[j]) < ZONE_LINK)
+                    && !liked.iter().any(|l| style_distance(skipped[i], l) < ZONE)
+            })
+            .collect();
+        Self { skipped, zone }
+    }
+
+    fn blocks(&self, t: &Track) -> bool {
+        self.skipped.iter().zip(&self.zone).any(|(s, &zone)| {
+            let d = style_distance(s, t);
+            d < TWIN || (zone && d < ZONE)
+        })
+    }
+}
+
+/// Sorteio sem dependência nova (splitmix64). A semente vem de quem pede,
+/// para os testes repetirem o mesmo sorteio.
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> u64 {
+        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    }
+
+    fn below(&mut self, n: usize) -> usize {
+        (self.next() % n.max(1) as u64) as usize
+    }
 }
 
 /// Tira de cada dimensão a média da biblioteca.
@@ -315,16 +424,7 @@ impl Recommender {
         match style {
             Style::Sound => cosine(&a.audio, &b.audio),
             Style::Lyrics => cosine(&a.lyrics, &b.lyrics),
-            // O CLAP é quem sabe estilo (corrido com corrido, samba com
-            // samba); o som desempata. Medido contra o gênero das tags do
-            // Navidrome, 400 sementes: acerta 53%, contra 46% da conta antiga
-            // — que usava os rótulos de estilo do AudioMuse, um classificador
-            // de 45 gêneros ocidentais que põe corrido mexicano como
-            // "electronic, rock, indie". Sem CLAP de uma das duas, a antiga.
-            Style::Genre => match cosine_i8(&a.clap, &b.clap) {
-                Some(c) => 0.7 * unit(c) + 0.3 * unit(cosine(&a.audio, &b.audio)),
-                None => 0.8 * cosine(&a.style, &b.style) + 0.2 * unit(cosine(&a.audio, &b.audio)),
-            },
+            Style::Genre => genre_match(a, b),
             Style::Server => cosine(&a.audio, &b.audio),
             Style::Mood => cosine(&a.mood, &b.mood),
             // Nas misturadas o som entra de 0 a 1, como os outros termos: o
@@ -346,8 +446,26 @@ impl Recommender {
     pub fn similar(&self, seed: &str, style: Style, limit: usize, allowed: Option<&[String]>) -> Vec<Hit> {
         let Some(&si) = self.by_id.get(seed) else { return Vec::new() };
         let seed_track = &self.tracks[si as usize];
-        // Cada vetor concorre uma vez só; guarda qual id daquele vetor pode
-        // ser tocado.
+        let pick = self.pickable(allowed);
+        let mut hits: Vec<Hit> = pick
+            .iter()
+            .enumerate()
+            .filter(|(i, id)| *i != si as usize && id.is_some())
+            // A mesma música noutro arquivo (outra codificação, a versão
+            // trocada por uma melhor) sai com um vetor quase igual: o AudioMuse
+            // descarta abaixo de 0,01 de distância, e aqui também.
+            .filter(|(i, _)| 1.0 - cosine(&seed_track.audio, &self.tracks[*i].audio) >= SAME_SONG_DISTANCE)
+            .map(|(i, id)| Hit { id: id.unwrap().to_string(), score: self.score(seed_track, &self.tracks[i], style) })
+            .collect();
+        hits.sort_by(|a, b| b.score.total_cmp(&a.score));
+        hits.truncate(limit);
+        hits
+    }
+
+    /// Qual id de cada vetor pode ser sugerido: cada vetor concorre uma vez
+    /// só. `allowed` limita (offline, só o que está baixado); `None` = a
+    /// biblioteca toda.
+    fn pickable<'a>(&'a self, allowed: Option<&'a [String]>) -> Vec<Option<&'a str>> {
         let mut pick: Vec<Option<&str>> = vec![None; self.tracks.len()];
         match allowed {
             Some(list) => {
@@ -368,19 +486,142 @@ impl Recommender {
                 }
             }
         }
-        let mut hits: Vec<Hit> = pick
-            .iter()
-            .enumerate()
-            .filter(|(i, id)| *i != si as usize && id.is_some())
-            // A mesma música noutro arquivo (outra codificação, a versão
-            // trocada por uma melhor) sai com um vetor quase igual: o AudioMuse
-            // descarta abaixo de 0,01 de distância, e aqui também.
-            .filter(|(i, _)| 1.0 - cosine(&seed_track.audio, &self.tracks[*i].audio) >= SAME_SONG_DISTANCE)
-            .map(|(i, id)| Hit { id: id.unwrap().to_string(), score: self.score(seed_track, &self.tracks[i], style) })
-            .collect();
-        hits.sort_by(|a, b| b.score.total_cmp(&a.score));
-        hits.truncate(limit);
+        pick
+    }
+
+    /// Vetores destes ids (a mesma gravação noutro arquivo cai junto).
+    fn marked(&self, ids: &[String]) -> Vec<bool> {
+        let mut out = vec![false; self.tracks.len()];
+        for id in ids {
+            if let Some(&i) = self.by_id.get(id) {
+                out[i as usize] = true;
+            }
+        }
+        out
+    }
+
+    /// Candidatas do aleatório smart: as mais parecidas com cada ímã (música
+    /// que a pessoa aprovou), `per_anchor` por ímã, cada lista da melhor para a
+    /// pior e marcada com o ímã que a trouxe. Nada do que é para evitar (ver
+    /// [`Avoid`]) nem do que já tocou ou está na fila (`exclude`).
+    ///
+    /// A conta é por ímã, sem misturar: quem aprovou rock e samba quer rock e
+    /// samba, e a média dos dois não é nenhum. Quantas vêm de cada um quem
+    /// decide é o app, pelo peso de cada ímã.
+    pub fn smart(
+        &self,
+        anchors: &[String],
+        avoid: &[String],
+        style: Style,
+        per_anchor: usize,
+        exclude: &[String],
+        allowed: Option<&[String]>,
+    ) -> Vec<SmartHit> {
+        let pick = self.pickable(allowed);
+        let mut out = self.marked(exclude);
+        for id in anchors {
+            if let Some(&i) = self.by_id.get(id) {
+                out[i as usize] = true;
+            }
+        }
+        let avoid = Avoid::new(self, avoid, anchors);
+        // A mesma candidata aparece na lista de vários ímãs: a conta de evitar
+        // é feita uma vez só.
+        let mut blocked: Vec<Option<bool>> = vec![None; self.tracks.len()];
+        let mut hits = Vec::new();
+        for (n, anchor) in anchors.iter().enumerate() {
+            let Some(&ai) = self.by_id.get(anchor) else { continue };
+            let a = &self.tracks[ai as usize];
+            let mut ranked: Vec<(usize, f32)> = (0..self.tracks.len())
+                .filter(|&i| !out[i] && pick[i].is_some())
+                .filter(|&i| 1.0 - cosine(&a.audio, &self.tracks[i].audio) >= SAME_SONG_DISTANCE)
+                .map(|i| (i, self.score(a, &self.tracks[i], style)))
+                .collect();
+            ranked.sort_by(|x, y| y.1.total_cmp(&x.1));
+            let mut taken = 0;
+            for (i, score) in ranked {
+                if taken >= per_anchor {
+                    break;
+                }
+                if *blocked[i].get_or_insert_with(|| avoid.blocks(&self.tracks[i])) {
+                    continue;
+                }
+                hits.push(SmartHit { id: pick[i].unwrap_or_default().to_string(), score, anchor: n as u32 });
+                taken += 1;
+            }
+        }
         hits
+    }
+
+    /// Amostras para conhecer o gosto: `count` músicas sorteadas.
+    ///
+    /// Com `spread`, cada uma sai de um canto diferente: de umas cento e
+    /// cinquenta sorteadas, fica uma das mais longe de tudo o que a pessoa já
+    /// ouviu (`known`) e das que já saíram. Sem isso, numa biblioteca com 60% de
+    /// funk, quatro amostras davam quatro funks e não se aprendia nada do
+    /// resto. Sem `spread`, é sorteio puro. Nas duas, nada do que é para evitar
+    /// nem do que já tocou (`exclude`).
+    #[allow(clippy::too_many_arguments)]
+    pub fn explore(
+        &self,
+        count: usize,
+        known: &[String],
+        avoid: &[String],
+        liked: &[String],
+        exclude: &[String],
+        allowed: Option<&[String]>,
+        spread: bool,
+        seed: u64,
+    ) -> Vec<String> {
+        let pick = self.pickable(allowed);
+        let out = self.marked(exclude);
+        let mut pool: Vec<usize> = (0..self.tracks.len()).filter(|&i| !out[i] && pick[i].is_some()).collect();
+        let avoid = Avoid::new(self, avoid, liked);
+        let mut near: Vec<usize> = known.iter().filter_map(|id| self.by_id.get(id)).map(|&i| i as usize).collect();
+        let mut rng = Rng(seed);
+        let mut chosen = Vec::new();
+        while chosen.len() < count && !pool.is_empty() {
+            // Tira do monte; as que são para evitar não voltam.
+            let mut sample = Vec::new();
+            while sample.len() < SAMPLE && !pool.is_empty() {
+                let i = pool.swap_remove(rng.below(pool.len()));
+                if !avoid.blocks(&self.tracks[i]) {
+                    sample.push(i);
+                }
+            }
+            if sample.is_empty() {
+                break;
+            }
+            let i = if spread && !near.is_empty() {
+                let mut far: Vec<(usize, f32)> = sample
+                    .iter()
+                    .map(|&i| {
+                        let d = near.iter().map(|&k| style_distance(&self.tracks[k], &self.tracks[i])).fold(f32::MAX, f32::min);
+                        (i, d)
+                    })
+                    .collect();
+                far.sort_by(|a, b| b.1.total_cmp(&a.1));
+                // Uma do quarto mais longe, e não sempre a mais longe de
+                // todas: a mais isolada da biblioteca costuma ser a esquisita.
+                far[rng.below((far.len() / 4).max(1))].0
+            } else {
+                sample[rng.below(sample.len())]
+            };
+            pool.extend(sample.into_iter().filter(|&x| x != i));
+            near.push(i);
+            chosen.push(pick[i].unwrap_or_default().to_string());
+        }
+        chosen
+    }
+
+    /// Destas, quais caíram no que é para evitar? O app troca na hora as que
+    /// ainda não tocaram.
+    pub fn avoided(&self, ids: &[String], avoid: &[String], liked: &[String]) -> Vec<String> {
+        let avoid = Avoid::new(self, avoid, liked);
+        ids.iter()
+            .filter(|id| self.by_id.get(*id).is_some_and(|&i| avoid.blocks(&self.tracks[i as usize])))
+            .cloned()
+            .collect()
     }
 }
 
@@ -412,6 +653,135 @@ mod tests {
         }
     }
 
+    /// Música a `deg` graus do eixo `axis` (inclinada para o eixo seguinte),
+    /// com o CLAP e o som apontando para o mesmo lado: a distância de estilo
+    /// entre duas é 0,5·(1 − cos do ângulo). Mesmo eixo = mesmo estilo (até
+    /// 30°); eixos diferentes ficam a 0,25 ou mais.
+    fn at(axis: usize, deg: f32) -> Track {
+        let (s, c) = deg.to_radians().sin_cos();
+        let mut v = [0.0f32; 3];
+        v[axis] = c;
+        v[(axis + 1) % 3] = s;
+        let mut x = t(&v, 120.0, 0, 0, 2000);
+        x.clap = v.iter().map(|f| (f * 100.0).round() as i8).collect();
+        x
+    }
+
+    fn ids<const N: usize>(x: [&str; N]) -> Vec<String> {
+        x.iter().map(|s| s.to_string()).collect()
+    }
+
+    fn hit_ids(h: &[SmartHit]) -> Vec<&str> {
+        h.iter().map(|h| h.id.as_str()).collect()
+    }
+
+    #[test]
+    fn smart_keeps_each_liked_style_apart() {
+        // s0–s3: estilo A; s4–s7: estilo B; s8, s9: estilo C, que ninguém aprovou.
+        let r = rec(vec![
+            at(0, 0.0),
+            at(0, 10.0),
+            at(0, 15.0),
+            at(0, 20.0),
+            at(1, 0.0),
+            at(1, 10.0),
+            at(1, 15.0),
+            at(1, 20.0),
+            at(2, 0.0),
+            at(2, 10.0),
+        ]);
+        let hits = r.smart(&ids(["s0", "s4"]), &[], Style::Genre, 2, &[], None);
+        let by: Vec<(&str, u32)> = hits.iter().map(|h| (h.id.as_str(), h.anchor)).collect();
+        assert_eq!(by, [("s1", 0), ("s2", 0), ("s5", 1), ("s6", 1)], "cada ímã traz as dele, sem misturar");
+    }
+
+    #[test]
+    fn one_skip_takes_only_its_twins() {
+        // Ímã s0; pulada s1 (15°); s2 é gêmea dela (5° de distância); s3 é do
+        // mesmo estilo, mas a 30° da pulada; s4 é de outro estilo.
+        let r = rec(vec![at(0, 0.0), at(0, 15.0), at(0, 20.0), at(0, 45.0), at(1, 0.0)]);
+        let hits = r.smart(&ids(["s0"]), &ids(["s1"]), Style::Genre, 10, &[], None);
+        assert_eq!(hit_ids(&hits), ["s3", "s4"], "um pulo só pode ser enjoo da música, não do estilo");
+    }
+
+    #[test]
+    fn two_skips_close_together_close_the_region() {
+        // Ímã s0 noutro estilo. Puladas s1 (15°) e s2 (35°): perto uma da
+        // outra, mesmo estilo, longe do ímã. s3, a 30° da s2, já não é gêmea,
+        // mas está na zona; s4 é do estilo do ímã.
+        let r = rec(vec![at(1, 0.0), at(0, 15.0), at(0, 35.0), at(0, 65.0), at(1, 30.0)]);
+        let hits = r.smart(&ids(["s0"]), &ids(["s1", "s2"]), Style::Genre, 10, &[], None);
+        assert_eq!(hit_ids(&hits), ["s4"]);
+        assert_eq!(r.avoided(&ids(["s3", "s4", "nao-existe"]), &ids(["s1", "s2"]), &[]), ["s3"]);
+        assert!(r.avoided(&ids(["s3"]), &ids(["s2"]), &[]).is_empty(), "com uma pulada só, s3 ficava");
+    }
+
+    #[test]
+    fn skips_next_to_a_liked_song_do_not_close_the_region() {
+        // Ímã s0; puladas s1 (20°) e s2 (35°), perto uma da outra e as duas a
+        // menos de 0,10 do ímã: o estilo tem coisa que a pessoa gosta. s3
+        // (65°, a 30° da s2) fica; a gêmea da s1 (s4, a 23°) sai.
+        let r = rec(vec![at(0, 0.0), at(0, 20.0), at(0, 35.0), at(0, 65.0), at(0, 23.0)]);
+        let hits = r.smart(&ids(["s0"]), &ids(["s1", "s2"]), Style::Genre, 10, &[], None);
+        assert_eq!(hit_ids(&hits), ["s3"]);
+        assert_eq!(r.avoided(&ids(["s3", "s4"]), &ids(["s1", "s2"]), &ids(["s0"])), ["s4"]);
+        assert_eq!(r.avoided(&ids(["s3", "s4"]), &ids(["s1", "s2"]), &[]), ["s3", "s4"], "sem a aprovada, vira zona");
+    }
+
+    #[test]
+    fn what_already_played_does_not_come_back() {
+        let r = rec(vec![at(0, 0.0), at(0, 10.0), at(0, 15.0), at(0, 20.0)]);
+        let hits = r.smart(&ids(["s0"]), &[], Style::Genre, 10, &ids(["s1"]), None);
+        assert_eq!(hit_ids(&hits), ["s2", "s3"]);
+        let offline = r.smart(&ids(["s0"]), &[], Style::Genre, 10, &[], Some(&ids(["s3"])));
+        assert_eq!(hit_ids(&offline), ["s3"], "offline, só o que está baixado");
+    }
+
+    /// Três estilos com dez músicas cada: s0–s9, s10–s19, s20–s29.
+    fn three_styles() -> Recommender {
+        let mut tracks = Vec::new();
+        for axis in 0..3 {
+            for k in 0..10 {
+                tracks.push(at(axis, k as f32 * 3.0));
+            }
+        }
+        rec(tracks)
+    }
+
+    fn style_of(id: &str) -> usize {
+        id[1..].parse::<usize>().unwrap() / 10
+    }
+
+    #[test]
+    fn exploring_takes_each_sample_from_a_different_style() {
+        let r = three_styles();
+        for seed in 0..20 {
+            let got = r.explore(3, &[], &[], &[], &[], None, true, seed);
+            let styles: HashSet<usize> = got.iter().map(|id| style_of(id)).collect();
+            assert_eq!(styles.len(), 3, "semente {seed}: {got:?}");
+        }
+        // Já ouviu os estilos A e B: a amostra vem do C.
+        for seed in 0..10 {
+            let got = r.explore(1, &ids(["s0", "s10"]), &[], &[], &[], None, true, seed);
+            assert_eq!(style_of(&got[0]), 2, "semente {seed}: {got:?}");
+        }
+    }
+
+    #[test]
+    fn exploring_skips_what_was_avoided_and_what_already_played() {
+        let r = three_styles();
+        let avoid = ids(["s0", "s1"]); // duas puladas juntas: o estilo A inteiro sai
+        let exclude = ids(["s10", "s11"]);
+        for spread in [false, true] {
+            let got = r.explore(12, &[], &avoid, &[], &exclude, None, spread, 3);
+            assert_eq!(got.len(), 12);
+            let unique: HashSet<&String> = got.iter().collect();
+            assert_eq!(unique.len(), 12, "nada repetido");
+            assert!(got.iter().all(|id| style_of(id) > 0 && id != "s10" && id != "s11"), "{got:?}");
+        }
+        let few = r.explore(50, &[], &avoid, &[], &exclude, None, true, 1);
+        assert_eq!(few.len(), 18, "pede mais do que há: vem o que há");
+    }
     #[test]
     fn the_same_song_in_another_file_is_not_a_suggestion() {
         let r = rec(vec![

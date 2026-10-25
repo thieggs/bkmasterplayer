@@ -132,6 +132,21 @@ void main() {
     expect(r.map((x) => x.id), ['oposta'], reason: 'o resto não dá para tocar agora');
   }, skip: skip);
 
+  test('aleatório smart pela ponte: ímã, o que evitar e amostras longe do já ouvido', () async {
+    await rust.recommendLoad(path: arquivo.path);
+    Future<List<rust.SmartSong>> perto({List<String> avoid = const []}) => rust.recommendSmart(
+        anchors: ['semente'], avoid: avoid, style: 'genre', perAnchor: 10, exclude: [], allowed: []);
+    final r = await perto();
+    expect(r.map((x) => x.id), ['igualA', 'gemea', 'oposta'], reason: 'mesmo estilo primeiro');
+    expect(r.every((x) => x.anchor == 0), isTrue);
+    expect((await perto(avoid: ['igualB'])).map((x) => x.id), ['gemea', 'oposta'],
+        reason: 'a pulada leva junto o mesmo arquivo noutro álbum');
+    expect(await rust.recommendAvoided(ids: ['igualA', 'gemea'], avoid: ['igualB'], liked: []), ['igualA']);
+    final amostras = await rust.recommendExplore(
+        count: 2, known: ['semente'], avoid: [], liked: [], exclude: [], allowed: [], spread: true, seed: 7);
+    expect(amostras, ['oposta', 'gemea'], reason: 'a mais longe do que já tocou primeiro');
+  }, skip: skip);
+
   test('semente desconhecida não quebra', () async {
     await rust.recommendLoad(path: arquivo.path);
     expect(await rust.recommendSimilar(seed: 'nao-existe', style: 'sound', limit: 5, allowed: []), isEmpty);

@@ -52,6 +52,10 @@ class AppSettings {
     this.closeToTray = false,
     this.recommendStyle = 'sound',
     this.radioArtists = 'vary',
+    this.smartSamples = 4,
+    this.smartStart = 'varied',
+    this.smartExplore = 'mid',
+    this.smartMemory = 'normal',
     this.recommendOffline = false,
     this.pauseOnVolumeZero = false,
     this.pauseOnUnplug = true,
@@ -131,6 +135,20 @@ class AppSettings {
   /// Artista repetido na rádio: vary (variar: nada do mesmo nas últimas 5),
   /// spread (só não duas seguidas) ou free (à vontade). A música nunca repete.
   final String radioArtists;
+
+  /// Aleatório smart: quantas músicas ele puxa por rodada (2 a 10). Menos =
+  /// aprende mais rápido.
+  final int smartSamples;
+
+  /// Como começa sem música escolhida: varied (cada amostra de um canto da
+  /// biblioteca) ou pure (sorteio puro).
+  final String smartStart;
+
+  /// Quanto explora fora do que a pessoa já aprovou: low, mid, high.
+  final String smartExplore;
+
+  /// Quão rápido esquece: short, normal, long.
+  final String smartMemory;
 
   /// Guardar os vetores do AudioMuse no aparelho (uns 21 MB) para recomendar
   /// sem internet. Entra desligado: é download grande para os dados móveis.
@@ -222,6 +240,10 @@ class AppSettings {
     bool? closeToTray,
     String? recommendStyle,
     String? radioArtists,
+    int? smartSamples,
+    String? smartStart,
+    String? smartExplore,
+    String? smartMemory,
     bool? recommendOffline,
     bool? pauseOnVolumeZero,
     bool? pauseOnUnplug,
@@ -278,6 +300,10 @@ class AppSettings {
         closeToTray: closeToTray ?? this.closeToTray,
         recommendStyle: recommendStyle ?? this.recommendStyle,
         radioArtists: radioArtists ?? this.radioArtists,
+        smartSamples: smartSamples ?? this.smartSamples,
+        smartStart: smartStart ?? this.smartStart,
+        smartExplore: smartExplore ?? this.smartExplore,
+        smartMemory: smartMemory ?? this.smartMemory,
         recommendOffline: recommendOffline ?? this.recommendOffline,
         pauseOnVolumeZero: pauseOnVolumeZero ?? this.pauseOnVolumeZero,
         pauseOnUnplug: pauseOnUnplug ?? this.pauseOnUnplug,
@@ -332,6 +358,10 @@ class AppSettings {
         'closeToTray': closeToTray,
         'recommendStyle': recommendStyle,
         'radioArtists': radioArtists,
+        'smartSamples': smartSamples,
+        'smartStart': smartStart,
+        'smartExplore': smartExplore,
+        'smartMemory': smartMemory,
         'recommendOffline': recommendOffline,
         'pauseOnVolumeZero': pauseOnVolumeZero,
         'pauseOnUnplug': pauseOnUnplug,
@@ -395,6 +425,10 @@ class AppSettings {
       closeToTray: pick('closeToTray', d.closeToTray),
       recommendStyle: pick('recommendStyle', d.recommendStyle),
       radioArtists: pick('radioArtists', d.radioArtists),
+      smartSamples: pick('smartSamples', d.smartSamples).clamp(2, 10),
+      smartStart: pick('smartStart', d.smartStart),
+      smartExplore: pick('smartExplore', d.smartExplore),
+      smartMemory: pick('smartMemory', d.smartMemory),
       recommendOffline: pick('recommendOffline', d.recommendOffline),
       pauseOnVolumeZero: pick('pauseOnVolumeZero', d.pauseOnVolumeZero),
       pauseOnUnplug: pick('pauseOnUnplug', d.pauseOnUnplug),

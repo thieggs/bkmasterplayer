@@ -20,6 +20,7 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 | Nomes "Connect", "AutoMix", "Modo DJ" | ✅ baixo risco | ✅ comparações com Spotify/Apple tiradas do README e do plano |
 | Nome "BKmasterplayer" (antes BKplayer, BKT Player, BK Music Player) | ✅ nenhum app com esse nome achado; há "MasterPlayer" sem o "BK" | pesquisar no INPI antes de divulgar |
 | Patentes de transição automática | ✅ a única ativa (Spotify, EUA, até 2031) exige um passo que o app não faz; as outras venceram | regra de projeto anotada no código |
+| Patentes de recomendação que aprende com pulos (aleatório smart) | ✅ ativas nos EUA (até ~2035–36), mas cada reivindicação exige passos que o modo não faz | três regras de projeto anotadas no código |
 | Codecs (MP3, AAC-LC, FLAC, Vorbis, ALAC, Opus, Monkey's Audio, WavPack) | ✅ patentes vencidas ou livres | nada |
 | DSD (SACD) | ⚠️ as patentes devem ter vencido (1999), mas sem confirmação oficial | rever antes de vender o app |
 | Formatos fechados (WMA, HE-AAC, AC-3, DTS) | ✅ o app não decodifica: o servidor converte, ou o ffmpeg que a pessoa instalou | nada |
@@ -108,6 +109,7 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 | US 8.680.388 B2 (US 2010/0011941), "automatic recognition and matching of tempo and phase… interactive music player" | pessoa física (prioridade 2001) | **vencida em 2022** | sincronizar tempo e fase entre faixas | livre |
 | EP 2.845.188 B1, "evaluation of downbeats" | Nokia | **caducada** em todos os países | downbeat por mudança de acorde + dois tipos de acento | livre (e o app usa rede neural, outro método) |
 | US 7.842.874 B2, "creating music by concatenative synthesis" | MIT | ativa até 01/2029 | compor música nova juntando pedaços de outras | não se aplica (o app não compõe) |
+| US 10.339.171 B2, US 11.386.137 B2, US 11.748.397 B2, US 12.118.030 B2, "Dynamic feedback in a recommendation system" (busca de 24/10/2026) | Rcrdclub, hoje Malibu Entertainment (prioridade 2014) | ativas, até ~2035–36, só EUA; a US 10.922.351 da mesma família caducou | perfil vetorial + sementes + conjunto de candidatas que muda com curtidas e pulos | não pratica nenhuma reivindicação (ver abaixo) |
 
 **A patente da Spotify, reivindicação por reivindicação.** A reivindicação 1 (a 15 é a mesma, em mídia) exige **todos** estes passos:
 1. reamostrar descritores de áudio da faixa 1 no ritmo dela;
@@ -116,6 +118,19 @@ Levantamento feito em 14/09/2026, antes de publicar o app no GitHub com licença
 4. fazer a transição nessa janela.
 
 O AutoMix do BKmasterplayer não faz o passo 3: o ponto de saída de A vem da estrutura de A (começo da outro, ou N compassos antes do fim musical) e o de entrada de B é o primeiro compasso com som de B, cada um calculado sozinho. Entre as duas faixas só se comparam BPM (velocidade) e tom (roda Camelot), nunca trechos. Sem o passo 3, a reivindicação não é praticada. Essa regra está escrita no código (`app/rust/src/engine/automix.rs`) para ninguém mudar o planejador nessa direção até 2031. O Modo DJ escolhe **qual** música vem depois (parecença, BPM, tom), não **onde** emendar, o que também fica fora da reivindicação.
+
+**As patentes de retorno por pulo, reivindicação por reivindicação.** O aleatório smart (24/10/2026) aprende com o que a pessoa ouve inteiro e com o que ela pula, e a família "Dynamic feedback in a recommendation system" cobre ideias vizinhas. Cada reivindicação independente exige **todos** os seus passos:
+- **US 10.339.171** (reivindicações 1 e 12): escolher **várias sementes** pelo produto escalar com um perfil (soma normalizada dos vetores do que a pessoa já consumiu), **mostrar as sementes e a pessoa escolher uma**, montar um conjunto de candidatas a partir dela e mudar o conjunto conforme o retorno.
+- **US 11.386.137** (1 e 8): várias sementes **mostradas para a pessoa escolher**, o conjunto montado a partir da escolhida e mudado pelo retorno, e **a próxima é a do conjunto mais perto da primeira música**.
+- **US 11.748.397** (1): mudar o perfil **na proporção inversa de quantas vezes a pessoa já ouviu** uma música, com semente do tipo "em alta" ou "emergente".
+- **US 12.118.030** (1, 9 e 15): perfil cujo valor **cai conforme a pessoa repete** uma música, semente tirada do perfil, conjunto ordenado pela proximidade da semente.
+
+O modo não faz estes passos:
+1. **não mostra várias sementes para a pessoa escolher uma**: as amostras tocam direto, e a música de partida é escolhida na biblioteca, como qualquer "tocar";
+2. **a próxima não é "a mais perto da primeira música" de um conjunto fixo**: cada rodada é contada de novo sobre a biblioteca toda, com vários ímãs e sorteio;
+3. **o peso nunca depende de quantas vezes a pessoa já ouviu a música**: a contagem de execuções fica fora da conta, e não há semente "em alta".
+
+Sem esses passos, nenhuma reivindicação é praticada. As três regras estão escritas no código (`app/lib/player/smart_session.dart`) para ninguém mudar o modo nessa direção. A busca foi rápida, não exaustiva; se o app um dia for vendido, entra na análise por advogado do item 3 das recomendações.
 
 **Apple AutoMix.** A Apple lançou o AutoMix em 2025 (iOS/macOS 26). Pedidos de patente ainda não concedidos não valem; vale acompanhar se algum for concedido nos EUA.
 
@@ -141,6 +156,7 @@ Já feito em 14/09/2026:
 - avisos de licença de tudo no app;
 - arquivos da Festa temporários;
 - regra de projeto contra a patente da Spotify;
+- regras de projeto contra as patentes de retorno por pulo (aleatório smart, 24/10/2026);
 - README e plano sem comparações com marcas de terceiros.
 
 Falta, fora do código:
@@ -160,6 +176,7 @@ Falta, fora do código:
 - Automix em software de DJ: https://help.algoriddim.com/user-manual/djay-pro-windows/mixing-basics/using-automix · https://dj.studio/blog/best-ai-dj-software-live-sets
 - Marcas da Spotify nos EUA: https://trademarks.justia.com/owners/spotify-ab-2086897
 - Patente US 8.280.539 B2: https://patents.google.com/patent/US8280539B2/en
+- Patentes "Dynamic feedback in a recommendation system": https://patents.google.com/patent/US10339171B2/en · https://patents.google.com/patent/US11386137B2/en · https://patents.google.com/patent/US11748397B2/en · https://patents.google.com/patent/US12118030B2/en · https://patents.google.com/patent/US10922351B2/en
 - AutoMix da Apple: https://musictech.com/news/gear/apple-music-automix-ai/
 - AAC-LC e patentes (Fedora): https://fedoraproject.org/wiki/Licensing/FDK-AAC · https://en.wikipedia.org/wiki/Fraunhofer_FDK_AAC
 - Apps com nome parecido: https://apkcombo.com/masterplayer-music-player/com.msd.masterplayer/ · https://m.apkpure.com/master-music-player-%E2%80%93-mp3-songs-audio-player/com.master.musicplayer · https://apkcombo.com/bk-music-player/com.bkmobile.bkmusicplayer/ · https://play.google.com/store/apps/details?id=com.bkmusic.app · https://play.google.com/store/apps/details?id=com.bkt.player

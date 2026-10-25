@@ -5,6 +5,7 @@ import '../../../core/providers.dart';
 import '../../../data/recommend.dart';
 import '../../../data/similar.dart';
 import '../../../l10n/l10n.dart';
+import '../../../player/smart_session.dart';
 import '../../recommend_style_ui.dart';
 import 'common.dart';
 
@@ -82,6 +83,8 @@ class RecommendSection extends ConsumerWidget {
         const Divider(height: 24),
         const RadioArtistsPicker(),
         const Divider(height: 24),
+        const SmartSettings(),
+        const Divider(height: 24),
         const RecommendOfflineTile(),
       ],
     );
@@ -132,6 +135,98 @@ class RecommendOfflineTile extends ConsumerWidget {
               ],
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Ajustes do aleatório smart (ver `player/smart_session.dart`). Valem na
+/// hora, também para o que já está tocando.
+class SmartSettings extends ConsumerWidget {
+  const SmartSettings({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final s = ref.watch(settingsProvider);
+    final set = ref.read(settingsProvider.notifier).update;
+    final start = SmartStart.parse(s.smartStart);
+    final explore = SmartExplore.parse(s.smartExplore);
+    final memory = SmartMemory.parse(s.smartMemory);
+
+    Widget escolha<T>(String titulo, String dica, List<(T, String)> opcoes, T atual, void Function(T) muda) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              SegmentedButton<T>(
+                showSelectedIcon: false,
+                segments: [for (final (v, nome) in opcoes) ButtonSegment(value: v, label: Text(nome))],
+                selected: {atual},
+                onSelectionChanged: (v) => muda(v.first),
+              ),
+              const SizedBox(height: 6),
+              Text(dica, style: theme.textTheme.bodySmall),
+            ],
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.psychology_outlined),
+          title: Text(l10n.smartShuffle, style: theme.textTheme.titleMedium),
+          subtitle: Text(l10n.smartShuffleHint, style: theme.textTheme.bodySmall),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: Text(l10n.smartSamples(s.smartSamples), style: theme.textTheme.titleSmall),
+        ),
+        Slider(
+          value: s.smartSamples.toDouble(),
+          min: 2,
+          max: 10,
+          divisions: 8,
+          label: '${s.smartSamples}',
+          onChanged: (v) => set((x) => x.copyWith(smartSamples: v.round())),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(l10n.smartSamplesHint, style: theme.textTheme.bodySmall),
+        ),
+        escolha(
+          l10n.smartStartTitle,
+          start == SmartStart.varied ? l10n.smartStartVariedHint : l10n.smartStartPureHint,
+          [(SmartStart.varied, l10n.smartStartVaried), (SmartStart.pure, l10n.smartStartPure)],
+          start,
+          (v) => set((x) => x.copyWith(smartStart: v.id)),
+        ),
+        escolha(
+          l10n.smartExploreTitle,
+          l10n.smartExploreHint(explore.every),
+          [
+            (SmartExplore.low, l10n.smartExploreLow),
+            (SmartExplore.mid, l10n.smartExploreMid),
+            (SmartExplore.high, l10n.smartExploreHigh),
+          ],
+          explore,
+          (v) => set((x) => x.copyWith(smartExplore: v.id)),
+        ),
+        escolha(
+          l10n.smartMemoryTitle,
+          l10n.smartMemoryHint(memory.halfLife),
+          [
+            (SmartMemory.short, l10n.smartMemoryShort),
+            (SmartMemory.normal, l10n.smartMemoryNormal),
+            (SmartMemory.long, l10n.smartMemoryLong),
+          ],
+          memory,
+          (v) => set((x) => x.copyWith(smartMemory: v.id)),
         ),
       ],
     );

@@ -2540,4 +2540,126 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get updateAndroidHint =>
       'Android will ask you to confirm the install. The first time, it also asks you to allow installing apps from this app.';
+
+  @override
+  String get smartShuffle => 'Smart shuffle';
+
+  @override
+  String get smartShuffleFrom => 'Smart shuffle from this song';
+
+  @override
+  String get smartShuffleHint =>
+      'Learns as you listen: songs you finish bring more of that style, quick skips steer away';
+
+  @override
+  String get smartStarting => 'Starting smart shuffle…';
+
+  @override
+  String get smartNothing => 'Couldn\'t find songs for smart shuffle';
+
+  @override
+  String get smartOn =>
+      'Smart shuffle on: learns from what you finish and what you skip (tap to turn off)';
+
+  @override
+  String get smartOff => 'Smart shuffle off';
+
+  @override
+  String smartLessOfThis(String title) {
+    return '👎 Less like this: $title';
+  }
+
+  @override
+  String get smartUndo => 'Undo';
+
+  @override
+  String get smartLearned => 'What it learned';
+
+  @override
+  String get smartLiked => 'Leaning towards';
+
+  @override
+  String get smartAvoiding => 'Avoiding';
+
+  @override
+  String get smartNothingYet =>
+      'Still learning: let the songs you like play to the end and skip the ones you don\'t.';
+
+  @override
+  String get smartForget => 'Forget';
+
+  @override
+  String get smartForgetAll => 'Forget everything';
+
+  @override
+  String smartExploreStatus(int n) {
+    return 'Exploring 1 song in every $n';
+  }
+
+  @override
+  String get smartSearching => 'Many skips in a row: looking at other styles';
+
+  @override
+  String get smartNeedsVectors =>
+      'Without the analysis kept on the device, it only drops the skipped song itself. Turn it on in Settings → Recommendations.';
+
+  @override
+  String smartSamples(int n) {
+    return 'Samples per round: $n';
+  }
+
+  @override
+  String get smartSamplesHint =>
+      'How many songs it picks at a time. Fewer = learns faster.';
+
+  @override
+  String get smartStartTitle => 'Start';
+
+  @override
+  String get smartStartVaried => 'Varied';
+
+  @override
+  String get smartStartVariedHint =>
+      'Random, but each sample from a different corner of the library';
+
+  @override
+  String get smartStartPure => 'Pure';
+
+  @override
+  String get smartStartPureHint =>
+      'Pure random: the first ones may all be the same style';
+
+  @override
+  String get smartExploreTitle => 'Exploring';
+
+  @override
+  String get smartExploreLow => 'Little';
+
+  @override
+  String get smartExploreMid => 'Some';
+
+  @override
+  String get smartExploreHigh => 'A lot';
+
+  @override
+  String smartExploreHint(int n) {
+    return 'One song outside what you\'ve liked every $n';
+  }
+
+  @override
+  String get smartMemoryTitle => 'Memory';
+
+  @override
+  String get smartMemoryShort => 'Short';
+
+  @override
+  String get smartMemoryNormal => 'Medium';
+
+  @override
+  String get smartMemoryLong => 'Long';
+
+  @override
+  String smartMemoryHint(int n) {
+    return 'Everything you do loses half its weight in $n songs';
+  }
 }

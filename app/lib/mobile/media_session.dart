@@ -299,6 +299,9 @@ class _BkAudioHandler extends BaseAudioHandler {
         if (song != null) _player.startDj(song);
       case 'do:mix':
         if (song != null) await _player.startRadio(song);
+      case 'do:smart':
+        // No carro não há tela para escolher a música: começa pelo sorteio.
+        await _player.startSmart();
       case 'do:shuffle':
         final p = _auto.provider();
         if (p != null) _player.playSongs(await p.randomSongs(size: 100));

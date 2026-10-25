@@ -30,8 +30,8 @@ class _QueuePanelState extends ConsumerState<QueuePanel> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final s = ref.watch(playerProvider.select((s) => (s.queue, s.index, s.radio, s.dj)));
-    final (queue, index, radio, dj) = s;
+    final s = ref.watch(playerProvider.select((s) => (s.queue, s.index, s.radio, s.dj, s.smart)));
+    final (queue, index, radio, dj, smart) = s;
     final p = ref.read(playerProvider.notifier);
     _follow.update(
       queue.isEmpty || index < 0 ? null : index,
@@ -54,6 +54,13 @@ class _QueuePanelState extends ConsumerState<QueuePanel> {
           child: Row(
             children: [
               Expanded(child: Text(l10n.queue, style: theme.textTheme.titleMedium)),
+              IconButton(
+                tooltip: smart ? l10n.smartOn : l10n.smartOff,
+                isSelected: smart,
+                icon: const Icon(Icons.psychology_outlined),
+                selectedIcon: const Icon(Icons.psychology),
+                onPressed: p.toggleSmart,
+              ),
               IconButton(
                 tooltip: dj ? l10n.djModeOn : l10n.djModeOff,
                 isSelected: dj,

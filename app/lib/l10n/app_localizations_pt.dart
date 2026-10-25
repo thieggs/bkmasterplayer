@@ -2540,4 +2540,127 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get updateAndroidHint =>
       'O Android vai pedir para confirmar a instalação. Na primeira vez, ele pede também para permitir instalar apps deste aplicativo.';
+
+  @override
+  String get smartShuffle => 'Aleatório smart';
+
+  @override
+  String get smartShuffleFrom => 'Aleatório smart a partir desta';
+
+  @override
+  String get smartShuffleHint =>
+      'Aprende com você: música ouvida inteira puxa mais do estilo, pulo rápido afasta';
+
+  @override
+  String get smartStarting => 'Montando o aleatório smart…';
+
+  @override
+  String get smartNothing => 'Não achei músicas para o aleatório smart';
+
+  @override
+  String get smartOn =>
+      'Aleatório smart ligado: aprende com o que você ouve inteiro e com o que pula (toque para desligar)';
+
+  @override
+  String get smartOff => 'Aleatório smart desligado';
+
+  @override
+  String smartLessOfThis(String title) {
+    return '👎 Menos disso: $title';
+  }
+
+  @override
+  String get smartUndo => 'Desfazer';
+
+  @override
+  String get smartLearned => 'O que ele aprendeu';
+
+  @override
+  String get smartLiked => 'Puxando para';
+
+  @override
+  String get smartAvoiding => 'Evitando';
+
+  @override
+  String get smartNothingYet =>
+      'Ainda aprendendo: deixe tocar até o fim o que você gostar e pule logo o que não.';
+
+  @override
+  String get smartForget => 'Esquecer';
+
+  @override
+  String get smartForgetAll => 'Esquecer tudo';
+
+  @override
+  String smartExploreStatus(int n) {
+    return 'Explorando 1 música a cada $n';
+  }
+
+  @override
+  String get smartSearching =>
+      'Muitos pulos seguidos: procurando outros estilos';
+
+  @override
+  String get smartNeedsVectors =>
+      'Sem a análise guardada no aparelho, ele só tira a própria música pulada. Ligue em Configurações → Recomendações.';
+
+  @override
+  String smartSamples(int n) {
+    return 'Amostras por rodada: $n';
+  }
+
+  @override
+  String get smartSamplesHint =>
+      'Quantas músicas ele puxa de cada vez. Menos = aprende mais rápido.';
+
+  @override
+  String get smartStartTitle => 'Começo';
+
+  @override
+  String get smartStartVaried => 'Variado';
+
+  @override
+  String get smartStartVariedHint =>
+      'Sorteio, mas cada amostra de um canto diferente da biblioteca';
+
+  @override
+  String get smartStartPure => 'Puro';
+
+  @override
+  String get smartStartPureHint =>
+      'Sorteio puro: as primeiras podem vir todas do mesmo estilo';
+
+  @override
+  String get smartExploreTitle => 'Exploração';
+
+  @override
+  String get smartExploreLow => 'Pouca';
+
+  @override
+  String get smartExploreMid => 'Média';
+
+  @override
+  String get smartExploreHigh => 'Muita';
+
+  @override
+  String smartExploreHint(int n) {
+    return 'Uma música fora do que você já aprovou a cada $n';
+  }
+
+  @override
+  String get smartMemoryTitle => 'Memória';
+
+  @override
+  String get smartMemoryShort => 'Curta';
+
+  @override
+  String get smartMemoryNormal => 'Média';
+
+  @override
+  String get smartMemoryLong => 'Longa';
+
+  @override
+  String smartMemoryHint(int n) {
+    return 'Cada coisa que você faz perde metade do peso em $n músicas';
+  }
 }

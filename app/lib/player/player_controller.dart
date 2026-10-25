@@ -14,8 +14,11 @@ import '../data/current_version.dart';
 import '../data/recommend.dart';
 import '../data/settings.dart';
 import '../data/similar.dart';
+import '../data/smart_source.dart';
 import 'dj_mode.dart';
+import 'listen_signal.dart';
 import 'radio.dart';
+import 'smart_session.dart';
 import '../domain/models.dart';
 import '../data/network.dart';
 import '../data/offline_store.dart';
@@ -40,6 +43,17 @@ class MixInfo {
   final String summary;
   final String style;
   final DateTime until;
+}
+
+/// Aviso do aleatório smart para a tela: entendeu o pulo de [song] como
+/// "não gostei" (a tela oferece desfazer).
+@immutable
+class SmartNote {
+  const SmartNote(this.song, this.seq);
+  final Song song;
+
+  /// Muda a cada aviso: dois pulos da mesma música são dois avisos.
+  final int seq;
 }
 
 class QueueItem {
@@ -70,6 +84,8 @@ class PlayerState {
     this.plannedSynced = false,
     this.radio = false,
     this.dj = false,
+    this.smart = false,
+    this.smartNote,
     this.remoteDevice,
     this.remoteDeviceId,
     this.jamHost,
@@ -107,6 +123,13 @@ class PlayerState {
   /// Modo DJ: a próxima é escolhida pelo melhor encaixe (AudioMuse + AutoMix).
   final bool dj;
 
+  /// Aleatório smart: rodadas de amostras que aprendem com o que a pessoa
+  /// ouve inteiro e com o que ela pula (ver `smart_session.dart`).
+  final bool smart;
+
+  /// Último pulo que o aleatório smart entendeu como "não gostei".
+  final SmartNote? smartNote;
+
   /// Controlando outro aparelho (BKmasterplayer Connect): nome e id dele. O estado
   /// acima é o de lá.
   final String? remoteDevice;
@@ -143,9 +166,14 @@ class PlayerState {
     bool clearPlanned = false,
     bool? radio,
     bool? dj,
+    bool? smart,
+    SmartNote? smartNote,
+    bool clearSmartNote = false,
   }) =>
       PlayerState(
         dj: dj ?? this.dj,
+        smart: smart ?? this.smart,
+        smartNote: clearSmartNote ? null : (smartNote ?? this.smartNote),
         remoteDevice: remoteDevice,
         remoteDeviceId: remoteDeviceId,
         jamHost: jamHost,
@@ -198,6 +226,17 @@ class PlayerController extends Notifier<PlayerState> {
   Duration _lastPos = Duration.zero;
   DateTime? _startedAt;
   bool _submitted = false;
+
+  // O que o aleatório smart lê de cada música (ver [_leave]).
+  /// Entrada da fila já julgada.
+  String? _judgedUid;
+
+  /// A entrada tocando começou do meio (fila restaurada, vinda de outro
+  /// aparelho): o começo não foi ouvido aqui.
+  bool _fromMiddle = false;
+  final _startMid = <String>{};
+  DateTime? _pausedSince;
+  bool _pausedLong = false;
 
   @override
   PlayerState build() {
@@ -323,6 +362,8 @@ class PlayerController extends Notifier<PlayerState> {
       'position': state.position.inMilliseconds,
       'radio': state.radio,
       'dj': state.dj,
+      // O que o aleatório smart aprendeu: fechar o app não zera.
+      if (state.smart && _smart != null) 'smart': _smart!.toJson(),
       'queue': items.map((q) => q.song.toJson()).toList(),
     };
     try {
@@ -389,6 +430,7 @@ class PlayerController extends Notifier<PlayerState> {
     Duration position = Duration.zero;
     var radio = false;
     var dj = false;
+    SmartSession? smart;
     try {
       if (await _queueFile.exists()) {
         final j = jsonDecode(await _queueFile.readAsString()) as Map<String, dynamic>;
@@ -398,6 +440,8 @@ class PlayerController extends Notifier<PlayerState> {
           position = Duration(milliseconds: (j['position'] as int?) ?? 0);
           radio = j['radio'] == true;
           dj = j['dj'] == true;
+          final sj = j['smart'];
+          if (sj is Map) smart = SmartSession.fromJson(Map<String, dynamic>.from(sj));
           // A posição gravada depois, à parte, se for desta mesma fila.
           try {
             final pos = jsonDecode(await _positionFile.readAsString()) as Map<String, dynamic>;
@@ -423,6 +467,11 @@ class PlayerController extends Notifier<PlayerState> {
     final items = songs.map(_item).toList();
     index = index.clamp(0, items.length - 1);
     _resumeAt = position;
+    if (smart != null) {
+      _smart = smart;
+      // As que vêm depois da atual foram escolhidas por ele: podem ser trocadas.
+      _smartUids.addAll(items.skip(index + 1).map((e) => e.uid));
+    }
     state = state.copyWith(
       queue: items,
       index: index,
@@ -430,6 +479,7 @@ class PlayerController extends Notifier<PlayerState> {
       duration: items[index].song.duration ?? Duration.zero,
       radio: radio,
       dj: dj,
+      smart: smart != null,
     );
   }
 
@@ -454,7 +504,8 @@ class PlayerController extends Notifier<PlayerState> {
       _radioSession = null;
       _radioStyle = null;
     }
-    state = state.copyWith(radio: on);
+    if (on) _dropSmart();
+    state = state.copyWith(radio: on, smart: on ? false : state.smart);
     if (persist) _persistSoon();
     _maybeExtendRadio();
   }
@@ -532,6 +583,231 @@ class PlayerController extends Notifier<PlayerState> {
     }
   }
 
+  // ---- Aleatório smart ----
+
+  /// A sessão em andamento: o que a pessoa aprovou, o que pulou e a
+  /// exploração (ver `smart_session.dart`).
+  SmartSession? _smart;
+
+  /// Entradas da fila escolhidas pelo modo: as que ainda não tocaram podem ser
+  /// trocadas depois de um "não gostei".
+  final _smartUids = <String>{};
+
+  /// Entradas que a pessoa pôs na fila à mão com o modo ligado: quando
+  /// começam, contam como escolha dela ([SmartWeights.picked]).
+  final _pickedUids = <String>{};
+
+  bool _smartBusy = false;
+  bool _startingSmart = false;
+  int _smartSeq = 0;
+
+  bool get _smartOn => state.smart && _smart != null && !_mirroring;
+
+  int get _smartSamples => ref.read(settingsProvider).smartSamples.clamp(2, 10);
+
+  void _configureSmart(SmartSession session) {
+    final s = ref.read(settingsProvider);
+    session
+      ..start = SmartStart.parse(s.smartStart)
+      ..explore = SmartExplore.parse(s.smartExplore)
+      ..memory = SmartMemory.parse(s.smartMemory)
+      ..artists = _radioArtists;
+  }
+
+  /// Com a análise guardada no aparelho, os vetores; sem ela, o servidor.
+  SmartSource _smartSource(MusicProvider p) {
+    final local = ref.read(recommendProvider.notifier);
+    if (local.ready) return local;
+    final s = ref.read(settingsProvider);
+    return ServerSmartSource(p, lastFm: s.lastFmForRadio ? ref.read(lastFmProvider) : null);
+  }
+
+  void _dropSmart() {
+    _smart = null;
+    _smartUids.clear();
+    _pickedUids.clear();
+  }
+
+  /// Começa o aleatório smart. [seed] é a música escolhida para começar (o
+  /// primeiro ímã); sem ela, a primeira rodada é sorteio. Falso se não achou
+  /// nada para tocar.
+  Future<bool> startSmart({Song? seed}) async {
+    if (_fwd('smartStart', {if (seed != null) 'seed': seed.toJson()})) return true;
+    final p = _provider;
+    // Na Festa a fila é do dono.
+    if (p == null || _jam != null) return false;
+    final session = SmartSession(seed: seed);
+    _configureSmart(session);
+    final first = await session.next(want: _smartSamples, history: [?seed], source: _smartSource(p));
+    if (first.isEmpty) return false;
+    _startingSmart = true;
+    playSongs([?seed, ...first]);
+    _startingSmart = false;
+    _smart = session;
+    _smartUids.addAll(state.queue.skip(seed == null ? 0 : 1).map((q) => q.uid));
+    state = state.copyWith(smart: true, radio: false, dj: false);
+    _persistSoon();
+    return true;
+  }
+
+  void toggleSmart() => setSmart(!state.smart);
+
+  /// Liga (o que está tocando vira o primeiro ímã) ou desliga.
+  void setSmart(bool on) {
+    if (_fwd('smart', {'on': on})) return;
+    if (_jam != null || on == state.smart) return;
+    if (on && state.current == null) {
+      unawaited(startSmart());
+      return;
+    }
+    _dropSmart();
+    if (on) {
+      _smart = SmartSession(seed: state.current?.song);
+      _radioSession = null;
+      _radioStyle = null;
+    }
+    state = state.copyWith(smart: on, radio: on ? false : state.radio, dj: on ? false : state.dj);
+    _persistSoon();
+    unawaited(_maybeExtendSmart());
+  }
+
+  /// Rodada acabando: puxa a próxima, já com o que a pessoa fez com as
+  /// anteriores.
+  Future<void> _maybeExtendSmart() async {
+    final session = _smart;
+    if (!_smartOn || session == null || _smartBusy || state.queue.isEmpty) return;
+    final want = _smartSamples;
+    if (state.queue.length - state.index - 1 >= max(1, want ~/ 2)) return;
+    final p = _provider;
+    if (p == null) return;
+    _smartBusy = true;
+    try {
+      _configureSmart(session);
+      final songs = await session.next(
+        want: want,
+        history: [for (final q in state.queue) q.song],
+        source: _smartSource(p),
+      );
+      // Pode ter sido desligado (ou recomeçado) enquanto buscava.
+      if (songs.isEmpty || !state.smart || !identical(_smart, session)) return;
+      final items = songs.map(_item).toList();
+      _smartUids.addAll(items.map((e) => e.uid));
+      _append(items);
+    } catch (e) {
+      debugPrint('aleatório smart: $e');
+    } finally {
+      _smartBusy = false;
+    }
+  }
+
+  /// A música que estava tocando saiu de cena: o aleatório smart lê o que a
+  /// pessoa fez com ela (ver `listen_signal.dart`). Cada entrada é julgada uma
+  /// vez: a que sai na mão, pelo comando (pulo, troca de fila); a que sai
+  /// sozinha, quando a próxima começa.
+  void _leave(TrackExit exit) {
+    final uid = _scrobbleUid;
+    if (uid == null || uid == _judgedUid) return;
+    _judgedUid = uid;
+    final session = _smart;
+    if (!_smartOn || session == null) return;
+    final item = state.queue.where((q) => q.uid == uid).firstOrNull;
+    if (item == null) return;
+    final pausa = _pausedSince;
+    final signal = listenSignal(
+      exit: exit,
+      heard: _listened,
+      position: state.current?.uid == uid ? state.position : _lastPos,
+      duration: item.song.duration ?? state.duration,
+      fromMiddle: _fromMiddle,
+      pausedLong: _pausedLong || (pausa != null && DateTime.now().difference(pausa) > Listen.longPause),
+    );
+    session.left(item.song, signal);
+    _persistSoon();
+    if (signal < 0) {
+      state = state.copyWith(smartNote: SmartNote(item.song, ++_smartSeq));
+      unawaited(_smartReplan());
+    }
+  }
+
+  void _notePause(bool playing) {
+    final desde = _pausedSince;
+    if (!playing && state.playing) {
+      _pausedSince = DateTime.now();
+    } else if (playing && desde != null) {
+      if (DateTime.now().difference(desde) > Listen.longPause) _pausedLong = true;
+      _pausedSince = null;
+    }
+  }
+
+  /// Depois de um "não gostei": as escolhidas pelo modo que ainda não tocaram
+  /// e caíram no que é para evitar saem da fila, e a rodada se completa com
+  /// outras.
+  Future<void> _smartReplan() async {
+    final session = _smart;
+    final p = _provider;
+    if (!_smartOn || session == null || p == null) return;
+    final upcoming = [for (final q in state.queue.skip(state.index + 1)) if (_smartUids.contains(q.uid)) q];
+    if (upcoming.isNotEmpty) {
+      Set<String> bad;
+      try {
+        bad = await _smartSource(p)
+            .smartAvoided([for (final q in upcoming) q.song], session.avoided(), [for (final (s, _) in session.anchors()) s]);
+      } catch (e) {
+        debugPrint('aleatório smart: $e');
+        bad = const {};
+      }
+      if (!identical(_smart, session)) return;
+      final drop = {for (final q in upcoming) if (bad.contains(q.song.id)) q.uid};
+      if (drop.isNotEmpty) {
+        final cur = state.current?.uid;
+        final q = [for (final e in state.queue) if (e.uid == cur || !drop.contains(e.uid)) e];
+        _unshuffled?.removeWhere((e) => drop.contains(e.uid));
+        _smartUids.removeAll(drop);
+        state = state.copyWith(queue: q, index: q.indexWhere((e) => e.uid == cur));
+        _scheduleNext();
+      }
+    }
+    await _maybeExtendSmart();
+  }
+
+  /// A pessoa favoritou (ou desfez) [song]: para o aleatório smart é o sinal
+  /// mais forte de "gostei".
+  void noteStar(Song song, bool starred) {
+    if (!_smartOn) return;
+    _smart!.starred(song, starred);
+    _persistSoon();
+  }
+
+  void consumeSmartNote() => state = state.copyWith(clearSmartNote: true);
+
+  /// "Desfazer" do aviso: aquele pulo não foi "não gostei".
+  void smartUndo(String songId) {
+    _smart?.undo(songId);
+    _persistSoon();
+  }
+
+  /// O ✕ do painel: esquece o que [songId] ensinou.
+  void smartForget(String songId) {
+    _smart?.forget(songId);
+    _persistSoon();
+  }
+
+  /// Esquece tudo e continua aprendendo do zero.
+  void smartForgetAll() {
+    if (_smart == null) return;
+    _smart = SmartSession();
+    _persistSoon();
+  }
+
+  /// O que o aleatório smart aprendeu até agora, para o painel (nulo = modo
+  /// desligado, ou ligado noutro aparelho).
+  ({List<(Song, double)> liked, List<Song> avoiding, int exploreEvery, bool searching})? get smartLearned {
+    final s = _smart;
+    if (s == null || !_smartOn) return null;
+    _configureSmart(s);
+    return (liked: s.anchors(), avoiding: s.avoided(), exploreEvery: s.exploreEvery, searching: s.searching);
+  }
+
   MusicProvider? get _provider {
     try {
       return ref.read(musicProvider);
@@ -547,6 +823,7 @@ class PlayerController extends Notifier<PlayerState> {
   void playSongs(List<Song> songs, {int start = 0, bool shuffle = false}) {
     if (songs.isEmpty) return;
     if (_fwd('playSongs', {'songs': _json(songs), 'start': start, 'shuffle': shuffle})) return;
+    _leave(TrackExit.interrupted);
     var items = songs.map(_item).toList();
     var startIndex = start.clamp(0, items.length - 1);
     _unshuffled = null;
@@ -557,11 +834,15 @@ class PlayerController extends Notifier<PlayerState> {
       items.insert(0, first);
       startIndex = 0;
     }
-    // Lista nova escolhida: o Modo DJ só continua se foi ele que começou, e a
-    // rádio (se ficar ligada) recomeça a partir dela.
+    // Lista nova escolhida: o Modo DJ e o aleatório smart só continuam se
+    // foram eles que começaram, e a rádio (se ficar ligada) recomeça a partir
+    // dela.
     _radioSession = null;
     _radioStyle = null;
-    state = state.copyWith(queue: items, shuffle: shuffle, clearMessage: true, dj: _startingDj);
+    _smartUids.clear();
+    _pickedUids.clear();
+    if (!_startingSmart) _smart = null;
+    state = state.copyWith(queue: items, shuffle: shuffle, clearMessage: true, dj: _startingDj, smart: _startingSmart);
     _startAt(startIndex);
   }
 
@@ -586,6 +867,11 @@ class PlayerController extends Notifier<PlayerState> {
     if (songs.isEmpty) return;
     if (_fwd('enqueue', {'songs': _json(songs)})) return;
     final items = songs.map(_item).toList();
+    if (_smartOn) _pickedUids.addAll(items.map((e) => e.uid));
+    _append(items);
+  }
+
+  void _append(List<QueueItem> items) {
     _unshuffled?.addAll(items);
     state = state.copyWith(queue: [...state.queue, ...items]);
     if (state.current == null) {
@@ -599,6 +885,7 @@ class PlayerController extends Notifier<PlayerState> {
     if (songs.isEmpty) return;
     if (_fwd('playNext', {'songs': _json(songs)})) return;
     final items = songs.map(_item).toList();
+    if (_smartOn) _pickedUids.addAll(items.map((e) => e.uid));
     final q = List.of(state.queue)..insertAll(state.index + 1, items);
     _unshuffled?.addAll(items);
     state = state.copyWith(queue: q);
@@ -612,6 +899,11 @@ class PlayerController extends Notifier<PlayerState> {
   void jumpTo(int i) {
     if (_fwd('jump', {'i': i})) return;
     if (i < 0 || i >= state.queue.length) return;
+    if (i != state.index) {
+      _leave(TrackExit.jumped);
+      // Escolheu essa na fila: conta como escolha quando começar.
+      if (_smartOn) _pickedUids.add(state.queue[i].uid);
+    }
     _startAt(i);
   }
 
@@ -706,6 +998,7 @@ class PlayerController extends Notifier<PlayerState> {
 
   void stop() {
     if (_fwd('stop')) return;
+    _leave(TrackExit.interrupted);
     engine.playerStop();
     state = state.copyWith(playing: false, position: Duration.zero);
   }
@@ -713,15 +1006,26 @@ class PlayerController extends Notifier<PlayerState> {
   void next() {
     if (_fwd('next')) return;
     final n = _nextIndex(manual: true);
-    if (n != null) _startAt(n);
+    if (n == null) return;
+    _leave(TrackExit.skipped);
+    _startAt(n);
   }
 
   void previous() {
     if (_fwd('previous')) return;
     if (state.position > const Duration(seconds: 3) || state.index <= 0) {
+      // Voltou para o começo desta depois de ouvir um bom pedaço: quis ouvir
+      // de novo.
+      final cur = state.current;
+      if (_smartOn && cur != null && _listened >= Listen.quick) {
+        _smart!.note(cur.song, SmartWeights.replay, kind: SmartKind.replay);
+      }
       seek(Duration.zero);
       return;
     }
+    // Voltou para a anterior: quer ouvir aquela de novo; esta não foi julgada.
+    _leave(TrackExit.interrupted);
+    if (_smartOn) _smart!.note(state.queue[state.index - 1].song, SmartWeights.replay, kind: SmartKind.replay);
     _startAt(state.index - 1);
   }
 
@@ -801,6 +1105,10 @@ class PlayerController extends Notifier<PlayerState> {
     final item = state.queue[i];
     final src = _source(item);
     if (src == null) return;
+    // Troca na mão que nenhum comando julgou (tirou da fila, voltou a tocar
+    // depois de parar, erro): a que saiu não diz nada.
+    _leave(TrackExit.interrupted);
+    if (start > const Duration(seconds: 5)) _startMid.add(item.uid);
     _resumeAt = null;
     _persistSoon();
     // Trocou na mão: a mixagem em andamento e a planejada deixam de valer.
@@ -952,6 +1260,9 @@ class PlayerController extends Notifier<PlayerState> {
       case engine.PlayerEvent_TrackStarted(:final id):
         final i = state.queue.indexWhere((q) => q.uid == id);
         if (i >= 0) {
+          // A anterior saiu sozinha: acabou, ou o AutoMix começou a passar
+          // para esta.
+          _leave(TrackExit.ended);
           final item = state.queue[i];
           state = state.copyWith(
             index: i,
@@ -960,9 +1271,14 @@ class PlayerController extends Notifier<PlayerState> {
           );
           _scheduleNext();
           _beginScrobble(item);
+          if (_pickedUids.remove(item.uid) && _smartOn) {
+            _smart!.note(item.song, SmartWeights.picked, kind: SmartKind.picked);
+          }
           _preAnalyze(i);
           if (state.dj) {
             _djExtend();
+          } else if (state.smart) {
+            _maybeExtendSmart();
           } else {
             _maybeExtendRadio();
           }
@@ -994,9 +1310,11 @@ class PlayerController extends Notifier<PlayerState> {
         state = state.copyWith(position: pos, duration: duration, buffered: buf);
       case engine.PlayerEvent_State(:final playing, :final buffering, :final hasTrack):
         _engineHasTrack = hasTrack;
+        _notePause(playing);
         state = state.copyWith(playing: playing, buffering: buffering);
         if (!hasTrack && state.current != null && _nextIndex() == null) {
           // Fim da fila.
+          _leave(TrackExit.ended);
           state = state.copyWith(position: Duration.zero, playing: false);
         }
       case engine.PlayerEvent_MediaControl(:final action):
@@ -1175,13 +1493,14 @@ class PlayerController extends Notifier<PlayerState> {
     _startingDj = true;
     playSongs([seed]);
     _startingDj = false;
-    state = state.copyWith(dj: true, radio: false);
+    state = state.copyWith(dj: true, radio: false, smart: false);
     _djExtend();
   }
 
   void setDj(bool on) {
     if (_jam != null) return;
-    state = state.copyWith(dj: on, radio: on ? false : state.radio);
+    if (on) _dropSmart();
+    state = state.copyWith(dj: on, radio: on ? false : state.radio, smart: on ? false : state.smart);
     _persistSoon();
     if (on) _djExtend();
   }
@@ -1434,6 +1753,7 @@ class PlayerController extends Notifier<PlayerState> {
         'shuffle': local.shuffle,
         'repeat': local.repeat.name,
         'radio': local.radio,
+        'smart': local.smart,
       });
     }
     // O som passa a sair de lá: guarda a fila daqui e para o motor.
@@ -1480,6 +1800,7 @@ class PlayerController extends Notifier<PlayerState> {
     final vol = ref.read(settingsProvider).volume;
     engine.playerSetVolume(volume: _gain(vol));
     state = PlayerState(volume: vol, repeat: remote.repeat, shuffle: remote.shuffle, radio: remote.radio);
+    _dropSmart();
     final songs = remote.queue.map((q) => q.song).toList();
     if (songs.isEmpty) return;
     adoptQueue(
@@ -1490,6 +1811,7 @@ class PlayerController extends Notifier<PlayerState> {
       shuffle: remote.shuffle,
       repeat: remote.repeat,
       radio: remote.radio,
+      smart: remote.smart,
     );
   }
 
@@ -1518,6 +1840,7 @@ class PlayerController extends Notifier<PlayerState> {
           repeat: LoopMode.values.asNameMap()[m['rep']] ?? LoopMode.off,
           shuffle: m['sh'] == true,
           radio: m['rad'] == true,
+          smart: m['sm'] == true,
           mix: mix == null
               ? null
               : MixInfo(
@@ -1552,12 +1875,17 @@ class PlayerController extends Notifier<PlayerState> {
     bool shuffle = false,
     LoopMode repeat = LoopMode.off,
     bool radio = false,
+    bool smart = false,
   }) {
     if (songs.isEmpty) return;
+    _leave(TrackExit.interrupted);
     final items = songs.map(_item).toList();
     final i = index.clamp(0, items.length - 1);
     _unshuffled = null;
-    state = state.copyWith(queue: items, shuffle: shuffle, repeat: repeat, radio: radio, clearMessage: true);
+    // O que o outro aparelho aprendeu ficou lá: aqui recomeça a partir da atual.
+    _dropSmart();
+    if (smart) _smart = SmartSession(seed: items[i].song);
+    state = state.copyWith(queue: items, shuffle: shuffle, repeat: repeat, radio: radio, smart: smart, clearMessage: true);
     if (play) {
       _startAt(i, start: position);
       return;
@@ -1586,17 +1914,24 @@ class PlayerController extends Notifier<PlayerState> {
     _lastPos = Duration.zero;
     _startedAt = DateTime.now();
     _submitted = false;
+    _judgedUid = null;
+    _fromMiddle = _startMid.remove(item.uid);
+    _pausedSince = null;
+    _pausedLong = false;
     _provider?.scrobble(item.song.id, submission: false).catchError((_) {});
   }
 
   void _trackListening(Duration pos) {
     final item = state.current;
-    if (item == null || item.uid != _scrobbleUid || _submitted) return;
+    if (item == null || item.uid != _scrobbleUid) return;
     final delta = pos - _lastPos;
     _lastPos = pos;
     if (state.playing && delta > Duration.zero && delta < const Duration(seconds: 2)) {
       _listened += delta;
     }
+    // O aleatório smart segue contando até a música sair; o registro no
+    // servidor é um só.
+    if (_submitted) return;
     final dur = item.song.duration ?? state.duration;
     final threshold = Duration(milliseconds: min(dur.inMilliseconds ~/ 2, 4 * 60 * 1000));
     if (dur > const Duration(seconds: 30) && _listened >= threshold) {

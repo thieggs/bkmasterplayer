@@ -81,6 +81,18 @@ class _RadioSheet extends ConsumerWidget {
                 },
               ),
             const Divider(height: 8),
+            // Não é um jeito de medir "parecida": é a rádio que aprende com o
+            // que a pessoa ouve inteiro e com o que ela pula.
+            ListTile(
+              leading: const Icon(Icons.psychology_outlined),
+              title: Text(l10n.smartShuffleFrom),
+              subtitle: Text(l10n.smartShuffleHint, style: theme.textTheme.bodySmall),
+              onTap: () {
+                Navigator.of(context).pop();
+                LibraryActions.smartShuffle(host, hostRef, seed: song);
+              },
+            ),
+            const Divider(height: 8),
             const RadioArtistsPicker(),
             const Divider(height: 8),
             ListTile(

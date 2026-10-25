@@ -17,6 +17,7 @@ import 'player_bar.dart';
 import 'queue_panel.dart';
 import 'radio_sheet.dart';
 import 'sleep_timer_button.dart';
+import 'smart_sheet.dart';
 import 'vinyl_disc.dart';
 
 class NowPlayingPage extends ConsumerStatefulWidget {
@@ -79,6 +80,7 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
     final short = MediaQuery.sizeOf(context).height < 560;
 
     final jam = ref.watch(playerProvider.select((s) => s.jamHost != null));
+    final smart = ref.watch(playerProvider.select((s) => s.smart && !s.elsewhere));
     final details = <Widget>[
       // Na Festa quem diz onde toca é a faixa da Festa, logo abaixo.
       const RemoteLabel(jam: false),
@@ -146,6 +148,14 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
               tooltip: l10n.radioSheetTitle,
               icon: const Icon(Icons.radio),
               onPressed: () => showRadioSheet(context, ref, song),
+            ),
+          // Aleatório smart ligado: o que ele aprendeu até agora.
+          if (smart)
+            IconButton(
+              tooltip: l10n.smartLearned,
+              icon: const Icon(Icons.psychology),
+              color: theme.colorScheme.primary,
+              onPressed: () => showSmartSheet(context),
             ),
           const SleepTimerButton(),
           const DevicesButton(),

@@ -51,6 +51,41 @@ abstract interface class LocalSimilar {
   Future<bool> knows(String songId);
 }
 
+/// De onde o aleatório smart tira as músicas (ver `player/smart_session.dart`).
+///
+/// [RecommendNotifier] responde com os vetores do AudioMuse guardados no
+/// aparelho; sem eles, `data/smart_source.dart` responde pelo servidor do jeito
+/// que der. Existir como interface é o que deixa a sessão ser testada sem
+/// motor nem servidor.
+abstract interface class SmartSource {
+  /// As parecidas com cada ímã ([anchors]), longe do que a pessoa pulou
+  /// ([avoid]) e fora de [exclude] (ids): (música, qual ímã — a posição em
+  /// [anchors] —, nota). As de cada ímã vêm da melhor para a pior.
+  Future<List<(Song, int, double)>> smartNeighbors(
+    List<Song> anchors, {
+    required List<Song> avoid,
+    required RecommendStyle style,
+    required int perAnchor,
+    required Set<String> exclude,
+  });
+
+  /// [count] amostras sorteadas, fora de [exclude] e do que é para evitar;
+  /// com [spread], cada uma de um canto diferente da biblioteca e longe de
+  /// [known]. [liked] são os ímãs: pulos perto deles não fecham a região.
+  Future<List<Song>> smartExplore(
+    int count, {
+    required List<Song> known,
+    required List<Song> avoid,
+    required List<Song> liked,
+    required Set<String> exclude,
+    required bool spread,
+    required int seed,
+  });
+
+  /// Destas, quais caíram no que é para evitar (ids), com os ímãs [liked].
+  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked);
+}
+
 class RecommendState {
   const RecommendState({this.songs = 0, this.version, this.downloading = false, this.progress = 0, this.error});
 
@@ -81,7 +116,7 @@ class RecommendState {
 /// arquivo; aqui só se compara, o que leva poucos milissegundos. Vale offline
 /// e, mesmo com internet, gasta menos bateria que acordar o rádio para
 /// perguntar ao servidor.
-class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar {
+class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar, SmartSource {
   static const _file = 'vetores.bkvec';
   static const _versionKey = 'vetores.versao';
 
@@ -91,6 +126,8 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
     final on = ref.watch(settingsProvider.select((s) => s.recommendOffline));
     // A sessão entrou (ou trocou de conta): confere se há vetores novos.
     ref.watch(sessionProvider.select((s) => s.value?.provider.accountId));
+    // Músicas de outra conta não valem nesta.
+    _songCache.clear();
     // Depois do build: `sync` lê o estado logo de cara, e dentro do build ele
     // ainda não existe ("uninitialized provider"). Com a opção ligada ao abrir
     // o app, os vetores nunca carregavam e todo método caía no servidor — os
@@ -250,6 +287,105 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
     final baixadas = downloaded();
     if (baixadas.isEmpty) return const [];
     return similar(seed, style: s, count: count, pool: baixadas);
+  }
+
+  // ---- Aleatório smart (ver `player/smart_session.dart`) ----
+
+  /// Músicas já buscadas no servidor: as vizinhas dos mesmos ímãs voltam a
+  /// cada rodada, e pedir uma por uma de novo gastava a rede à toa.
+  final _songCache = <String, Song>{};
+
+  /// As músicas destes ids, do cache ou do servidor. Null = o servidor não
+  /// respondeu (offline).
+  Future<Map<String, Song>?> _byIds(List<String> ids) async {
+    final faltam = [for (final id in ids) if (!_songCache.containsKey(id)) id];
+    if (faltam.isNotEmpty) {
+      try {
+        for (final s in await ref.read(musicProvider).songsByIds(faltam)) {
+          _songCache[s.id] = s;
+        }
+      } catch (e) {
+        debugPrint('aleatório smart: não deu para buscar as músicas: $e');
+        return null;
+      }
+      while (_songCache.length > 1500) {
+        _songCache.remove(_songCache.keys.first);
+      }
+    }
+    return {for (final id in ids) id: ?_songCache[id]};
+  }
+
+  /// Pergunta ao motor com a biblioteca toda; sem servidor para buscar as
+  /// músicas, de novo só entre as baixadas, que são as que tocam agora.
+  Future<(List<T>, Map<String, Song>)> _ask<T>(
+      Future<List<T>> Function(List<String> allowed) motor, String Function(T) id) async {
+    final todas = await motor(const []);
+    final achadas = await _byIds([for (final x in todas) id(x)]);
+    if (achadas != null) return (todas, achadas);
+    final baixadas = {for (final s in downloaded()) s.id: s};
+    if (baixadas.isEmpty) return (<T>[], const <String, Song>{});
+    return (await motor(baixadas.keys.toList()), baixadas);
+  }
+
+  @override
+  Future<List<(Song, int, double)>> smartNeighbors(
+    List<Song> anchors, {
+    required List<Song> avoid,
+    required RecommendStyle style,
+    required int perAnchor,
+    required Set<String> exclude,
+  }) async {
+    if (!state.ready || anchors.isEmpty) return const [];
+    final (hits, songs) = await _ask(
+      (allowed) => rust.recommendSmart(
+        anchors: [for (final s in anchors) s.id],
+        avoid: [for (final s in avoid) s.id],
+        style: style.id,
+        perAnchor: perAnchor,
+        exclude: exclude.toList(),
+        allowed: allowed,
+      ),
+      (h) => h.id,
+    );
+    return [for (final h in hits) if (songs[h.id] case final s?) (s, h.anchor, h.score)];
+  }
+
+  @override
+  Future<List<Song>> smartExplore(
+    int count, {
+    required List<Song> known,
+    required List<Song> avoid,
+    required List<Song> liked,
+    required Set<String> exclude,
+    required bool spread,
+    required int seed,
+  }) async {
+    if (!state.ready) return const [];
+    final (ids, songs) = await _ask(
+      (allowed) => rust.recommendExplore(
+        count: count,
+        known: [for (final s in known) s.id],
+        avoid: [for (final s in avoid) s.id],
+        liked: [for (final s in liked) s.id],
+        exclude: exclude.toList(),
+        allowed: allowed,
+        spread: spread,
+        seed: seed,
+      ),
+      (id) => id,
+    );
+    return [for (final id in ids) ?songs[id]];
+  }
+
+  @override
+  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked) async {
+    if (!state.ready || songs.isEmpty || avoid.isEmpty) return const {};
+    final r = await rust.recommendAvoided(
+      ids: [for (final s in songs) s.id],
+      avoid: [for (final s in avoid) s.id],
+      liked: [for (final s in liked) s.id],
+    );
+    return r.toSet();
   }
 
   /// Músicas que o aparelho tem guardadas para ouvir offline.

@@ -121,29 +121,20 @@ class RadioSession {
     Future<List<Song>> Function()? fallback,
   }) async {
     final seen = <String>{for (final s in history) s.id, seed.id};
-    final seenKeys = <String>{for (final s in history) _key(s), _key(seed)};
+    final seenKeys = <String>{for (final s in history) songKey(s), songKey(seed)};
     final out = <Song>[];
     final recent = [...history];
 
-    bool fits(Song s) => !seen.contains(s.id) && !seenKeys.contains(_key(s)) && !_tooLong(s);
+    bool fits(Song s) => !seen.contains(s.id) && !seenKeys.contains(songKey(s)) && !_tooLong(s);
 
     void take(Song s) {
       out.add(s);
       recent.add(s);
       seen.add(s.id);
-      seenKeys.add(_key(s));
+      seenKeys.add(songKey(s));
     }
 
-    bool artistOk(Song s) {
-      final a = artistKeys(s);
-      if (a.isEmpty) return true;
-      final gap = recent.skip(max(0, recent.length - artists.gap));
-      if (gap.any((r) => artistKeys(r).any(a.contains))) return false;
-      final cap = artists.cap;
-      if (cap == null) return true;
-      final window = recent.skip(max(0, recent.length - artistWindow)).toList();
-      return a.every((x) => window.where((r) => artistKeys(r).contains(x)).length < cap);
-    }
+    bool artistOk(Song s) => artistAllowed(s, recent, artists);
 
     // Primeiro quem esperava e agora pode.
     for (final s in [..._waiting]) {
@@ -246,6 +237,19 @@ class RadioSession {
     return anchors[_turn++ % anchors.length];
   }
 
+  /// [s] pode entrar depois de [recent] pela regra de artista [rule]? Vale
+  /// para a rádio e para o aleatório smart.
+  static bool artistAllowed(Song s, List<Song> recent, RadioArtists rule) {
+    final a = artistKeys(s);
+    if (a.isEmpty) return true;
+    final gap = recent.skip(max(0, recent.length - rule.gap));
+    if (gap.any((r) => artistKeys(r).any(a.contains))) return false;
+    final cap = rule.cap;
+    if (cap == null) return true;
+    final window = recent.skip(max(0, recent.length - artistWindow)).toList();
+    return a.every((x) => window.where((r) => artistKeys(r).contains(x)).length < cap);
+  }
+
   bool _tooLong(Song s) {
     final d = s.duration;
     if (d == null || d <= longTrack) return false;
@@ -263,7 +267,7 @@ class RadioSession {
   /// "Mesma música": título e artistas, sem caixa nem pontuação. Pega a mesma
   /// gravação noutro álbum (single, coletânea) e a versão trocada por outra
   /// melhor.
-  static String _key(Song s) =>
+  static String songKey(Song s) =>
       '${_norm(s.title)}|${(artistKeys(s).toList()..sort()).join(',')}';
 
   static String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), '');

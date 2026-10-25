@@ -106,6 +106,7 @@ class AutoBrowser {
         final descobrir = _t('Descobrir', 'Discover');
         return [
           _action('do:shuffle', _t('Tocar aleatórias', 'Shuffle all'), group: tocar),
+          _action('do:smart', _t('Aleatório smart', 'Smart shuffle'), group: tocar),
           if (current != null)
             _action('do:dj', _t('Modo DJ a partir desta', 'DJ mode from this song'), subtitle: current.title, group: tocar),
           if (current != null)

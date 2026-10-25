@@ -123,6 +123,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SimilarSong> dco_decode_list_similar_song(dynamic raw);
 
   @protected
+  List<SmartSong> dco_decode_list_smart_song(dynamic raw);
+
+  @protected
   LocalTrack dco_decode_local_track(dynamic raw);
 
   @protected
@@ -178,6 +181,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SimilarSong dco_decode_similar_song(dynamic raw);
+
+  @protected
+  SmartSong dco_decode_smart_song(dynamic raw);
 
   @protected
   TrackSource dco_decode_track_source(dynamic raw);
@@ -309,6 +315,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SimilarSong> sse_decode_list_similar_song(SseDeserializer deserializer);
 
   @protected
+  List<SmartSong> sse_decode_list_smart_song(SseDeserializer deserializer);
+
+  @protected
   LocalTrack sse_decode_local_track(SseDeserializer deserializer);
 
   @protected
@@ -368,6 +377,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SimilarSong sse_decode_similar_song(SseDeserializer deserializer);
+
+  @protected
+  SmartSong sse_decode_smart_song(SseDeserializer deserializer);
 
   @protected
   TrackSource sse_decode_track_source(SseDeserializer deserializer);
@@ -538,6 +550,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_smart_song(
+    List<SmartSong> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_local_track(LocalTrack self, SseSerializer serializer);
 
   @protected
@@ -605,6 +623,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_similar_song(SimilarSong self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_smart_song(SmartSong self, SseSerializer serializer);
 
   @protected
   void sse_encode_track_source(TrackSource self, SseSerializer serializer);

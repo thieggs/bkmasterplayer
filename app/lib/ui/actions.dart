@@ -61,6 +61,7 @@ class LibraryActions {
   static Future<void> toggleStar(BuildContext context, WidgetRef ref, Song song) async {
     final starred = !(ref.read(starOverridesProvider)[song.id] ?? song.isStarred);
     ref.read(starOverridesProvider.notifier).set(song.id, starred);
+    _player(ref).noteStar(song, starred);
     try {
       await ref.read(musicProvider).setStarred(songId: song.id, starred: starred);
       ref.invalidate(starredSongsProvider);
@@ -78,6 +79,19 @@ class LibraryActions {
     try {
       final ok = await _player(ref).startRadio(song, style: style);
       if (!ok && context.mounted) showSnack(context, l10n.noSimilarSongs);
+    } on SubsonicException catch (e) {
+      if (context.mounted) showSnack(context, e.message);
+    }
+  }
+
+  /// Aleatório smart: a partir de [seed], ou de um sorteio. Aprende com o que
+  /// a pessoa ouve inteiro e com o que ela pula (ver `player/smart_session.dart`).
+  static Future<void> smartShuffle(BuildContext context, WidgetRef ref, {Song? seed}) async {
+    final l10n = context.l10n;
+    showSnack(context, l10n.smartStarting);
+    try {
+      final ok = await _player(ref).startSmart(seed: seed);
+      if (!ok && context.mounted) showSnack(context, l10n.smartNothing);
     } on SubsonicException catch (e) {
       if (context.mounted) showSnack(context, e.message);
     }
@@ -248,6 +262,7 @@ Future<void> showSongMenu(BuildContext context, WidgetRef ref, Song song, {Offse
     (Icons.queue_music, l10n.addToQueue, () => player.enqueue([song])),
     if (!jam) (Icons.auto_awesome, l10n.instantMix, () => LibraryActions.instantMix(context, ref, song)),
     if (!jam) (Icons.auto_awesome_motion, l10n.djModeFrom, () => ref.read(playerProvider.notifier).startDj(song)),
+    if (!jam) (Icons.psychology_outlined, l10n.smartShuffleFrom, () => LibraryActions.smartShuffle(context, ref, seed: song)),
     if (!jam && (info?.sonicSimilarity ?? false)) ...[
       (Icons.graphic_eq, l10n.sonicRadio, () => LibraryActions.sonicRadio(context, ref, song)),
       (Icons.route, l10n.sonicPath, () => LibraryActions.sonicPath(context, ref, song)),

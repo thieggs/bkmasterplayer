@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1776255514;
+  int get rustContentHash => -1089179499;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -205,7 +205,24 @@ abstract class RustLibApi extends BaseApi {
     required String pinnedKey,
   });
 
+  Future<List<String>> crateApiRecommendRecommendAvoided({
+    required List<String> ids,
+    required List<String> avoid,
+    required List<String> liked,
+  });
+
   Future<int> crateApiRecommendRecommendCount();
+
+  Future<List<String>> crateApiRecommendRecommendExplore({
+    required int count,
+    required List<String> known,
+    required List<String> avoid,
+    required List<String> liked,
+    required List<String> exclude,
+    required List<String> allowed,
+    required bool spread,
+    required int seed,
+  });
 
   Future<bool> crateApiRecommendRecommendKnows({required String id});
 
@@ -215,6 +232,15 @@ abstract class RustLibApi extends BaseApi {
     required String seed,
     required String style,
     required int limit,
+    required List<String> allowed,
+  });
+
+  Future<List<SmartSong>> crateApiRecommendRecommendSmart({
+    required List<String> anchors,
+    required List<String> avoid,
+    required String style,
+    required int perAnchor,
+    required List<String> exclude,
     required List<String> allowed,
   });
 
@@ -1501,6 +1527,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<List<String>> crateApiRecommendRecommendAvoided({
+    required List<String> ids,
+    required List<String> avoid,
+    required List<String> liked,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_String(ids, serializer);
+          sse_encode_list_String(avoid, serializer);
+          sse_encode_list_String(liked, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 47,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiRecommendRecommendAvoidedConstMeta,
+        argValues: [ids, avoid, liked],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendAvoidedConstMeta =>
+      const TaskConstMeta(
+        debugName: "recommend_avoided",
+        argNames: ["ids", "avoid", "liked"],
+      );
+
+  @override
   Future<int> crateApiRecommendRecommendCount() {
     return handler.executeNormal(
       NormalTask(
@@ -1509,7 +1572,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 48,
             port: port_,
           );
         },
@@ -1528,6 +1591,62 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "recommend_count", argNames: []);
 
   @override
+  Future<List<String>> crateApiRecommendRecommendExplore({
+    required int count,
+    required List<String> known,
+    required List<String> avoid,
+    required List<String> liked,
+    required List<String> exclude,
+    required List<String> allowed,
+    required bool spread,
+    required int seed,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(count, serializer);
+          sse_encode_list_String(known, serializer);
+          sse_encode_list_String(avoid, serializer);
+          sse_encode_list_String(liked, serializer);
+          sse_encode_list_String(exclude, serializer);
+          sse_encode_list_String(allowed, serializer);
+          sse_encode_bool(spread, serializer);
+          sse_encode_u_32(seed, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 49,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiRecommendRecommendExploreConstMeta,
+        argValues: [count, known, avoid, liked, exclude, allowed, spread, seed],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendExploreConstMeta =>
+      const TaskConstMeta(
+        debugName: "recommend_explore",
+        argNames: [
+          "count",
+          "known",
+          "avoid",
+          "liked",
+          "exclude",
+          "allowed",
+          "spread",
+          "seed",
+        ],
+      );
+
+  @override
   Future<bool> crateApiRecommendRecommendKnows({required String id}) {
     return handler.executeNormal(
       NormalTask(
@@ -1537,7 +1656,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 50,
             port: port_,
           );
         },
@@ -1565,7 +1684,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 51,
             port: port_,
           );
         },
@@ -1601,7 +1720,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 52,
             port: port_,
           );
         },
@@ -1623,6 +1742,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<List<SmartSong>> crateApiRecommendRecommendSmart({
+    required List<String> anchors,
+    required List<String> avoid,
+    required String style,
+    required int perAnchor,
+    required List<String> exclude,
+    required List<String> allowed,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_String(anchors, serializer);
+          sse_encode_list_String(avoid, serializer);
+          sse_encode_String(style, serializer);
+          sse_encode_u_32(perAnchor, serializer);
+          sse_encode_list_String(exclude, serializer);
+          sse_encode_list_String(allowed, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 53,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_smart_song,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiRecommendRecommendSmartConstMeta,
+        argValues: [anchors, avoid, style, perAnchor, exclude, allowed],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRecommendRecommendSmartConstMeta =>
+      const TaskConstMeta(
+        debugName: "recommend_smart",
+        argNames: [
+          "anchors",
+          "avoid",
+          "style",
+          "perAnchor",
+          "exclude",
+          "allowed",
+        ],
+      );
+
+  @override
   Future<void> crateApiRecommendRecommendUnload() {
     return handler.executeNormal(
       NormalTask(
@@ -1631,7 +1800,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 54,
             port: port_,
           );
         },
@@ -1869,6 +2038,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<SimilarSong> dco_decode_list_similar_song(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_similar_song).toList();
+  }
+
+  @protected
+  List<SmartSong> dco_decode_list_smart_song(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_smart_song).toList();
   }
 
   @protected
@@ -2162,6 +2337,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return SimilarSong(
       id: dco_decode_String(arr[0]),
       score: dco_decode_f_32(arr[1]),
+    );
+  }
+
+  @protected
+  SmartSong dco_decode_smart_song(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return SmartSong(
+      id: dco_decode_String(arr[0]),
+      score: dco_decode_f_32(arr[1]),
+      anchor: dco_decode_u_32(arr[2]),
     );
   }
 
@@ -2524,6 +2712,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <SimilarSong>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_similar_song(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<SmartSong> sse_decode_list_smart_song(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SmartSong>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_smart_song(deserializer));
     }
     return ans_;
   }
@@ -2933,6 +3133,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SmartSong sse_decode_smart_song(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_score = sse_decode_f_32(deserializer);
+    var var_anchor = sse_decode_u_32(deserializer);
+    return SmartSong(id: var_id, score: var_score, anchor: var_anchor);
+  }
+
+  @protected
   TrackSource sse_decode_track_source(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_String(deserializer);
@@ -3320,6 +3529,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_smart_song(
+    List<SmartSong> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_smart_song(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_local_track(LocalTrack self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.path, serializer);
@@ -3639,6 +3860,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.id, serializer);
     sse_encode_f_32(self.score, serializer);
+  }
+
+  @protected
+  void sse_encode_smart_song(SmartSong self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_f_32(self.score, serializer);
+    sse_encode_u_32(self.anchor, serializer);
   }
 
   @protected

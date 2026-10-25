@@ -926,5 +926,55 @@
  "updateOpenPage": "Open on GitHub",
  "updateManualHint": "This kind of install can't replace itself: download the new version from the GitHub page.",
  "updateRestartHint": "The app closes and opens again on the new version.",
- "updateAndroidHint": "Android will ask you to confirm the install. The first time, it also asks you to allow installing apps from this app."
+ "updateAndroidHint": "Android will ask you to confirm the install. The first time, it also asks you to allow installing apps from this app.",
+ "smartShuffle": "Smart shuffle",
+ "smartShuffleFrom": "Smart shuffle from this song",
+ "smartShuffleHint": "Learns as you listen: songs you finish bring more of that style, quick skips steer away",
+ "smartStarting": "Starting smart shuffle…",
+ "smartNothing": "Couldn't find songs for smart shuffle",
+ "smartOn": "Smart shuffle on: learns from what you finish and what you skip (tap to turn off)",
+ "smartOff": "Smart shuffle off",
+ "smartLessOfThis": "👎 Less like this: {title}",
+ "@smartLessOfThis": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartUndo": "Undo",
+ "smartLearned": "What it learned",
+ "smartLiked": "Leaning towards",
+ "smartAvoiding": "Avoiding",
+ "smartNothingYet": "Still learning: let the songs you like play to the end and skip the ones you don't.",
+ "smartForget": "Forget",
+ "smartForgetAll": "Forget everything",
+ "smartExploreStatus": "Exploring 1 song in every {n}",
+ "@smartExploreStatus": {
+  "placeholders": { "n": { "type": "int" } }
+ },
+ "smartSearching": "Many skips in a row: looking at other styles",
+ "smartNeedsVectors": "Without the analysis kept on the device, it only drops the skipped song itself. Turn it on in Settings → Recommendations.",
+ "smartSamples": "Samples per round: {n}",
+ "@smartSamples": {
+  "placeholders": { "n": { "type": "int" } }
+ },
+ "smartSamplesHint": "How many songs it picks at a time. Fewer = learns faster.",
+ "smartStartTitle": "Start",
+ "smartStartVaried": "Varied",
+ "smartStartVariedHint": "Random, but each sample from a different corner of the library",
+ "smartStartPure": "Pure",
+ "smartStartPureHint": "Pure random: the first ones may all be the same style",
+ "smartExploreTitle": "Exploring",
+ "smartExploreLow": "Little",
+ "smartExploreMid": "Some",
+ "smartExploreHigh": "A lot",
+ "smartExploreHint": "One song outside what you've liked every {n}",
+ "@smartExploreHint": {
+  "placeholders": { "n": { "type": "int" } }
+ },
+ "smartMemoryTitle": "Memory",
+ "smartMemoryShort": "Short",
+ "smartMemoryNormal": "Medium",
+ "smartMemoryLong": "Long",
+ "smartMemoryHint": "Everything you do loses half its weight in {n} songs",
+ "@smartMemoryHint": {
+  "placeholders": { "n": { "type": "int" } }
+ }
 }

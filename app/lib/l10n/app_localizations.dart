@@ -4524,6 +4524,216 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'O Android vai pedir para confirmar a instalação. Na primeira vez, ele pede também para permitir instalar apps deste aplicativo.'**
   String get updateAndroidHint;
+
+  /// No description provided for @smartShuffle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aleatório smart'**
+  String get smartShuffle;
+
+  /// No description provided for @smartShuffleFrom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aleatório smart a partir desta'**
+  String get smartShuffleFrom;
+
+  /// No description provided for @smartShuffleHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aprende com você: música ouvida inteira puxa mais do estilo, pulo rápido afasta'**
+  String get smartShuffleHint;
+
+  /// No description provided for @smartStarting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Montando o aleatório smart…'**
+  String get smartStarting;
+
+  /// No description provided for @smartNothing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não achei músicas para o aleatório smart'**
+  String get smartNothing;
+
+  /// No description provided for @smartOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aleatório smart ligado: aprende com o que você ouve inteiro e com o que pula (toque para desligar)'**
+  String get smartOn;
+
+  /// No description provided for @smartOff.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aleatório smart desligado'**
+  String get smartOff;
+
+  /// No description provided for @smartLessOfThis.
+  ///
+  /// In pt, this message translates to:
+  /// **'👎 Menos disso: {title}'**
+  String smartLessOfThis(String title);
+
+  /// No description provided for @smartUndo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desfazer'**
+  String get smartUndo;
+
+  /// No description provided for @smartLearned.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que ele aprendeu'**
+  String get smartLearned;
+
+  /// No description provided for @smartLiked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Puxando para'**
+  String get smartLiked;
+
+  /// No description provided for @smartAvoiding.
+  ///
+  /// In pt, this message translates to:
+  /// **'Evitando'**
+  String get smartAvoiding;
+
+  /// No description provided for @smartNothingYet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda aprendendo: deixe tocar até o fim o que você gostar e pule logo o que não.'**
+  String get smartNothingYet;
+
+  /// No description provided for @smartForget.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esquecer'**
+  String get smartForget;
+
+  /// No description provided for @smartForgetAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esquecer tudo'**
+  String get smartForgetAll;
+
+  /// No description provided for @smartExploreStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Explorando 1 música a cada {n}'**
+  String smartExploreStatus(int n);
+
+  /// No description provided for @smartSearching.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muitos pulos seguidos: procurando outros estilos'**
+  String get smartSearching;
+
+  /// No description provided for @smartNeedsVectors.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem a análise guardada no aparelho, ele só tira a própria música pulada. Ligue em Configurações → Recomendações.'**
+  String get smartNeedsVectors;
+
+  /// No description provided for @smartSamples.
+  ///
+  /// In pt, this message translates to:
+  /// **'Amostras por rodada: {n}'**
+  String smartSamples(int n);
+
+  /// No description provided for @smartSamplesHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quantas músicas ele puxa de cada vez. Menos = aprende mais rápido.'**
+  String get smartSamplesHint;
+
+  /// No description provided for @smartStartTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Começo'**
+  String get smartStartTitle;
+
+  /// No description provided for @smartStartVaried.
+  ///
+  /// In pt, this message translates to:
+  /// **'Variado'**
+  String get smartStartVaried;
+
+  /// No description provided for @smartStartVariedHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sorteio, mas cada amostra de um canto diferente da biblioteca'**
+  String get smartStartVariedHint;
+
+  /// No description provided for @smartStartPure.
+  ///
+  /// In pt, this message translates to:
+  /// **'Puro'**
+  String get smartStartPure;
+
+  /// No description provided for @smartStartPureHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sorteio puro: as primeiras podem vir todas do mesmo estilo'**
+  String get smartStartPureHint;
+
+  /// No description provided for @smartExploreTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exploração'**
+  String get smartExploreTitle;
+
+  /// No description provided for @smartExploreLow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pouca'**
+  String get smartExploreLow;
+
+  /// No description provided for @smartExploreMid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Média'**
+  String get smartExploreMid;
+
+  /// No description provided for @smartExploreHigh.
+  ///
+  /// In pt, this message translates to:
+  /// **'Muita'**
+  String get smartExploreHigh;
+
+  /// No description provided for @smartExploreHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Uma música fora do que você já aprovou a cada {n}'**
+  String smartExploreHint(int n);
+
+  /// No description provided for @smartMemoryTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Memória'**
+  String get smartMemoryTitle;
+
+  /// No description provided for @smartMemoryShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Curta'**
+  String get smartMemoryShort;
+
+  /// No description provided for @smartMemoryNormal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Média'**
+  String get smartMemoryNormal;
+
+  /// No description provided for @smartMemoryLong.
+  ///
+  /// In pt, this message translates to:
+  /// **'Longa'**
+  String get smartMemoryLong;
+
+  /// No description provided for @smartMemoryHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cada coisa que você faz perde metade do peso em {n} músicas'**
+  String smartMemoryHint(int n);
 }
 
 class _AppLocalizationsDelegate

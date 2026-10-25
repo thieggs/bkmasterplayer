@@ -1019,5 +1019,55 @@
  "updateOpenPage": "Abrir no GitHub",
  "updateManualHint": "Este jeito de instalar não se troca sozinho: baixe a versão nova pela página do GitHub.",
  "updateRestartHint": "O app fecha e abre de novo, já na versão nova.",
- "updateAndroidHint": "O Android vai pedir para confirmar a instalação. Na primeira vez, ele pede também para permitir instalar apps deste aplicativo."
+ "updateAndroidHint": "O Android vai pedir para confirmar a instalação. Na primeira vez, ele pede também para permitir instalar apps deste aplicativo.",
+ "smartShuffle": "Aleatório smart",
+ "smartShuffleFrom": "Aleatório smart a partir desta",
+ "smartShuffleHint": "Aprende com você: música ouvida inteira puxa mais do estilo, pulo rápido afasta",
+ "smartStarting": "Montando o aleatório smart…",
+ "smartNothing": "Não achei músicas para o aleatório smart",
+ "smartOn": "Aleatório smart ligado: aprende com o que você ouve inteiro e com o que pula (toque para desligar)",
+ "smartOff": "Aleatório smart desligado",
+ "smartLessOfThis": "👎 Menos disso: {title}",
+ "@smartLessOfThis": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartUndo": "Desfazer",
+ "smartLearned": "O que ele aprendeu",
+ "smartLiked": "Puxando para",
+ "smartAvoiding": "Evitando",
+ "smartNothingYet": "Ainda aprendendo: deixe tocar até o fim o que você gostar e pule logo o que não.",
+ "smartForget": "Esquecer",
+ "smartForgetAll": "Esquecer tudo",
+ "smartExploreStatus": "Explorando 1 música a cada {n}",
+ "@smartExploreStatus": {
+  "placeholders": { "n": { "type": "int" } }
+ },
+ "smartSearching": "Muitos pulos seguidos: procurando outros estilos",
+ "smartNeedsVectors": "Sem a análise guardada no aparelho, ele só tira a própria música pulada. Ligue em Configurações → Recomendações.",
+ "smartSamples": "Amostras por rodada: {n}",
+ "@smartSamples": {
+  "placeholders": { "n": { "type": "int" } }
+ },
+ "smartSamplesHint": "Quantas músicas ele puxa de cada vez. Menos = aprende mais rápido.",
+ "smartStartTitle": "Começo",
+ "smartStartVaried": "Variado",
+ "smartStartVariedHint": "Sorteio, mas cada amostra de um canto diferente da biblioteca",
+ "smartStartPure": "Puro",
+ "smartStartPureHint": "Sorteio puro: as primeiras podem vir todas do mesmo estilo",
+ "smartExploreTitle": "Exploração",
+ "smartExploreLow": "Pouca",
+ "smartExploreMid": "Média",
+ "smartExploreHigh": "Muita",
+ "smartExploreHint": "Uma música fora do que você já aprovou a cada {n}",
+ "@smartExploreHint": {
+  "placeholders": { "n": { "type": "int" } }
+ },
+ "smartMemoryTitle": "Memória",
+ "smartMemoryShort": "Curta",
+ "smartMemoryNormal": "Média",
+ "smartMemoryLong": "Longa",
+ "smartMemoryHint": "Cada coisa que você faz perde metade do peso em {n} músicas",
+ "@smartMemoryHint": {
+  "placeholders": { "n": { "type": "int" } }
+ }
 }

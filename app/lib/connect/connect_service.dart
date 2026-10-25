@@ -839,6 +839,7 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
       'rep': s.repeat.name,
       'sh': s.shuffle,
       'rad': s.radio,
+      'sm': s.smart,
       if (mix != null)
         'mix': {'s': mix.summary, 'st': mix.style, 'ms': max(0, mix.until.difference(DateTime.now()).inMilliseconds)},
       if (s.plannedMix != null) 'pm': s.plannedMix,
@@ -906,6 +907,11 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
         p.cycleRepeat();
       case 'radio':
         p.setRadio(m['on'] == true);
+      case 'smart':
+        p.setSmart(m['on'] == true);
+      case 'smartStart':
+        final seed = m['seed'];
+        p.startSmart(seed: seed is Map ? Song.fromJson(Map<String, dynamic>.from(seed)) : null);
       case 'playSongs':
         p.playSongs(songs(), start: n('start'), shuffle: m['shuffle'] == true);
       case 'enqueue':
@@ -921,6 +927,7 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
           shuffle: m['shuffle'] == true,
           repeat: LoopMode.values.asNameMap()[m['repeat']] ?? LoopMode.off,
           radio: m['radio'] == true,
+          smart: m['smart'] == true,
         );
     }
   }

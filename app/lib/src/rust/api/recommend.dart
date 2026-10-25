@@ -40,6 +40,60 @@ Future<List<SimilarSong>> recommendSimilar({
   allowed: allowed,
 );
 
+/// Aleatório smart: as parecidas com cada ímã ([anchors], músicas que a
+/// pessoa aprovou), [per_anchor] por ímã, longe do que ela pulou ([avoid]) e
+/// fora do que já tocou ([exclude]). Ver `Recommender::smart`.
+Future<List<SmartSong>> recommendSmart({
+  required List<String> anchors,
+  required List<String> avoid,
+  required String style,
+  required int perAnchor,
+  required List<String> exclude,
+  required List<String> allowed,
+}) => RustLib.instance.api.crateApiRecommendRecommendSmart(
+  anchors: anchors,
+  avoid: avoid,
+  style: style,
+  perAnchor: perAnchor,
+  exclude: exclude,
+  allowed: allowed,
+);
+
+/// Aleatório smart: [count] amostras sorteadas — com [spread], cada uma de um
+/// canto diferente e longe do que a pessoa já ouviu ([known]). [liked] são os
+/// ímãs: pulos perto deles não fecham a região. Ver `Recommender::explore`.
+Future<List<String>> recommendExplore({
+  required int count,
+  required List<String> known,
+  required List<String> avoid,
+  required List<String> liked,
+  required List<String> exclude,
+  required List<String> allowed,
+  required bool spread,
+  required int seed,
+}) => RustLib.instance.api.crateApiRecommendRecommendExplore(
+  count: count,
+  known: known,
+  avoid: avoid,
+  liked: liked,
+  exclude: exclude,
+  allowed: allowed,
+  spread: spread,
+  seed: seed,
+);
+
+/// Destas músicas, quais caíram no que a pessoa pulou (a própria, as gêmeas,
+/// ou a zona de duas puladas perto uma da outra, longe de [liked])?
+Future<List<String>> recommendAvoided({
+  required List<String> ids,
+  required List<String> avoid,
+  required List<String> liked,
+}) => RustLib.instance.api.crateApiRecommendRecommendAvoided(
+  ids: ids,
+  avoid: avoid,
+  liked: liked,
+);
+
 class SimilarSong {
   final String id;
   final double score;
@@ -56,4 +110,30 @@ class SimilarSong {
           runtimeType == other.runtimeType &&
           id == other.id &&
           score == other.score;
+}
+
+/// Candidata do aleatório smart: qual ímã a trouxe (posição na lista pedida)
+/// e quanto combina com ele.
+class SmartSong {
+  final String id;
+  final double score;
+  final int anchor;
+
+  const SmartSong({
+    required this.id,
+    required this.score,
+    required this.anchor,
+  });
+
+  @override
+  int get hashCode => id.hashCode ^ score.hashCode ^ anchor.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SmartSong &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          score == other.score &&
+          anchor == other.anchor;
 }

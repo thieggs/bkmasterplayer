@@ -6,6 +6,7 @@ import '../../core/providers.dart';
 import '../../domain/models.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
+import '../actions.dart';
 import '../widgets/album_card.dart';
 import '../widgets/async_view.dart';
 
@@ -37,6 +38,14 @@ class HomePage extends ConsumerWidget {
                     final songs = await ref.read(musicProvider).randomSongs(size: 100);
                     ref.read(playerProvider.notifier).playSongs(songs);
                   },
+                ),
+                Tooltip(
+                  message: l10n.smartShuffleHint,
+                  child: FilledButton.tonalIcon(
+                    icon: const Icon(Icons.psychology_outlined),
+                    label: Text(l10n.smartShuffle),
+                    onPressed: () => LibraryActions.smartShuffle(context, ref),
+                  ),
                 ),
                 if (session?.offlineReason != null)
                   ActionChip(

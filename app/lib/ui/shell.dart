@@ -148,6 +148,21 @@ class _AppShellState extends ConsumerState<AppShell> {
         ref.read(playerProvider.notifier).consumeMessage();
       }
     });
+    // O aleatório smart entendeu um pulo como "não gostei": mostra, e deixa
+    // desfazer (dedo errado acontece).
+    ref.listen(playerProvider.select((s) => s.smartNote), (_, note) {
+      if (note == null) return;
+      final player = ref.read(playerProvider.notifier);
+      ScaffoldMessenger.maybeOf(context)
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(context.l10n.smartLessOfThis(note.song.title)),
+          behavior: SnackBarBehavior.floating,
+          width: 420,
+          action: SnackBarAction(label: context.l10n.smartUndo, onPressed: () => player.smartUndo(note.song.id)),
+        ));
+      player.consumeSmartNote();
+    });
 
     final content = ClipRect(child: widget.child);
 
