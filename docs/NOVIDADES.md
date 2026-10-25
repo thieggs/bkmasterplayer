@@ -3,6 +3,43 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.6.0
+
+### Aleatório smart
+
+- **Um aleatório que aprende com você.** Ele puxa poucas músicas por vez
+  (4, ou de 2 a 10 nos ajustes). A primeira rodada é sorteio, ou começa em
+  volta de uma música que você escolher.
+  - **Ouviu inteira:** ele entende que você gostou e puxa mais daquele estilo.
+  - **Pulou logo no começo** (antes de 30 segundos): entende que não gostou.
+    A música não volta, e as muito parecidas com ela também não. Dois pulos
+    no mesmo estilo afastam o estilo inteiro.
+  - **Pulou no meio:** não conta nem a favor nem contra.
+  - **Voltar para ouvir de novo e favoritar** contam ainda mais a favor.
+- **Não fecha num estilo só.** De tempos em tempos entra uma música de um
+  canto da biblioteca que você ainda não ouviu. Se você pular várias seguidas,
+  ele vai procurar em outros estilos. E o que você fez vai perdendo peso aos
+  poucos, então o modo acompanha quando o seu humor muda.
+- **Você vê o que ele entendeu.** Depois de um pulo rápido aparece
+  "👎 Menos disso", com **Desfazer**. O ícone no player abre
+  **"O que ele aprendeu"**: as músicas que estão puxando e as que estão sendo
+  evitadas, cada uma com um ✕ para esquecer.
+- **Onde ligar:** na Início, no menu de qualquer música ("Aleatório smart a
+  partir desta"), na rádio do player, no botão da fila e no Android Auto.
+  Ajustes em Configurações → Recomendações.
+- Funciona offline e fica tudo no aparelho, com a análise do AudioMuse
+  guardada. Sem ela, o servidor responde, e o modo só tira a própria música
+  pulada.
+
+### iPhone: atualização pelo SideStore
+
+- **Versão nova chega no próprio iPhone, sem computador.** Cada release
+  publica uma fonte do SideStore (`sidestore.json`). Com ela adicionada, o
+  SideStore mostra a atualização em **My Apps** e instala ali mesmo. O passo a
+  passo está em [IPHONE.md](IPHONE.md).
+- O aviso de versão nova no iPhone ganhou o botão **Abrir no SideStore**, que
+  adiciona a fonte com um toque.
+
 ## v1.5.0
 
 ### Festa no player de sempre
