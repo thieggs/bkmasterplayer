@@ -4513,6 +4513,18 @@ abstract class AppLocalizations {
   /// **'Este jeito de instalar não se troca sozinho: baixe a versão nova pela página do GitHub.'**
   String get updateManualHint;
 
+  /// No description provided for @updateIosHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'No iPhone a versão nova chega pelo SideStore, sem computador: abra ele em My Apps e toque em Update. O botão abaixo adiciona a fonte do BKmasterplayer, se ainda não estiver lá. Na primeira vez, instale o app por essa fonte: só assim ele aparece nas atualizações.'**
+  String get updateIosHint;
+
+  /// No description provided for @updateOpenSideStore.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir no SideStore'**
+  String get updateOpenSideStore;
+
   /// No description provided for @updateRestartHint.
   ///
   /// In pt, this message translates to:

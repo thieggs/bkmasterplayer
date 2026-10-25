@@ -9,10 +9,10 @@ Apple ID is enough.
 
 Two ways. Pick by what you have.
 
-| | you need | signature lasts | renews itself |
-|---|---|---|---|
-| **Sideloadly** | a Windows or Mac computer | 7 days | no — plug in and redo |
-| **SideStore** | a computer **once**, then nothing | 7 days | **yes**, on the phone |
+| | you need | signature lasts | renews itself | new versions |
+|---|---|---|---|---|
+| **Sideloadly** | a Windows or Mac computer | 7 days | no — plug in and redo | download the `.ipa`, plug in |
+| **SideStore** | a computer **once**, then nothing | 7 days | **yes**, on the phone | **on the phone**, from the source |
 
 Sideloadly is quicker to get going. SideStore takes longer to set up and then
 stops bothering you. If you have a Windows machine around, start with
@@ -73,11 +73,30 @@ harm than good. The shape of it:
 
 1. On a computer, generate a **pairing file** for the phone (once).
 2. Install SideStore on the phone.
-3. Inside SideStore, install `BKmasterplayer-*.ipa` with your Apple ID.
+3. Add the BKmasterplayer source and install the app from it (below).
 4. SideStore keeps it signed from then on, using a local VPN on the device.
 
 The pairing file expires at random, and whenever you update or reset the
 phone. When that happens you go back to the computer once and regenerate it.
+
+### The BKmasterplayer source — updates on the phone
+
+Every release publishes a SideStore source next to the `.ipa`. With it added,
+SideStore sees each new version and installs it right there, no computer:
+
+1. In SideStore, open **Sources**, tap **+** and paste:
+
+   ```
+   https://github.com/thieggs/bkmasterplayer/releases/latest/download/sidestore.json
+   ```
+
+2. Open the source, then **BKmasterplayer → Free** to install.
+3. When a new version is out: **My Apps → Update**. The update notice inside
+   the app has an **Open in SideStore** button that takes you there.
+
+Install it **from the source** at least once. An app installed from the file
+(the **+** in My Apps) is "sideloaded" to SideStore, and it never offers
+updates for it. Reinstalling from the source replaces the same app.
 
 ---
 
@@ -99,10 +118,10 @@ Apple ID gratuito serve.
 
 São dois caminhos. Escolha pelo que você tem.
 
-| | precisa de | a assinatura dura | renova sozinho |
-|---|---|---|---|
-| **Sideloadly** | um computador Windows ou Mac | 7 dias | não — liga o cabo e refaz |
-| **SideStore** | computador **uma vez**, depois nada | 7 dias | **sim**, no próprio celular |
+| | precisa de | a assinatura dura | renova sozinho | versão nova |
+|---|---|---|---|---|
+| **Sideloadly** | um computador Windows ou Mac | 7 dias | não — liga o cabo e refaz | baixa o `.ipa` e liga o cabo |
+| **SideStore** | computador **uma vez**, depois nada | 7 dias | **sim**, no próprio celular | **no celular**, pela fonte |
 
 O Sideloadly é mais rápido de começar. O SideStore dá mais trabalho para
 montar e depois para de te incomodar. Se você tem um Windows por perto, comece
@@ -160,12 +179,32 @@ mais que ajudaria. O formato é este:
 
 1. Num computador, gere o **arquivo de pareamento** do celular (uma vez).
 2. Instale o SideStore no celular.
-3. Dentro do SideStore, instale o `BKmasterplayer-*.ipa` com o seu Apple ID.
+3. Adicione a fonte do BKmasterplayer e instale o app por ela (abaixo).
 4. Daí em diante ele mantém a assinatura sozinho, com uma VPN local no aparelho.
 
 O arquivo de pareamento vence em momentos aleatórios, e sempre que você
 atualizar ou resetar o celular. Quando isso acontecer, é voltar ao computador
 uma vez e gerar outro.
+
+#### A fonte do BKmasterplayer — atualiza no celular
+
+Cada release publica uma fonte do SideStore junto com o `.ipa`. Com ela
+adicionada, o SideStore vê cada versão nova e instala ali mesmo, sem
+computador. O SideStore é só em inglês, então os nomes abaixo são os dele:
+
+1. No SideStore, abra **Sources**, toque em **+** e cole:
+
+   ```
+   https://github.com/thieggs/bkmasterplayer/releases/latest/download/sidestore.json
+   ```
+
+2. Abra a fonte e toque em **BKmasterplayer → Free** para instalar.
+3. Quando sair versão nova: **My Apps → Update**. O aviso de atualização
+   dentro do app tem o botão **Abrir no SideStore**, que leva até lá.
+
+Instale **pela fonte** pelo menos uma vez. App instalado pelo arquivo (o **+**
+de My Apps) fica marcado como "por fora" no SideStore, e ele nunca oferece
+atualização para esse app. Instalar de novo pela fonte substitui o mesmo app.
 
 ### O que não funciona no iPhone
 

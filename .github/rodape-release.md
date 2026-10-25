@@ -14,6 +14,8 @@
 O `.ipa` não é assinado: o **Sideloadly** (cabo, mais rápido de começar) ou o
 **SideStore** (renova sozinho no celular) assinam com o seu Apple ID na hora de
 instalar — o passo a passo dos dois está em [docs/IPHONE.md](docs/IPHONE.md).
+O `sidestore.json` é a fonte do SideStore: adicionada nele, as versões novas
+chegam e instalam no próprio iPhone, sem computador.
 **Connect e Festa não funcionam no iPhone**: dependem de multicast, e a Apple só
 libera isso para conta paga.
 

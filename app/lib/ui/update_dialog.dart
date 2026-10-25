@@ -42,7 +42,7 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
     void close() => Navigator.of(context).pop();
     final busy = u.status == UpdateStatus.downloading || u.status == UpdateStatus.installing;
     final hint = !notifier.canInstall
-        ? l10n.updateManualHint
+        ? (Platform.isIOS ? l10n.updateIosHint : l10n.updateManualHint)
         : Platform.isAndroid
         ? l10n.updateAndroidHint
         : l10n.updateRestartHint;
@@ -91,7 +91,20 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
           ),
         // Fechar durante o download não cancela: ele termina e avisa de novo.
         TextButton(onPressed: u.status == UpdateStatus.installing && !Platform.isAndroid ? null : close, child: Text(l10n.updateLater)),
-        if (!notifier.canInstall)
+        if (!notifier.canInstall && Platform.isIOS)
+          // Abre o SideStore já na fonte do app (adiciona, se ainda não tem).
+          // Sem SideStore no celular, cai na página do release.
+          FilledButton(
+            onPressed: () async {
+              close();
+              final source = Uri.parse('sidestore://source?url=${Uri.encodeComponent(sideStoreSource)}');
+              if (!await launchUrl(source, mode: LaunchMode.externalApplication)) {
+                await launchUrl(Uri.parse(rel.page), mode: LaunchMode.externalApplication);
+              }
+            },
+            child: Text(l10n.updateOpenSideStore),
+          )
+        else if (!notifier.canInstall)
           FilledButton(
             onPressed: () {
               launchUrl(Uri.parse(rel.page), mode: LaunchMode.externalApplication);

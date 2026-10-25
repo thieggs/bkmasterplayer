@@ -19,10 +19,14 @@ import 'network.dart';
 
 const updateRepo = 'thieggs/bkmasterplayer';
 
+/// A fonte do SideStore que o release publica (dev/fonte_sidestore.py). No
+/// iPhone o app não se troca sozinho: a versão nova chega pelo SideStore.
+const sideStoreSource = 'https://github.com/$updateRepo/releases/latest/download/sidestore.json';
+
 /// Como este app foi instalado — decide qual arquivo do release serve e como
 /// trocar a versão. `userFolder`: o `dev/install_linux.sh` (pasta do usuário,
 /// sem sudo), que se atualiza com o conteúdo do .deb. `none`: build de
-/// desenvolvimento ou iPhone, que só avisa.
+/// desenvolvimento ou iPhone, que só avisa (no iPhone, levando ao SideStore).
 enum InstallKind { apk, appImage, deb, userFolder, windowsSetup, none }
 
 class ReleaseAsset {

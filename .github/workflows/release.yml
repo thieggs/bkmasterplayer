@@ -191,6 +191,12 @@ jobs:
             exit 1
           fi
           cat .github/rodape-release.md >> corpo.md
+      # A fonte do SideStore: com ela o iPhone vê a versão nova e atualiza no
+      # próprio celular. Sai do .ipa deste release (ver dev/fonte_sidestore.py).
+      - name: Fonte do SideStore
+        run: |
+          mkdir -p baixados/sidestore
+          python3 dev/fonte_sidestore.py baixados/ios/*.ipa "$GITHUB_REF_NAME" > baixados/sidestore/sidestore.json
       - uses: softprops/action-gh-release@v2
         with:
           files: baixados/*/*

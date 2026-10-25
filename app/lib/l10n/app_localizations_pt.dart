@@ -2534,6 +2534,13 @@ class AppLocalizationsPt extends AppLocalizations {
       'Este jeito de instalar não se troca sozinho: baixe a versão nova pela página do GitHub.';
 
   @override
+  String get updateIosHint =>
+      'No iPhone a versão nova chega pelo SideStore, sem computador: abra ele em My Apps e toque em Update. O botão abaixo adiciona a fonte do BKmasterplayer, se ainda não estiver lá. Na primeira vez, instale o app por essa fonte: só assim ele aparece nas atualizações.';
+
+  @override
+  String get updateOpenSideStore => 'Abrir no SideStore';
+
+  @override
   String get updateRestartHint =>
       'O app fecha e abre de novo, já na versão nova.';
 
