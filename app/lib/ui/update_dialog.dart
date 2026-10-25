@@ -93,13 +93,15 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
         TextButton(onPressed: u.status == UpdateStatus.installing && !Platform.isAndroid ? null : close, child: Text(l10n.updateLater)),
         if (!notifier.canInstall && Platform.isIOS)
           // Abre o SideStore já na fonte do app (adiciona, se ainda não tem).
-          // Sem SideStore no celular, cai na página do release.
+          // O SideStore embutido no LiveContainer não registra sidestore://,
+          // então tenta a aba Sources do LiveContainer; sem nenhum dos dois,
+          // cai na página do release.
           FilledButton(
             onPressed: () async {
               close();
-              final source = Uri.parse('sidestore://source?url=${Uri.encodeComponent(sideStoreSource)}');
-              if (!await launchUrl(source, mode: LaunchMode.externalApplication)) {
-                await launchUrl(Uri.parse(rel.page), mode: LaunchMode.externalApplication);
+              final url = Uri.encodeComponent(sideStoreSource);
+              for (final destino in ['sidestore://source?url=$url', 'livecontainer://source?url=$url', rel.page]) {
+                if (await launchUrl(Uri.parse(destino), mode: LaunchMode.externalApplication)) break;
               }
             },
             child: Text(l10n.updateOpenSideStore),

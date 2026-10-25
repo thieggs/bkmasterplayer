@@ -98,6 +98,47 @@ Install it **from the source** at least once. An app installed from the file
 (the **+** in My Apps) is "sideloaded" to SideStore, and it never offers
 updates for it. Reinstalling from the source replaces the same app.
 
+### LiveContainer + SideStore — the "JIT-less" message
+
+SideStore's current guide installs **LiveContainer+SideStore**: SideStore runs
+inside LiveContainer, which can hold many apps while using a single one of the
+three free slots. Apps you install *inside* LiveContainer are signed by
+LiveContainer itself, and since iOS 17.4 there is no JIT without a computer,
+so it signs in **JIT-less mode**, with SideStore's certificate. Until that
+certificate is imported, installing fails with "Failed to find signing
+certificate… JIT-Less Diagnose" or "Certificate not found. Did you log into
+built-in SideStore?". Nothing is wrong with the `.ipa` — it is a one-time
+setup on the phone:
+
+1. In LiveContainer, **Apps** tab, tap the **SideStore** button (top left).
+2. In SideStore, **Settings**: sign in with your Apple ID. If it already looks
+   signed in, sign out and in again — the built-in SideStore cannot read the
+   saved password.
+3. Turn on **LocalDevVPN**, go to **My Apps** and tap **Refresh All**.
+4. Leave SideStore (the quit icon in its Apps page). Back in LiveContainer,
+   **Settings → Import Certificate from Built-in SideStore → OK**. It worked if
+   the button turns into **Remove Certificate**.
+5. **Settings → JIT-Less Mode Diagnose**: everything should be green, and
+   **Test JIT-Less Mode** should pass.
+
+Then install BKmasterplayer from LiveContainer's **Sources** tab: **+**, paste
+the same source address as above, then **Install**.
+
+If step 4 keeps saying "Certificate not found": in the built-in SideStore,
+**Settings → Export Signing Certificate…**, pick a password and save the file;
+then in LiveContainer, **Settings → Import Certificate**, choose that file and
+type the password.
+
+Two things change inside LiveContainer:
+
+- **Updates**: the **Open in SideStore** button in the app falls back to
+  LiveContainer's **Sources**. Tap **Install** there again; the app data stays
+  in its container.
+- **Lock screen controls** can misbehave for Flutter apps inside LiveContainer
+  (a known LiveContainer issue). If that bothers you, install BKmasterplayer as
+  a normal app instead: open the built-in SideStore and install from the
+  source as above. That uses one of the three slots and does not need JIT-less.
+
 ---
 
 ## What does not work on iPhone
@@ -205,6 +246,48 @@ computador. O SideStore é só em inglês, então os nomes abaixo são os dele:
 Instale **pela fonte** pelo menos uma vez. App instalado pelo arquivo (o **+**
 de My Apps) fica marcado como "por fora" no SideStore, e ele nunca oferece
 atualização para esse app. Instalar de novo pela fonte substitui o mesmo app.
+
+#### LiveContainer + SideStore — a mensagem do "JIT-less"
+
+O guia atual do SideStore instala o **LiveContainer+SideStore**: o SideStore
+roda dentro do LiveContainer, que guarda vários apps gastando uma só das três
+vagas gratuitas. App instalado *dentro* do LiveContainer é assinado pelo
+próprio LiveContainer, e desde o iOS 17.4 não há JIT sem computador, então ele
+assina no **modo JIT-less**, com o certificado do SideStore. Enquanto esse
+certificado não é importado, a instalação falha com "Falha ao encontrar
+certificado… diagnóstico do modo JIT-Less" ou "Certificado não encontrado. Você
+fez login na SideStore integrada?". Não é defeito do `.ipa`: é um ajuste de uma
+vez só, no celular:
+
+1. No LiveContainer, aba **Aplicativos**, toque no botão **SideStore** (no
+   alto, à esquerda).
+2. No SideStore, **Settings**: entre com o seu Apple ID. Se já parecer logado,
+   saia e entre de novo — o SideStore embutido não consegue ler a senha
+   guardada.
+3. Ligue a **LocalDevVPN**, vá em **My Apps** e toque em **Refresh All**.
+4. Saia do SideStore (o ícone de sair na página Apps dele). De volta ao
+   LiveContainer, **Configurações → Importar Certificado da SideStore
+   Integrada → OK**. Deu certo se o botão virar **Remover Certificado**.
+5. **Configurações → Diagnóstico do Modo JIT-Less**: tudo verde, e **Testar modo
+   JIT-Less** tem que passar.
+
+Depois instale o BKmasterplayer pela aba **Fontes** do LiveContainer: **+**,
+cole o mesmo endereço da fonte lá de cima e toque em **Instalar**.
+
+Se o passo 4 continuar dizendo "Certificado não encontrado": no SideStore
+embutido, **Settings → Export Signing Certificate…**, escolha uma senha e salve
+o arquivo; depois, no LiveContainer, **Configurações → Importar Certificado**,
+escolha esse arquivo e digite a senha.
+
+Dentro do LiveContainer, duas coisas mudam:
+
+- **Atualização**: o botão **Abrir no SideStore** do app cai na aba
+  **Fontes** do LiveContainer. Toque em **Instalar** de novo; os dados do app
+  ficam no contêiner dele.
+- **Controles da tela de bloqueio** podem falhar em app Flutter dentro do
+  LiveContainer (problema conhecido do LiveContainer). Se incomodar, instale o
+  BKmasterplayer como app normal: abra o SideStore embutido e instale pela
+  fonte, como acima. Isso gasta uma das três vagas e não precisa de JIT-less.
 
 ### O que não funciona no iPhone
 
