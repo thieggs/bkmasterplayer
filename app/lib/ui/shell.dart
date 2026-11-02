@@ -153,14 +153,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     ref.listen(playerProvider.select((s) => s.smartNote), (_, note) {
       if (note == null) return;
       final player = ref.read(playerProvider.notifier);
-      ScaffoldMessenger.maybeOf(context)
-        ?..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(context.l10n.smartLessOfThis(note.song.title)),
-          behavior: SnackBarBehavior.floating,
-          width: 420,
-          action: SnackBarAction(label: context.l10n.smartUndo, onPressed: () => player.smartUndo(note.song.id)),
-        ));
+      showUndoSnack(
+        context,
+        context.l10n.smartLessOfThis(note.song.title),
+        undoLabel: context.l10n.smartUndo,
+        onUndo: () => player.smartUndo(note.song.id),
+      );
       player.consumeSmartNote();
     });
 

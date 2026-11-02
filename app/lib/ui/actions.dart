@@ -45,6 +45,22 @@ void showSnack(BuildContext context, String text) {
     ..showSnackBar(SnackBar(content: Text(text), behavior: SnackBarBehavior.floating, width: 420));
 }
 
+/// Aviso com "desfazer". Com botão, o Flutter deixa o aviso na tela até alguém
+/// fechar (persist), por isso o tempo aqui é explícito. E limpa a fila, não só o
+/// atual: senão pular várias seguidas deixa um aviso por música esperando a vez.
+void showUndoSnack(BuildContext context, String text, {required String undoLabel, required VoidCallback onUndo}) {
+  ScaffoldMessenger.maybeOf(context)
+    ?..clearSnackBars()
+    ..showSnackBar(SnackBar(
+      content: Text(text),
+      behavior: SnackBarBehavior.floating,
+      width: 420,
+      duration: const Duration(seconds: 10),
+      persist: false,
+      action: SnackBarAction(label: undoLabel, onPressed: onUndo),
+    ));
+}
+
 class LibraryActions {
   static PlayerController _player(WidgetRef ref) => ref.read(playerProvider.notifier);
 
