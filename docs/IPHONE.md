@@ -129,6 +129,15 @@ If step 4 keeps saying "Certificate not found": in the built-in SideStore,
 then in LiveContainer, **Settings → Import Certificate**, choose that file and
 type the password.
 
+If the certificate is imported and installing still fails with "signed with the
+latest certificate but its code signature is invalid", the diagnose page will
+show **Certificate Status: Revoked**. A free Apple ID holds very few
+certificates, and every sideloading tool that signs with it (Sideloadly,
+Impactor, iloader, another device) makes a new one and revokes the old. Pick
+**one** tool for that Apple ID. Then, in the built-in SideStore, **Refresh
+All**; in LiveContainer, **Remove Certificate** and import it again. If it
+stays revoked, reinstall LiveContainer+SideStore with that one tool.
+
 Two things change inside LiveContainer:
 
 - **Updates**: the **Open in SideStore** button in the app falls back to
@@ -278,6 +287,16 @@ Se o passo 4 continuar dizendo "Certificado não encontrado": no SideStore
 embutido, **Settings → Export Signing Certificate…**, escolha uma senha e salve
 o arquivo; depois, no LiveContainer, **Configurações → Importar Certificado**,
 escolha esse arquivo e digite a senha.
+
+Se o certificado já foi importado e a instalação ainda falha com "assinado com o
+certificado mais recente, mas a sua assinatura do código é inválida", o
+diagnóstico vai mostrar **'Status' do Certificado: Expirado** (é a tradução
+deles para *revogado*). Apple ID gratuito guarda pouquíssimos certificados, e
+cada programa que assina com ele (Sideloadly, Impactor, iloader, outro
+aparelho) cria um novo e revoga o anterior. Use **um** programa só para esse
+Apple ID. Depois, no SideStore embutido, **Refresh All**; no LiveContainer,
+**Remover Certificado** e importe de novo. Se continuar revogado, reinstale o
+LiveContainer+SideStore com esse único programa.
 
 Dentro do LiveContainer, duas coisas mudam:
 
