@@ -3334,7 +3334,7 @@ abstract class AppLocalizations {
   /// No description provided for @downloadAllConfirm.
   ///
   /// In pt, this message translates to:
-  /// **'Baixar {count} músicas (cerca de {size})? Elas ficam neste aparelho e tocam sem internet; dá para tirar depois em Downloads.'**
+  /// **'Baixar {count, plural, =1{1 música} other{{count} músicas}} (cerca de {size})? Elas ficam neste aparelho e tocam sem internet; dá para tirar depois em Downloads.'**
   String downloadAllConfirm(int count, String size);
 
   /// No description provided for @downloadAllMobileData.
@@ -3342,6 +3342,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Você está nos dados móveis: é melhor baixar no Wi-Fi.'**
   String get downloadAllMobileData;
+
+  /// No description provided for @downloadAllUpToDate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já está tudo baixado nesta qualidade.'**
+  String get downloadAllUpToDate;
+
+  /// No description provided for @downloadAllReplace.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que já baixou em {quality} sai do aparelho, e tudo baixa de novo nesta qualidade.'**
+  String downloadAllReplace(String quality);
 
   /// No description provided for @wholeLibrary.
   ///

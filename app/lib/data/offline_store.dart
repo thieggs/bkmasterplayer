@@ -12,6 +12,17 @@ import '../player/player_controller.dart';
 import '../src/rust/api/engine.dart' as engine;
 import '../ui/widgets/cover_art.dart';
 
+/// Quanto a música ocupa baixada nesta qualidade (kbps; 0 = original). O MP3
+/// convertido tem taxa constante, então sai da duração; e o servidor não passa
+/// da taxa do original, então nunca fica maior que ele.
+int downloadBytes(Song s, int bitRate) {
+  final original = s.size ?? 0;
+  final secs = s.duration?.inSeconds ?? 0;
+  if (bitRate <= 0 || secs <= 0) return original;
+  final mp3 = secs * bitRate * 125; // kbps -> bytes por segundo
+  return original > 0 && original < mp3 ? original : mp3;
+}
+
 /// Álbum ou playlist baixado para ouvir offline (com a lista de músicas
 /// guardada localmente, para funcionar mesmo sem servidor).
 @immutable
@@ -134,8 +145,22 @@ class OfflineStore extends Notifier<List<OfflineCollection>> {
             url: src.url,
             title: s.title,
             artist: s.displayArtist,
-            sizeBytes: s.size ?? 0,
+            sizeBytes: downloadBytes(s, bitRate),
           ),
+    ];
+  }
+
+  /// Das músicas, as que ainda não estão no disco nesta qualidade.
+  Future<List<Song>> missing(List<Song> songs, int bitRate) async {
+    final player = ref.read(playerProvider.notifier);
+    final keyed = [
+      for (final s in songs)
+        if (player.sourceFor(s, offline: true, downloadBitRate: bitRate)?.cacheKey case final key?) (s, key),
+    ];
+    final cached = await engine.playerCachedState(cacheKeys: [for (final (_, key) in keyed) key]);
+    return [
+      for (final (i, (s, _)) in keyed.indexed)
+        if (!cached[i]) s,
     ];
   }
 

@@ -1884,12 +1884,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String downloadAllConfirm(int count, String size) {
-    return 'Download $count songs (about $size)? They stay on this device and play without internet; you can remove them later in Downloads.';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+    );
+    return 'Download $_temp0 (about $size)? They stay on this device and play without internet; you can remove them later in Downloads.';
   }
 
   @override
   String get downloadAllMobileData =>
       'You\'re on mobile data: better to download on Wi-Fi.';
+
+  @override
+  String get downloadAllUpToDate =>
+      'Everything is already downloaded in this quality.';
+
+  @override
+  String downloadAllReplace(String quality) {
+    return 'What you already downloaded in $quality is removed from this device, and everything downloads again in this quality.';
+  }
 
   @override
   String get wholeLibrary => 'Whole library';

@@ -34,9 +34,6 @@ final cacheSizeProvider = FutureProvider.autoDispose<int>((ref) => engine.player
 
 bool get _isDesktop => Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
-/// Qualidades do streaming (kbps, MP3; 0 = original). Só MP3: toda instalação
-/// do Navidrome converte para ele.
-const _qualities = [0, 320, 256, 192, 128];
 const _mobileQualities = [0, 320, 256, 192, 128, 96];
 
 /// Tela de uma categoria dos ajustes (`/settings/<id>`).
@@ -331,10 +328,10 @@ class PlaybackSettingsPage extends ConsumerWidget {
             leading: const Icon(Icons.high_quality_outlined),
             title: Text(l10n.streamQuality),
             trailing: DropdownButton<int>(
-              value: _qualities.contains(s.maxBitRate) ? s.maxBitRate : 0,
+              value: qualityChoices.contains(s.maxBitRate) ? s.maxBitRate : 0,
               underline: const SizedBox(),
               items: [
-                for (final q in _qualities) DropdownMenuItem(value: q, child: Text(q == 0 ? l10n.qualityOriginal : 'MP3 $q kbps')),
+                for (final q in qualityChoices) DropdownMenuItem(value: q, child: Text(q == 0 ? l10n.qualityOriginal : 'MP3 $q kbps')),
               ],
               onChanged: (v) {
                 if (v == null) return;
@@ -408,10 +405,10 @@ class StorageSettingsPage extends ConsumerWidget {
             title: Text(l10n.dlQuality),
             subtitle: Text(l10n.dlQualityHint),
             trailing: DropdownButton<int>(
-              value: _qualities.contains(s.downloadMaxBitRate) ? s.downloadMaxBitRate : 0,
+              value: qualityChoices.contains(s.downloadMaxBitRate) ? s.downloadMaxBitRate : 0,
               underline: const SizedBox(),
               items: [
-                for (final q in _qualities) DropdownMenuItem(value: q, child: Text(q == 0 ? l10n.qualityOriginal : 'MP3 $q kbps')),
+                for (final q in qualityChoices) DropdownMenuItem(value: q, child: Text(q == 0 ? l10n.qualityOriginal : 'MP3 $q kbps')),
               ],
               onChanged: (v) => v == null ? null : set((x) => x.copyWith(downloadMaxBitRate: v)),
             ),

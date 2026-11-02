@@ -699,7 +699,7 @@
    }
   }
  },
- "downloadAllConfirm": "Download {count} songs (about {size})? They stay on this device and play without internet; you can remove them later in Downloads.",
+ "downloadAllConfirm": "Download {count, plural, =1{1 song} other{{count} songs}} (about {size})? They stay on this device and play without internet; you can remove them later in Downloads.",
  "@downloadAllConfirm": {
   "placeholders": {
    "count": {
@@ -711,6 +711,15 @@
   }
  },
  "downloadAllMobileData": "You're on mobile data: better to download on Wi-Fi.",
+ "downloadAllUpToDate": "Everything is already downloaded in this quality.",
+ "downloadAllReplace": "What you already downloaded in {quality} is removed from this device, and everything downloads again in this quality.",
+ "@downloadAllReplace": {
+  "placeholders": {
+   "quality": {
+    "type": "String"
+   }
+  }
+ },
  "wholeLibrary": "Whole library",
  "downloadNew": "Download new ones",
  "download": "Download",

@@ -49,8 +49,9 @@ void main() {
   });
 
   test('qualidade dos downloads é salva (0 = original)', () {
-    expect(const AppSettings().downloadMaxBitRate, 0);
-    expect(AppSettings.fromJson(const AppSettings(downloadMaxBitRate: 320).toJson()).downloadMaxBitRate, 320);
+    expect(const AppSettings().downloadMaxBitRate, 320);
+    expect(AppSettings.fromJson(const AppSettings(downloadMaxBitRate: 0).toJson()).downloadMaxBitRate, 0);
+    expect(AppSettings.fromJson(const AppSettings(downloadMaxBitRate: 128).toJson()).downloadMaxBitRate, 128);
   });
 
   test('downloads esperam o Wi-Fi só com a opção ligada e nos dados móveis', () async {

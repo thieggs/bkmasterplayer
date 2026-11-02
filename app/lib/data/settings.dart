@@ -11,6 +11,10 @@ enum MixStyleSetting { auto, bassSwap, blend, filter, echo, cut }
 
 enum AnalysisModelSetting { auto, small, full }
 
+/// Qualidades da conversão (kbps, MP3; 0 = original). Só MP3: toda instalação
+/// do Navidrome converte para ele.
+const qualityChoices = [0, 320, 256, 192, 128];
+
 /// Configurações do app (persistidas como JSON). A customização visual
 /// completa (tokens de tema e layout) cresce aqui na Fase 4.
 @immutable
@@ -26,7 +30,7 @@ class AppSettings {
     this.transcodeFormat,
     this.maxBitRate = 0,
     this.mobileMaxBitRate = 320,
-    this.downloadMaxBitRate = 0,
+    this.downloadMaxBitRate = 320,
     this.downloadWifiOnly = false,
     this.volume = 1.0,
     this.locale,
@@ -89,7 +93,8 @@ class AppSettings {
   /// música no plano de dados.
   final int mobileMaxBitRate;
 
-  /// Qualidade dos downloads offline (kbps, MP3); 0 = o arquivo original.
+  /// Qualidade dos downloads offline (kbps, MP3); 0 = o arquivo original. De
+  /// fábrica 320: em FLAC a biblioteca ocupa mais que o triplo.
   final int downloadMaxBitRate;
 
   /// Downloads offline esperam o Wi-Fi (não gastam o plano de dados).

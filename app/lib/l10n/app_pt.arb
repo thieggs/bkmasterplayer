@@ -788,7 +788,7 @@
    }
   }
  },
- "downloadAllConfirm": "Baixar {count} músicas (cerca de {size})? Elas ficam neste aparelho e tocam sem internet; dá para tirar depois em Downloads.",
+ "downloadAllConfirm": "Baixar {count, plural, =1{1 música} other{{count} músicas}} (cerca de {size})? Elas ficam neste aparelho e tocam sem internet; dá para tirar depois em Downloads.",
  "@downloadAllConfirm": {
   "placeholders": {
    "count": {
@@ -800,6 +800,15 @@
   }
  },
  "downloadAllMobileData": "Você está nos dados móveis: é melhor baixar no Wi-Fi.",
+ "downloadAllUpToDate": "Já está tudo baixado nesta qualidade.",
+ "downloadAllReplace": "O que já baixou em {quality} sai do aparelho, e tudo baixa de novo nesta qualidade.",
+ "@downloadAllReplace": {
+  "placeholders": {
+   "quality": {
+    "type": "String"
+   }
+  }
+ },
  "wholeLibrary": "Biblioteca inteira",
  "downloadNew": "Baixar as novas",
  "download": "Baixar",

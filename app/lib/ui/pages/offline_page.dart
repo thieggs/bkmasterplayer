@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../data/offline_store.dart';
+import '../../data/settings.dart';
 import '../../domain/models.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player_controller.dart';
@@ -272,7 +273,10 @@ class _WholeLibraryTileState extends ConsumerState<_WholeLibraryTile> {
       _busy = true;
       _read = 0;
     });
+    final store = ref.read(offlineProvider.notifier);
+    final current = ref.read(offlineProvider).where((c) => c.id == id).firstOrNull?.bitRate;
     final all = <Song>[];
+    var pending = all;
     try {
       for (var offset = 0; ; offset += 500) {
         final page = await provider.allSongs(count: 500, offset: offset);
@@ -280,39 +284,29 @@ class _WholeLibraryTileState extends ConsumerState<_WholeLibraryTile> {
         if (mounted) setState(() => _read = all.length);
         if (page.length < 500) break;
       }
+      if (current != null) pending = await store.missing(all, current);
     } catch (e) {
       if (mounted) showSnack(context, '$e');
     }
     if (mounted) setState(() => _busy = false);
     if (all.isEmpty || !mounted) return;
-    final bytes = all.fold<int>(0, (n, s) => n + (s.size ?? 0));
     final mobile = (await Connectivity().checkConnectivity()).contains(ConnectivityResult.mobile);
     if (!mounted) return;
-    final ok = await showDialog<bool>(
+    final quality = await showDialog<int>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.downloadAll),
-        content: Text(
-          [l10n.downloadAllConfirm(all.length, _size(bytes)), if (mobile) l10n.downloadAllMobileData].join('\n\n'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.download)),
-        ],
+      builder: (context) => DownloadAllDialog(
+        songs: all,
+        pending: pending,
+        initialBitRate: ref.read(settingsProvider).downloadMaxBitRate,
+        currentBitRate: current,
+        mobile: mobile,
       ),
     );
-    if (ok != true) return;
-    await ref
-        .read(offlineProvider.notifier)
-        .add(
-          OfflineCollection(type: 'library', id: id, name: l10n.wholeLibrary, songs: all, account: provider.accountId),
-        );
-  }
-
-  static String _size(int bytes) {
-    if (bytes <= 0) return '?';
-    final gb = bytes / (1024 * 1024 * 1024);
-    return gb >= 1 ? '${gb.toStringAsFixed(1)} GB' : '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    if (quality == null) return;
+    ref.read(settingsProvider.notifier).update((s) => s.copyWith(downloadMaxBitRate: quality));
+    await store.add(
+      OfflineCollection(type: 'library', id: id, name: l10n.wholeLibrary, songs: all, account: provider.accountId),
+    );
   }
 
   @override
@@ -326,6 +320,77 @@ class _WholeLibraryTileState extends ConsumerState<_WholeLibraryTile> {
       trailing: _busy
           ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
           : FilledButton.tonal(onPressed: _run, child: Text(has ? l10n.downloadNew : l10n.download)),
+    );
+  }
+}
+
+/// Confirmação de baixar a biblioteca: a qualidade (a regra dos ajustes, que dá
+/// para trocar aqui mesmo) e quanto vai ocupar nela. Devolve a qualidade.
+class DownloadAllDialog extends StatefulWidget {
+  const DownloadAllDialog({
+    super.key,
+    required this.songs,
+    required this.pending,
+    required this.initialBitRate,
+    this.currentBitRate,
+    this.mobile = false,
+  });
+
+  final List<Song> songs;
+
+  /// As que faltam na qualidade em que a biblioteca já está baixada.
+  final List<Song> pending;
+  final int initialBitRate;
+
+  /// Qualidade em que a biblioteca já foi baixada; null = ainda não foi.
+  final int? currentBitRate;
+  final bool mobile;
+
+  @override
+  State<DownloadAllDialog> createState() => _DownloadAllDialogState();
+}
+
+class _DownloadAllDialogState extends State<DownloadAllDialog> {
+  late int _bitRate = qualityChoices.contains(widget.initialBitRate) ? widget.initialBitRate : 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    String label(int q) => q == 0 ? l10n.qualityOriginal : 'MP3 $q kbps';
+    final current = widget.currentBitRate;
+    final songs = current == _bitRate ? widget.pending : widget.songs;
+    final bytes = songs.fold<int>(0, (n, s) => n + downloadBytes(s, _bitRate));
+    return AlertDialog(
+      scrollable: true,
+      title: Text(l10n.downloadAll),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.dlQuality, style: theme.textTheme.labelLarge),
+          DropdownButton<int>(
+            value: _bitRate,
+            isExpanded: true,
+            items: [
+              for (final q in qualityChoices) DropdownMenuItem(value: q, child: Text(label(q))),
+            ],
+            onChanged: (v) => setState(() => _bitRate = v ?? _bitRate),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            [
+              if (songs.isEmpty) l10n.downloadAllUpToDate else l10n.downloadAllConfirm(songs.length, bytes > 0 ? formatBytes(context, bytes) : '?'),
+              if (current != null && current != _bitRate) l10n.downloadAllReplace(label(current)),
+              if (widget.mobile && songs.isNotEmpty) l10n.downloadAllMobileData,
+            ].join('\n\n'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
+        FilledButton(onPressed: songs.isEmpty ? null : () => Navigator.pop(context, _bitRate), child: Text(l10n.download)),
+      ],
     );
   }
 }
