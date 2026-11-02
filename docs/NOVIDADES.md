@@ -3,6 +3,109 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.6.1
+
+Versão de correções. No fim está a lista de tudo o que já foi corrigido nas
+versões anteriores.
+
+### Baixar a biblioteca inteira
+
+- **"Baixar todas as músicas" mostra a qualidade antes de começar.** A janela de
+  confirmação traz a **Qualidade dos downloads** e dá para trocar ali mesmo. O
+  que você escolher fica salvo nos ajustes.
+- **O tamanho mostrado estava errado.** A janela e a barra de progresso somavam
+  sempre o tamanho dos arquivos originais, mesmo baixando em MP3. Agora as duas
+  usam a qualidade escolhida. Uma biblioteca de 229 GB, quase toda em FLAC, cai
+  para uns 65 GB em MP3 320 e uns 27 GB em MP3 128.
+- **Instalação nova baixa em MP3 320.** Antes o padrão era o arquivo original.
+  Quem já usa o app continua com a qualidade salva: se for Original, a janela
+  mostra isso e o tamanho antes de baixar.
+- **"Baixar as novas" conta só o que falta.** Antes a janela falava da
+  biblioteca inteira, mesmo faltando poucas músicas. Com tudo baixado, ela avisa
+  e não baixa nada.
+- **Trocar a qualidade com a biblioteca já baixada agora avisa antes** que a
+  cópia atual sai do aparelho e que tudo baixa de novo.
+- A janela escrevia "1 músicas". Agora escreve "1 música".
+
+### Aleatório smart
+
+- **O aviso "Menos disso" não fica mais preso na tela.** Por causa do botão
+  **Desfazer**, ele só saía se alguém fechasse. Agora some sozinho em 10
+  segundos. E pular várias seguidas mostra só o último aviso, em vez de deixar
+  um por música esperando a vez.
+
+### iPhone
+
+- **"Abrir no SideStore" com o LiveContainer.** O SideStore que vem dentro do
+  LiveContainer não atende o link que o botão usava, e você caía na página do
+  release. Agora o botão tenta o SideStore, depois a aba Fontes do LiveContainer
+  e só então a página.
+- **Dois erros de instalação no LiveContainer+SideStore explicados no
+  [guia do iPhone](https://github.com/thieggs/bkmasterplayer/blob/main/docs/IPHONE.md).**
+  Nenhum dos dois é defeito do `.ipa`:
+  - "Falha ao encontrar certificado… JIT-Less": falta importar uma vez o
+    certificado do SideStore embutido.
+  - "A sua assinatura do código é inválida": o certificado foi revogado por
+    outro programa que assina com o mesmo Apple ID.
+
+### Corrigido nas versões anteriores
+
+**v1.5.0**
+
+- No computador, entrar pela lista de Festas por perto falhava com "o pedido não
+  foi aceito".
+- "Seu endereço" mostrava a porta errada com outra cópia do app aberta no mesmo
+  computador.
+
+**v1.4.1**
+
+- Música trocada no servidor por outro arquivo parava de tocar, com "formato não
+  reconhecido".
+- A resposta de erro do servidor ficava guardada no cache como se fosse a música.
+- Os sete métodos da rádio davam as mesmas músicas quando a música de partida
+  ainda não tinha análise.
+- `.ape` grande vindo do servidor falhava no começo com "short read".
+
+**v1.4.0**
+
+- Música em Opus dava "formato não suportado".
+- `.m4a` com HE-AAC dava erro ao abrir, em vez de tocar pela conversão.
+- Pular para um ponto da música não caía no lugar exato: o Vorbis caía 23 ms
+  adiantado, o Opus em WebM 5 ms, e o MP3 e o AAC davam um estalinho depois do
+  pulo.
+
+**v1.3.0**
+
+- A Festa por Bluetooth não achava ninguém em celular novo, e música mandada por
+  Bluetooth travava.
+- Depois de uma recusa ou de a conexão cair, o convidado não voltava a procurar
+  sozinho, e o mesmo dono aparecia duas vezes na lista.
+- A rádio ia pulando de parecida em parecida até virar outro estilo.
+- Com a recomendação no aparelho ligada, os vetores não carregavam ao abrir o
+  app, e todos os métodos da rádio davam as mesmas músicas.
+- O eco do AutoMix cortava até uns 8 segundos do final da música.
+- Música pausada acordava o processador o tempo todo, o que ajudava o Android a
+  fechar o app em segundo plano.
+- Regravar a fila inteira a cada 15 segundos dava um engasgo de tempos em tempos.
+- O app travava (ANR) quando a capa demorava a baixar com a notificação aberta.
+- Sobrava um erro solto no registro de diagnóstico quando a consulta do tipo de
+  rede falhava.
+- A capa aparecia cinza no carro, e com ela sumia a cor da tela.
+- O app nem aparecia na lista de fontes de música em carro com Android de fábrica
+  (Automotive OS).
+
+**v1.2.0**
+
+- Voltar o disco de vinil não tocava nada.
+- Voltar o disco só alcançava uns 2 segundos.
+- O deslize do disco levava sempre o mesmo tempo, fosse o arremesso forte ou de
+  leve.
+
+**v1.1.0**
+
+- Tema escrito à mão com texto onde devia ter número derrubava o app.
+- No iPhone, o motor de áudio não ligava.
+
 ## v1.6.0
 
 ### Aleatório smart
