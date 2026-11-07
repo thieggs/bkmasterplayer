@@ -3,6 +3,44 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.8.1
+
+### iPhone: o guia de instalação de hoje
+
+Instalar no iPhone mudou bastante em outubro de 2026, e o guia
+([docs/IPHONE.md](https://github.com/thieggs/bkmasterplayer/blob/main/docs/IPHONE.md))
+foi refeito:
+
+- **O caminho agora é o iloader**, um programa gratuito que roda no Linux, no
+  Windows e no Mac. Ele instala o app direto pelo cabo, ou instala o SideStore,
+  que depois renova e atualiza o app no próprio celular. É o que o próprio
+  SideStore recomenda hoje.
+- **Modo de Desenvolvedor:** o iPhone exige, e o guia antigo não falava.
+- **Erro -80045 ou -80046 ao entrar no SideStore:** a Apple mudou o login em
+  outubro. O guia traz o contorno que está funcionando.
+- **Uma tabela com os erros mais comuns** e o que fazer em cada um.
+- **A Festa não depende da permissão paga da Apple** (o guia dizia que sim):
+  ela acha os outros por Bonjour, que o iPhone libera. No Connect, a lista
+  automática fica vazia lá, mas dá para adicionar o aparelho pelo endereço.
+- **O link "como instalar" das páginas de release dava erro 404.** Agora abre
+  o guia.
+
+### iPhone: servidor em http:// com nome de domínio
+
+No iPhone, o app só conectava por http:// em endereço IP (como
+`http://192.168.1.10:4533`). Um servidor em `http://meuservidor.com` era
+barrado pelo iOS. Agora funciona como no Android.
+
+### Por baixo
+
+- **O .ipa é conferido antes de publicar.** O build barra o que já faz a
+  instalação por fora falhar, como uma extensão que gasta as vagas da conta
+  grátis.
+- **Cada versão também é aberta num iPhone simulado**, para pegar app que
+  fecha sozinho logo ao abrir. A v1.8.1 abriu no iOS 26.5.
+- **O iPhone é compilado sempre com o mesmo macOS e o mesmo Xcode**, como o
+  Linux desde a v1.7.1.
+
 ## v1.8.0
 
 ### Aleatórios smart salvos em todos os seus aparelhos
