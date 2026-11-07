@@ -20,7 +20,11 @@ env:
 
 jobs:
   linux:
-    runs-on: ubuntu-latest
+    # Fixo, nunca "latest": o binário pede a glibc de onde foi compilado. Em
+    # 11/2026 o "latest" virou um Ubuntu com glibc 2.43 e o app parou de abrir
+    # no Debian 13 (glibc 2.41) — o motor pedia acosf/asinf da 2.43. O 24.04
+    # tem glibc 2.39.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +47,23 @@ jobs:
       - run: rustup update stable
       - working-directory: app
         run: flutter build linux --release
+      # O app tem de abrir no PC do dono: Xeon E3-1230 V2 (x86-64-v2, sem
+      # AVX2) com Debian 13 (glibc 2.41). Em 11/2026 o build saiu pedindo
+      # x86-64-v3 e glibc 2.43 e não abria: barrar antes de empacotar.
+      - name: Conferir que abre em PC antigo
+        working-directory: app/build/linux/x64/release/bundle
+        run: |
+          falhou=0
+          for f in player_musica lib/*.so; do
+            if readelf -n "$f" | grep -q -E 'ISA needed:.*x86-64-v[34]'; then
+              echo "::error::$f pede x86-64-v3 ou mais"; falhou=1
+            fi
+            g=$(objdump -T "$f" | grep -o 'GLIBC_2\.[0-9]*' | sort -uV | tail -1)
+            if [ -n "$g" ] && [ "$(printf '%s\n' "$g" GLIBC_2.41 | sort -V | tail -1)" != GLIBC_2.41 ]; then
+              echo "::error::$f pede $g (o Debian 13 tem 2.41)"; falhou=1
+            fi
+          done
+          exit $falhou
       - name: Empacotar
         run: |
           ./dev/build_deb.sh
