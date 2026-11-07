@@ -61,6 +61,11 @@ abstract class MusicProvider {
   Future<void> renamePlaylist(String playlistId, String name);
   Future<void> deletePlaylist(String playlistId);
 
+  /// Troca o que vier: o nome, o comentário e, com [songIds], as músicas
+  /// inteiras, na ordem dada. Lança [UnsupportedError] nas músicas do
+  /// aparelho (não há servidor onde guardar).
+  Future<void> updatePlaylist(String playlistId, {String? name, String? comment, List<String>? songIds});
+
   Future<List<Song>> starredSongs();
   Future<void> setStarred({String? songId, String? albumId, String? artistId, required bool starred});
   Future<void> setRating(String id, int rating);

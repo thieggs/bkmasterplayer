@@ -19,6 +19,7 @@ import '../data/settings.dart';
 import '../data/theme_library.dart';
 import '../data/ui_prefs.dart';
 import '../data/subsonic/subsonic_client.dart';
+import '../data/smart_saved.dart';
 import '../data/subsonic/subsonic_provider.dart';
 import '../domain/models.dart';
 import '../domain/music_provider.dart';
@@ -590,7 +591,12 @@ final topSongsProvider = FutureProvider.autoDispose.family<List<Song>, String>((
 });
 
 final playlistsProvider = FutureProvider.autoDispose<List<Playlist>>((ref) async {
-  return (await musicaDaSessao(ref)).playlists();
+  // Os aleatórios smart salvos moram em playlists (para valer em todo
+  // aparelho), mas têm a aba deles.
+  return [
+    for (final pl in await (await musicaDaSessao(ref)).playlists())
+      if (!SavedSmart.isRemote(pl)) pl,
+  ];
 });
 
 final playlistProvider = FutureProvider.autoDispose.family<Playlist, String>((ref, id) async {

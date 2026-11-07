@@ -2739,7 +2739,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get smartSaveHint =>
-      'Guarda o que ele aprendeu até aqui: o que está puxando e o que está evitando. Para voltar, abra a aba Aleatórios smart.';
+      'Guarda o que ele aprendeu até aqui: o que está puxando e o que está evitando. Para voltar, abra a aba Aleatórios smart — em qualquer aparelho da sua conta: ele fica guardado no servidor.';
 
   @override
   String get smartSaveNew => 'Salvar como novo';
@@ -2760,7 +2760,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get smartSavedEmpty =>
-      'Nenhum aleatório smart salvo ainda. Com ele tocando, toque em \"Salvar este estilo\" aqui em cima ou no painel \"O que ele aprendeu\" (🧠) da tela do player.';
+      'Nenhum aleatório smart salvo ainda. Com ele tocando, toque em \"Salvar este estilo\" aqui em cima ou no painel \"O que ele aprendeu\" (🧠) da tela do player. Os salvos em outro aparelho da sua conta aparecem aqui; puxe a lista para baixo para atualizar.';
 
   @override
   String smartSavedCount(int count) {

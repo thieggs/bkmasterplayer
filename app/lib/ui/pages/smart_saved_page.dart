@@ -15,11 +15,25 @@ import '../widgets/cover_art.dart';
 ///
 /// A lista vem na ordem de uso, nunca pela parecença com o gosto (a regra 1
 /// da patente, em `player/smart_session.dart`).
-class SmartSavedPage extends ConsumerWidget {
+///
+/// Vale em todo aparelho da conta: abrir a aba (ou puxar a lista para baixo)
+/// traz o que foi salvo nos outros.
+class SmartSavedPage extends ConsumerStatefulWidget {
   const SmartSavedPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SmartSavedPage> createState() => _SmartSavedPageState();
+}
+
+class _SmartSavedPageState extends ConsumerState<SmartSavedPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future(() => ref.read(savedSmartProvider.notifier).sync());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final list = ref.watch(savedSmartProvider);
@@ -60,25 +74,40 @@ class SmartSavedPage extends ConsumerWidget {
           ),
         ),
         Expanded(
-          child: list.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+          // Puxar para baixo traz o que foi salvo nos outros aparelhos.
+          child: RefreshIndicator(
+            onRefresh: () => ref.read(savedSmartProvider.notifier).sync(force: true),
+            child: list.isEmpty
+                ? LayoutBuilder(
+                    builder: (_, box) => ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       children: [
-                        Icon(Icons.psychology_outlined, size: 48, color: theme.colorScheme.primary),
-                        const SizedBox(height: 12),
-                        Text(l10n.smartSavedEmpty, textAlign: TextAlign.center),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: box.maxHeight),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.psychology_outlined, size: 48, color: theme.colorScheme.primary),
+                                  const SizedBox(height: 12),
+                                  Text(l10n.smartSavedEmpty, textAlign: TextAlign.center),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: list.length,
+                    itemBuilder: (_, i) => _SavedTile(saved: list[i], playing: list[i].id == tocando),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: list.length,
-                  itemBuilder: (_, i) => _SavedTile(saved: list[i], playing: list[i].id == tocando),
-                ),
+          ),
         ),
       ],
     );

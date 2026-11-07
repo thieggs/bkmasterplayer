@@ -228,6 +228,16 @@ class SubsonicProvider implements MusicProvider {
   Future<void> deletePlaylist(String playlistId) => client.get('deletePlaylist', {'id': playlistId});
 
   @override
+  Future<void> updatePlaylist(String playlistId, {String? name, String? comment, List<String>? songIds}) async {
+    // `createPlaylist` com o id troca as músicas inteiras (Subsonic 1.14; no
+    // Navidrome, `core/playlists` zera as faixas antes de pôr as novas).
+    if (songIds != null) await client.get('createPlaylist', {'playlistId': playlistId, 'songId': songIds});
+    if (name != null || comment != null) {
+      await client.get('updatePlaylist', {'playlistId': playlistId, 'name': ?name, 'comment': ?comment});
+    }
+  }
+
+  @override
   Future<List<Song>> starredSongs() async {
     final body = await client.get('getStarred2');
     return list((body['starred2'] as Map?)?['song']).map(parseSong).toList();

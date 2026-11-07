@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:crypto/crypto.dart';
 
+import '../data/smart_saved.dart';
 import '../domain/models.dart';
 import '../domain/music_provider.dart';
 import '../ui/widgets/cover_art.dart' show CoverImageProvider;
@@ -139,8 +140,9 @@ class AutoBrowser {
       case 'tab:playlists':
         return [
           for (final pl in await p.playlists())
-            _folder('playlist:${pl.id}', pl.name,
-                subtitle: _t('${pl.songCount} músicas', '${pl.songCount} songs'), art: art(pl.coverArt)),
+            if (!SavedSmart.isRemote(pl))
+              _folder('playlist:${pl.id}', pl.name,
+                  subtitle: _t('${pl.songCount} músicas', '${pl.songCount} songs'), art: art(pl.coverArt)),
         ];
       case 'tab:artists':
         return [

@@ -4852,7 +4852,7 @@ abstract class AppLocalizations {
   /// No description provided for @smartSaveHint.
   ///
   /// In pt, this message translates to:
-  /// **'Guarda o que ele aprendeu até aqui: o que está puxando e o que está evitando. Para voltar, abra a aba Aleatórios smart.'**
+  /// **'Guarda o que ele aprendeu até aqui: o que está puxando e o que está evitando. Para voltar, abra a aba Aleatórios smart — em qualquer aparelho da sua conta: ele fica guardado no servidor.'**
   String get smartSaveHint;
 
   /// No description provided for @smartSaveNew.
@@ -4882,7 +4882,7 @@ abstract class AppLocalizations {
   /// No description provided for @smartSavedEmpty.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhum aleatório smart salvo ainda. Com ele tocando, toque em \"Salvar este estilo\" aqui em cima ou no painel \"O que ele aprendeu\" (🧠) da tela do player.'**
+  /// **'Nenhum aleatório smart salvo ainda. Com ele tocando, toque em \"Salvar este estilo\" aqui em cima ou no painel \"O que ele aprendeu\" (🧠) da tela do player. Os salvos em outro aparelho da sua conta aparecem aqui; puxe a lista para baixo para atualizar.'**
   String get smartSavedEmpty;
 
   /// No description provided for @smartSavedCount.

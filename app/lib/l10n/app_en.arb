@@ -1012,7 +1012,7 @@
  "smartSave": "Save this style",
  "smartSaveTitle": "Save the smart shuffle",
  "smartSaveName": "Name",
- "smartSaveHint": "Keeps what it has learned so far: what it is pulling toward and what it is avoiding. To come back, open the Smart shuffles tab.",
+ "smartSaveHint": "Keeps what it has learned so far: what it is pulling toward and what it is avoiding. To come back, open the Smart shuffles tab on any device signed in to your account: it is kept on the server.",
  "smartSaveNew": "Save as new",
  "smartSaveUpdate": "Update \"{name}\"",
  "@smartSaveUpdate": {
@@ -1023,7 +1023,7 @@
   "placeholders": { "name": { "type": "String" } }
  },
  "smartSaveNothing": "Nothing learned to save yet: let the songs you like play to the end.",
- "smartSavedEmpty": "No saved smart shuffles yet. While one is playing, tap \"Save this style\" up here or in the \"What it learned\" panel (🧠) on the player screen.",
+ "smartSavedEmpty": "No saved smart shuffles yet. While one is playing, tap \"Save this style\" up here or in the \"What it learned\" panel (🧠) on the player screen. Smart shuffles saved on your other devices show up here; pull down to refresh.",
  "smartSavedCount": "{count, plural, =1{1 song pulling} other{{count} songs pulling}}",
  "@smartSavedCount": {
   "placeholders": { "count": { "type": "int" } }

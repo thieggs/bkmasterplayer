@@ -613,6 +613,12 @@ class LocalProvider implements MusicProvider {
     await _savePlaylists();
   }
 
+  /// Só serve para guardar coisas no servidor (os aleatórios smart salvos):
+  /// aqui não há com quem sincronizar.
+  @override
+  Future<void> updatePlaylist(String playlistId, {String? name, String? comment, List<String>? songIds}) =>
+      throw UnsupportedError('músicas do aparelho não sincronizam');
+
   @override
   Future<List<Song>> starredSongs() async =>
       _songs.where((s) => _stats[s.id]?.starred != null).map(_withStats).toList();

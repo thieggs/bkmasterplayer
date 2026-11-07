@@ -2740,7 +2740,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get smartSaveHint =>
-      'Keeps what it has learned so far: what it is pulling toward and what it is avoiding. To come back, open the Smart shuffles tab.';
+      'Keeps what it has learned so far: what it is pulling toward and what it is avoiding. To come back, open the Smart shuffles tab on any device signed in to your account: it is kept on the server.';
 
   @override
   String get smartSaveNew => 'Save as new';
@@ -2761,7 +2761,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get smartSavedEmpty =>
-      'No saved smart shuffles yet. While one is playing, tap \"Save this style\" up here or in the \"What it learned\" panel (🧠) on the player screen.';
+      'No saved smart shuffles yet. While one is playing, tap \"Save this style\" up here or in the \"What it learned\" panel (🧠) on the player screen. Smart shuffles saved on your other devices show up here; pull down to refresh.';
 
   @override
   String smartSavedCount(int count) {
