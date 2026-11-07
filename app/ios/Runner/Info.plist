@@ -87,9 +87,13 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Para tocar do seu servidor de música na rede de casa.</string>
+	<!-- Navidrome costuma ser http:// (na rede de casa ou num domínio sem
+	     certificado), igual ao usesCleartextTraffic do Android. Só a chave
+	     geral: com NSAllowsLocalNetworking junto, o iOS 10+ ignora esta e
+	     volta a barrar http:// em nome de domínio (documentação da Apple). -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsLocalNetworking</key>
+		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
 </dict>

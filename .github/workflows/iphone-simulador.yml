@@ -1,0 +1,38 @@
+name: iPhone no simulador
+
+# Abre o app num iPhone simulado e confere que ele fica de pé: o motor em Rust
+# carrega, os plugins sobem e a primeira tela aparece. Sobe a foto da tela, o
+# log e o relatório de falha (se houver) como artefato "iphone-simulador".
+#
+# Fica fora do release.yml de propósito: o simulador às vezes demora a subir,
+# e isso não pode segurar o lançamento dos outros sistemas. Roda em cada tag
+# e à mão (aba Actions → "iPhone no simulador" → Run workflow).
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  simulador:
+    # Mesmo macOS e Xcode do .ipa do release.yml.
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode fixo
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app && xcodebuild -version
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.41.6', channel: stable, cache: true }
+      - name: Rust para o simulador
+        run: |
+          rustup update stable
+          rustup target add aarch64-apple-ios-sim x86_64-apple-ios
+      # O simulador só roda o modo debug do Flutter (o release é só para o
+      # aparelho); o motor em Rust sai igual.
+      - working-directory: app
+        run: flutter build ios --simulator --debug
+      - name: Abrir no simulador
+        run: ./dev/ios_simulador.sh app/build/ios/iphonesimulator/Runner.app simulador
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: iphone-simulador, path: simulador/ }

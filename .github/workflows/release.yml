@@ -154,10 +154,15 @@ jobs:
         with: { name: windows, path: dist/*.exe }
 
   ios:
-    runs-on: macos-latest
+    # Fixo, nunca "latest" (ver o job linux): o .ipa que funciona sai do
+    # macOS 26 com o Xcode 26.6 (SDK do iOS 26.5). Trocar de Xcode é decisão,
+    # não surpresa — e o Xcode 27 ainda não está nessa imagem (11/2026).
+    runs-on: macos-26
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Xcode fixo
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app && xcodebuild -version
       # A versão é a da tag: o app compara com ela para saber se há versão
       # nova, então pubspec esquecido não pode sair com o número velho.
       - name: Versão da tag
@@ -182,6 +187,10 @@ jobs:
           cp -R build/ios/iphoneos/Runner.app Payload/
           v=$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
           zip -qry "../dist/BKmasterplayer-$v.ipa" Payload
+      # O que já fez (ou faria) a instalação por fora falhar no iPhone:
+      # extensões, ID trocado, sem cena, sem áudio em 2º plano, rede.
+      - name: Conferir o .ipa
+        run: python3 dev/confere_ipa.py dist/*.ipa
       - uses: actions/upload-artifact@v4
         with: { name: ios, path: dist/*.ipa }
 
