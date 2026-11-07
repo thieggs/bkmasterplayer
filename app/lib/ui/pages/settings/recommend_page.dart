@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../data/recommend.dart';
 import '../../../data/similar.dart';
+import '../../../data/smart_marks.dart';
 import '../../../l10n/l10n.dart';
 import '../../../player/smart_session.dart';
+import '../../player/smart_sheet.dart';
 import '../../recommend_style_ui.dart';
 import 'common.dart';
 
@@ -228,6 +230,18 @@ class SmartSettings extends ConsumerWidget {
           memory,
           (v) => set((x) => x.copyWith(smartMemory: v.id)),
         ),
+        // As marcas dos botões "+" e "−" valem para sempre: dá para ver e
+        // tirar daqui também, com o modo desligado.
+        Builder(builder: (context) {
+          final m = ref.watch(smartMarksProvider);
+          return ListTile(
+            leading: const Icon(Icons.exposure),
+            title: Text(l10n.smartMarksTitle),
+            subtitle: Text('+ ${m.more.length} · − ${m.never.length} · ${l10n.smartMarksHint}'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showSmartSheet(context),
+          );
+        }),
       ],
     );
   }

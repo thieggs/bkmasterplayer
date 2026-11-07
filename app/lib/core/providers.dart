@@ -79,7 +79,7 @@ class UiPrefsNotifier extends Notifier<UiPrefs> {
   /// Abas que nasceram depois: quem já usava o app tem a lista salva, e o
   /// padrão novo não chegaria nele. Entram uma vez só, e quem tirar não as vê
   /// voltar.
-  static const _abasNovas = {'gerarPlaylist': 'generate'};
+  static const _abasNovas = {'gerarPlaylist': 'generate', 'smartSalvos': 'smart'};
 
   @override
   UiPrefs build() => _comAbasNovas(UiPrefs.load(ref.watch(prefsProvider)));

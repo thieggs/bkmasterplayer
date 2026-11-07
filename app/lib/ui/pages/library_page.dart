@@ -19,6 +19,7 @@ class LibraryPage extends ConsumerWidget {
       ('/songs', Icons.music_note_outlined, l10n.songs),
       ('/artists', Icons.person_outline, l10n.artists),
       ('/playlists', Icons.queue_music_outlined, l10n.playlists),
+      ('/smart', Icons.psychology_outlined, l10n.smartSavedTab),
       ('/genres', Icons.sell_outlined, l10n.genres),
       ('/favorites', Icons.favorite_border, l10n.favorites),
       if (!local) ('/offline', Icons.download_outlined, l10n.downloads),

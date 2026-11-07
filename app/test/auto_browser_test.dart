@@ -97,6 +97,24 @@ void main() {
     expect(favoritas.extras![AutoBrowser.singleItemHint], AutoBrowser.styleCategoryList);
   });
 
+  test('aleatórios smart salvos viram pasta no Início, cada um tocável', () async {
+    expect((await auto.children('tab:home')).map((m) => m.id), isNot(contains('tab:smartSaved')),
+        reason: 'sem nenhum salvo, a pasta não aparece');
+    final meu = AutoBrowser(
+      provider: () => fake,
+      artDir: dir.path,
+      pt: true,
+      smartSaved: () => const [('smart-1', 'Samba de domingo', 'Zeca, Cartola'), ('smart-2', 'Metal', null)],
+    );
+    final pasta = (await meu.children('tab:home')).firstWhere((m) => m.id == 'tab:smartSaved');
+    expect(pasta.title, 'Aleatórios smart');
+    expect(pasta.playable, isFalse);
+    final salvos = await meu.children('tab:smartSaved');
+    expect(salvos.map((m) => (m.id, m.title, m.playable)),
+        [('do:smartSaved:smart-1', 'Samba de domingo', true), ('do:smartSaved:smart-2', 'Metal', true)]);
+    expect(salvos.first.displaySubtitle, 'Zeca, Cartola');
+  });
+
   test('músicas do álbum tocam a partir da escolhida', () async {
     final songs = await auto.children('album:a1');
     expect(songs.map((m) => m.id), ['album:a1|0', 'album:a1|1']);

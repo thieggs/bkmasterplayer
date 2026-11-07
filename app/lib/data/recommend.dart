@@ -61,9 +61,14 @@ abstract interface class SmartSource {
   /// As parecidas com cada ímã ([anchors]), longe do que a pessoa pulou
   /// ([avoid]) e fora de [exclude] (ids): (música, qual ímã — a posição em
   /// [anchors] —, nota). As de cada ímã vêm da melhor para a pior.
+  ///
+  /// Nas três: [never] são as marcadas com o botão "−" (fecham a região em
+  /// volta sozinhas) e [keep], as marcadas com "+" (seguram essa região).
   Future<List<(Song, int, double)>> smartNeighbors(
     List<Song> anchors, {
     required List<Song> avoid,
+    List<Song> never = const [],
+    List<Song> keep = const [],
     required RecommendStyle style,
     required int perAnchor,
     required Set<String> exclude,
@@ -76,14 +81,17 @@ abstract interface class SmartSource {
     int count, {
     required List<Song> known,
     required List<Song> avoid,
+    List<Song> never = const [],
     required List<Song> liked,
+    List<Song> keep = const [],
     required Set<String> exclude,
     required bool spread,
     required int seed,
   });
 
   /// Destas, quais caíram no que é para evitar (ids), com os ímãs [liked].
-  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked);
+  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked,
+      {List<Song> never = const [], List<Song> keep = const []});
 }
 
 class RecommendState {
@@ -331,6 +339,8 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
   Future<List<(Song, int, double)>> smartNeighbors(
     List<Song> anchors, {
     required List<Song> avoid,
+    List<Song> never = const [],
+    List<Song> keep = const [],
     required RecommendStyle style,
     required int perAnchor,
     required Set<String> exclude,
@@ -340,6 +350,8 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
       (allowed) => rust.recommendSmart(
         anchors: [for (final s in anchors) s.id],
         avoid: [for (final s in avoid) s.id],
+        never: [for (final s in never) s.id],
+        keep: [for (final s in keep) s.id],
         style: style.id,
         perAnchor: perAnchor,
         exclude: exclude.toList(),
@@ -355,7 +367,9 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
     int count, {
     required List<Song> known,
     required List<Song> avoid,
+    List<Song> never = const [],
     required List<Song> liked,
+    List<Song> keep = const [],
     required Set<String> exclude,
     required bool spread,
     required int seed,
@@ -366,7 +380,9 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
         count: count,
         known: [for (final s in known) s.id],
         avoid: [for (final s in avoid) s.id],
+        never: [for (final s in never) s.id],
         liked: [for (final s in liked) s.id],
+        keep: [for (final s in keep) s.id],
         exclude: exclude.toList(),
         allowed: allowed,
         spread: spread,
@@ -378,12 +394,15 @@ class RecommendNotifier extends Notifier<RecommendState> implements LocalSimilar
   }
 
   @override
-  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked) async {
-    if (!state.ready || songs.isEmpty || avoid.isEmpty) return const {};
+  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked,
+      {List<Song> never = const [], List<Song> keep = const []}) async {
+    if (!state.ready || songs.isEmpty || (avoid.isEmpty && never.isEmpty)) return const {};
     final r = await rust.recommendAvoided(
       ids: [for (final s in songs) s.id],
       avoid: [for (final s in avoid) s.id],
+      never: [for (final s in never) s.id],
       liked: [for (final s in liked) s.id],
+      keep: [for (final s in keep) s.id],
     );
     return r.toSet();
   }

@@ -14,6 +14,8 @@ import '../data/current_version.dart';
 import '../data/recommend.dart';
 import '../data/settings.dart';
 import '../data/similar.dart';
+import '../data/smart_marks.dart';
+import '../data/smart_saved.dart';
 import '../data/smart_source.dart';
 import 'dj_mode.dart';
 import 'listen_signal.dart';
@@ -607,11 +609,14 @@ class PlayerController extends Notifier<PlayerState> {
 
   void _configureSmart(SmartSession session) {
     final s = ref.read(settingsProvider);
+    final marks = ref.read(smartMarksProvider);
     session
       ..start = SmartStart.parse(s.smartStart)
       ..explore = SmartExplore.parse(s.smartExplore)
       ..memory = SmartMemory.parse(s.smartMemory)
-      ..artists = _radioArtists;
+      ..artists = _radioArtists
+      ..more = marks.more
+      ..never = marks.never;
   }
 
   /// Com a análise guardada no aparelho, os vetores; sem ela, o servidor.
@@ -636,7 +641,22 @@ class PlayerController extends Notifier<PlayerState> {
     final p = _provider;
     // Na Festa a fila é do dono.
     if (p == null || _jam != null) return false;
-    final session = SmartSession(seed: seed);
+    return _beginSmart(SmartSession(seed: seed), p, seed: seed);
+  }
+
+  /// Volta a um aleatório smart salvo (aba "Aleatórios smart"): recomeça com
+  /// o que ele tinha aprendido e continua aprendendo. Falso se não achou nada
+  /// para tocar.
+  Future<bool> startSmartSaved(SavedSmart saved) async {
+    if (_fwd('smartStartSaved', {'saved': saved.toJson()})) return true;
+    final p = _provider;
+    if (p == null || _jam != null) return false;
+    final ok = await _beginSmart(SmartSession.restore(liked: saved.liked, avoid: saved.avoid, savedFrom: saved.id), p);
+    if (ok) ref.read(savedSmartProvider.notifier).touch(saved.id);
+    return ok;
+  }
+
+  Future<bool> _beginSmart(SmartSession session, MusicProvider p, {Song? seed}) async {
     _configureSmart(session);
     final first = await session.next(want: _smartSamples, history: [?seed], source: _smartSource(p));
     if (first.isEmpty) return false;
@@ -744,30 +764,149 @@ class PlayerController extends Notifier<PlayerState> {
   /// outras.
   Future<void> _smartReplan() async {
     final session = _smart;
+    if (!_smartOn || session == null || _provider == null) return;
+    if (!await _smartDrop(session)) return;
+    await _maybeExtendSmart();
+  }
+
+  /// Tira da fila as escolhidas pelo modo que ainda não tocaram e caíram no
+  /// que é para evitar. Falso se a sessão mudou no meio.
+  Future<bool> _smartDrop(SmartSession session) async {
+    final p = _provider;
+    if (p == null) return false;
+    final upcoming = [for (final q in state.queue.skip(state.index + 1)) if (_smartUids.contains(q.uid)) q];
+    if (upcoming.isEmpty) return true;
+    Set<String> bad;
+    try {
+      bad = await _smartSource(p).smartAvoided(
+        [for (final q in upcoming) q.song],
+        session.avoided(),
+        [for (final (s, _) in session.anchors()) s],
+        never: session.never,
+        keep: session.more,
+      );
+    } catch (e) {
+      debugPrint('aleatório smart: $e');
+      bad = const {};
+    }
+    if (!identical(_smart, session)) return false;
+    final drop = {for (final q in upcoming) if (bad.contains(q.song.id)) q.uid};
+    if (drop.isNotEmpty) {
+      final cur = state.current?.uid;
+      final q = [for (final e in state.queue) if (e.uid == cur || !drop.contains(e.uid)) e];
+      _unshuffled?.removeWhere((e) => drop.contains(e.uid));
+      _smartUids.removeAll(drop);
+      state = state.copyWith(queue: q, index: q.indexWhere((e) => e.uid == cur));
+      _scheduleNext();
+    }
+    return true;
+  }
+
+  /// Botões "+" e "−" do aleatório smart: marca a música que está tocando,
+  /// ou desmarca se ela já tinha essa marca. Devolve a música e a marca que
+  /// ficou (true "+", false "−", null nenhuma); nulo = nada tocando.
+  (Song, bool?)? smartMark({required bool more}) {
+    final song = state.current?.song;
+    if (song == null) return null;
+    final m = ref.read(smartMarksProvider);
+    final on = !(more ? m.isMore(song.id) : m.isNever(song.id));
+    unawaited(setSmartMark(song, more: more, on: on));
+    return (song, on ? more : null);
+  }
+
+  /// Põe ou tira a marca "+" ([more]) ou "−" de [song]. As marcas valem
+  /// para sempre (`data/smart_marks.dart`); com o modo ligado:
+  /// - "+" na que está tocando: as duas próximas passam a ser vizinhas dela;
+  /// - "−" na que está tocando: ela sai na hora, e as que vinham e caíram na
+  ///   região dela saem da fila.
+  /// Tirar a marca só tira: a música pulada não volta.
+  ///
+  /// No Connect a marca fica nos dois aparelhos (é a mesma conta) e quem age
+  /// é o que toca.
+  Future<void> setSmartMark(Song song, {required bool more, required bool on}) async {
+    final marks = ref.read(smartMarksProvider.notifier);
+    final m = ref.read(smartMarksProvider);
+    if (on) {
+      more ? marks.more(song) : marks.never(song);
+    } else if (more ? m.isMore(song.id) : m.isNever(song.id)) {
+      marks.unmark(song.id);
+    }
+    if (_fwd('smartMark', {'song': song.toJson(), 'more': more, 'on': on})) return;
+    final session = _smart;
     final p = _provider;
     if (!_smartOn || session == null || p == null) return;
-    final upcoming = [for (final q in state.queue.skip(state.index + 1)) if (_smartUids.contains(q.uid)) q];
-    if (upcoming.isNotEmpty) {
-      Set<String> bad;
-      try {
-        bad = await _smartSource(p)
-            .smartAvoided([for (final q in upcoming) q.song], session.avoided(), [for (final (s, _) in session.anchors()) s]);
-      } catch (e) {
-        debugPrint('aleatório smart: $e');
-        bad = const {};
-      }
-      if (!identical(_smart, session)) return;
-      final drop = {for (final q in upcoming) if (bad.contains(q.song.id)) q.uid};
-      if (drop.isNotEmpty) {
-        final cur = state.current?.uid;
-        final q = [for (final e in state.queue) if (e.uid == cur || !drop.contains(e.uid)) e];
-        _unshuffled?.removeWhere((e) => drop.contains(e.uid));
-        _smartUids.removeAll(drop);
-        state = state.copyWith(queue: q, index: q.indexWhere((e) => e.uid == cur));
-        _scheduleNext();
-      }
+    _configureSmart(session);
+    _persistSoon();
+    final item = state.current;
+    if (!on || item == null || item.song.id != song.id) return;
+    if (more) {
+      final perto = await session.closeTo(song,
+          want: 2, history: [for (final q in state.queue) q.song], source: _smartSource(p));
+      if (perto.isEmpty || !_smartOn || !identical(_smart, session)) return;
+      final i = state.queue.indexWhere((q) => q.uid == item.uid);
+      if (i < 0) return;
+      final items = perto.map(_item).toList();
+      _unshuffled?.addAll(items);
+      _smartUids.addAll(items.map((e) => e.uid));
+      state = state.copyWith(queue: List.of(state.queue)..insertAll(i + 1, items));
+      _scheduleNext();
+      _persistSoon();
+      return;
     }
-    await _maybeExtendSmart();
+    // "−": quem julga esta música é o botão, não o pulo (senão vinha também o
+    // aviso "Menos disso").
+    if (_scrobbleUid == item.uid && _judgedUid != item.uid) {
+      _judgedUid = item.uid;
+      session.left(song, 0);
+    }
+    if (!await _smartDrop(session)) return;
+    if (state.current?.uid != item.uid) return;
+    // Sem próxima na fila (tudo caiu na região): busca a rodada antes de pular.
+    if (state.index >= state.queue.length - 1) await _maybeExtendSmart();
+    if (state.current?.uid == item.uid) next();
+    unawaited(_maybeExtendSmart());
+  }
+
+  /// Salva o que o aleatório smart aprendeu, com [name], na aba "Aleatórios
+  /// smart". Com [replace], troca o salvo de onde a sessão veio (ou onde foi
+  /// salva por último); sem, cria outro. Nulo = modo desligado ou nada
+  /// aprendido ainda.
+  SavedSmart? saveSmart(String name, {bool replace = false}) {
+    final session = _smart;
+    if (!_smartOn || session == null) return null;
+    _configureSmart(session);
+    final snap = session.snapshot();
+    if (snap.liked.isEmpty) return null;
+    final saved = ref.read(savedSmartProvider.notifier);
+    final antigo = replace && session.savedFrom != null ? saved.byId(session.savedFrom!) : null;
+    final now = DateTime.now();
+    final s = SavedSmart(
+      id: antigo?.id ?? 'smart-${now.microsecondsSinceEpoch}',
+      name: name,
+      liked: snap.liked,
+      avoid: snap.avoid,
+      saved: now,
+      played: antigo?.played,
+    );
+    saved.put(s);
+    session.savedFrom = s.id;
+    _persistSoon();
+    return s;
+  }
+
+  /// O salvo de onde o aleatório smart que toca veio (ou onde foi salvo), se
+  /// ainda existir.
+  SavedSmart? get smartSavedFrom {
+    final id = _smartOn ? _smart?.savedFrom : null;
+    return id == null ? null : ref.read(savedSmartProvider.notifier).byId(id);
+  }
+
+  /// O ✕ de uma marcada no painel.
+  void smartUnmark(String songId) {
+    ref.read(smartMarksProvider.notifier).unmark(songId);
+    final s = _smart;
+    if (s != null) _configureSmart(s);
+    _persistSoon();
   }
 
   /// A pessoa favoritou (ou desfez) [song]: para o aleatório smart é o sinal
@@ -801,11 +940,22 @@ class PlayerController extends Notifier<PlayerState> {
 
   /// O que o aleatório smart aprendeu até agora, para o painel (nulo = modo
   /// desligado, ou ligado noutro aparelho).
-  ({List<(Song, double)> liked, List<Song> avoiding, int exploreEvery, bool searching})? get smartLearned {
+  ///
+  /// As marcadas com "+" vêm entre os ímãs ([SmartSession.isMore] diz
+  /// quais); as com "−" ficam à parte, em `smartMarksProvider`.
+  ({List<(Song, double)> liked, List<Song> avoiding, Set<String> more, int exploreEvery, bool searching})?
+      get smartLearned {
     final s = _smart;
     if (s == null || !_smartOn) return null;
     _configureSmart(s);
-    return (liked: s.anchors(), avoiding: s.avoided(), exploreEvery: s.exploreEvery, searching: s.searching);
+    final liked = s.anchors();
+    return (
+      liked: liked,
+      avoiding: s.avoided(),
+      more: {for (final (song, _) in liked) if (s.isMore(song.id)) song.id},
+      exploreEvery: s.exploreEvery,
+      searching: s.searching,
+    );
   }
 
   MusicProvider? get _provider {

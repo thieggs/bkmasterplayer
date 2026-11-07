@@ -208,7 +208,9 @@ abstract class RustLibApi extends BaseApi {
   Future<List<String>> crateApiRecommendRecommendAvoided({
     required List<String> ids,
     required List<String> avoid,
+    required List<String> never,
     required List<String> liked,
+    required List<String> keep,
   });
 
   Future<int> crateApiRecommendRecommendCount();
@@ -217,7 +219,9 @@ abstract class RustLibApi extends BaseApi {
     required int count,
     required List<String> known,
     required List<String> avoid,
+    required List<String> never,
     required List<String> liked,
+    required List<String> keep,
     required List<String> exclude,
     required List<String> allowed,
     required bool spread,
@@ -238,6 +242,8 @@ abstract class RustLibApi extends BaseApi {
   Future<List<SmartSong>> crateApiRecommendRecommendSmart({
     required List<String> anchors,
     required List<String> avoid,
+    required List<String> never,
+    required List<String> keep,
     required String style,
     required int perAnchor,
     required List<String> exclude,
@@ -1530,7 +1536,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<List<String>> crateApiRecommendRecommendAvoided({
     required List<String> ids,
     required List<String> avoid,
+    required List<String> never,
     required List<String> liked,
+    required List<String> keep,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -1538,7 +1546,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_list_String(ids, serializer);
           sse_encode_list_String(avoid, serializer);
+          sse_encode_list_String(never, serializer);
           sse_encode_list_String(liked, serializer);
+          sse_encode_list_String(keep, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1551,7 +1561,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiRecommendRecommendAvoidedConstMeta,
-        argValues: [ids, avoid, liked],
+        argValues: [ids, avoid, never, liked, keep],
         apiImpl: this,
       ),
     );
@@ -1560,7 +1570,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiRecommendRecommendAvoidedConstMeta =>
       const TaskConstMeta(
         debugName: "recommend_avoided",
-        argNames: ["ids", "avoid", "liked"],
+        argNames: ["ids", "avoid", "never", "liked", "keep"],
       );
 
   @override
@@ -1595,7 +1605,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required int count,
     required List<String> known,
     required List<String> avoid,
+    required List<String> never,
     required List<String> liked,
+    required List<String> keep,
     required List<String> exclude,
     required List<String> allowed,
     required bool spread,
@@ -1608,7 +1620,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_u_32(count, serializer);
           sse_encode_list_String(known, serializer);
           sse_encode_list_String(avoid, serializer);
+          sse_encode_list_String(never, serializer);
           sse_encode_list_String(liked, serializer);
+          sse_encode_list_String(keep, serializer);
           sse_encode_list_String(exclude, serializer);
           sse_encode_list_String(allowed, serializer);
           sse_encode_bool(spread, serializer);
@@ -1625,7 +1639,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiRecommendRecommendExploreConstMeta,
-        argValues: [count, known, avoid, liked, exclude, allowed, spread, seed],
+        argValues: [
+          count,
+          known,
+          avoid,
+          never,
+          liked,
+          keep,
+          exclude,
+          allowed,
+          spread,
+          seed,
+        ],
         apiImpl: this,
       ),
     );
@@ -1638,7 +1663,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           "count",
           "known",
           "avoid",
+          "never",
           "liked",
+          "keep",
           "exclude",
           "allowed",
           "spread",
@@ -1745,6 +1772,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<List<SmartSong>> crateApiRecommendRecommendSmart({
     required List<String> anchors,
     required List<String> avoid,
+    required List<String> never,
+    required List<String> keep,
     required String style,
     required int perAnchor,
     required List<String> exclude,
@@ -1756,6 +1785,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_list_String(anchors, serializer);
           sse_encode_list_String(avoid, serializer);
+          sse_encode_list_String(never, serializer);
+          sse_encode_list_String(keep, serializer);
           sse_encode_String(style, serializer);
           sse_encode_u_32(perAnchor, serializer);
           sse_encode_list_String(exclude, serializer);
@@ -1772,7 +1803,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiRecommendRecommendSmartConstMeta,
-        argValues: [anchors, avoid, style, perAnchor, exclude, allowed],
+        argValues: [
+          anchors,
+          avoid,
+          never,
+          keep,
+          style,
+          perAnchor,
+          exclude,
+          allowed,
+        ],
         apiImpl: this,
       ),
     );
@@ -1784,6 +1824,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         argNames: [
           "anchors",
           "avoid",
+          "never",
+          "keep",
           "style",
           "perAnchor",
           "exclude",

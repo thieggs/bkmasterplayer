@@ -63,10 +63,14 @@ pub fn recommend_similar(seed: String, style: String, limit: u32, allowed: Vec<S
 
 /// Aleatório smart: as parecidas com cada ímã ([anchors], músicas que a
 /// pessoa aprovou), [per_anchor] por ímã, longe do que ela pulou ([avoid]) e
-/// fora do que já tocou ([exclude]). Ver `Recommender::smart`.
+/// fora do que já tocou ([exclude]). [never] são as marcadas com o botão
+/// "−" e [keep], as marcadas com "+". Ver `Recommender::smart`.
+#[allow(clippy::too_many_arguments)]
 pub fn recommend_smart(
     anchors: Vec<String>,
     avoid: Vec<String>,
+    never: Vec<String>,
+    keep: Vec<String>,
     style: String,
     per_anchor: u32,
     exclude: Vec<String>,
@@ -76,7 +80,7 @@ pub fn recommend_smart(
     let Some(r) = guard.as_ref() else { return Vec::new() };
     let Some(s) = Style::parse(&style) else { return Vec::new() };
     let lista = (!allowed.is_empty()).then_some(allowed);
-    r.smart(&anchors, &avoid, s, per_anchor as usize, &exclude, lista.as_deref())
+    r.smart(&anchors, &avoid, &never, &keep, s, per_anchor as usize, &exclude, lista.as_deref())
         .into_iter()
         .map(|h| SmartSong { id: h.id, score: h.score, anchor: h.anchor })
         .collect()
@@ -90,7 +94,9 @@ pub fn recommend_explore(
     count: u32,
     known: Vec<String>,
     avoid: Vec<String>,
+    never: Vec<String>,
     liked: Vec<String>,
+    keep: Vec<String>,
     exclude: Vec<String>,
     allowed: Vec<String>,
     spread: bool,
@@ -99,13 +105,20 @@ pub fn recommend_explore(
     let guard = LOADED.lock();
     let Some(r) = guard.as_ref() else { return Vec::new() };
     let lista = (!allowed.is_empty()).then_some(allowed);
-    r.explore(count as usize, &known, &avoid, &liked, &exclude, lista.as_deref(), spread, seed as u64)
+    r.explore(count as usize, &known, &avoid, &never, &liked, &keep, &exclude, lista.as_deref(), spread, seed as u64)
 }
 
 /// Destas músicas, quais caíram no que a pessoa pulou (a própria, as gêmeas,
-/// ou a zona de duas puladas perto uma da outra, longe de [liked])?
-pub fn recommend_avoided(ids: Vec<String>, avoid: Vec<String>, liked: Vec<String>) -> Vec<String> {
+/// ou a zona de duas puladas perto uma da outra, longe de [liked]) ou na zona
+/// de uma marcada com "−" ([never], longe de [keep])?
+pub fn recommend_avoided(
+    ids: Vec<String>,
+    avoid: Vec<String>,
+    never: Vec<String>,
+    liked: Vec<String>,
+    keep: Vec<String>,
+) -> Vec<String> {
     let guard = LOADED.lock();
     let Some(r) = guard.as_ref() else { return Vec::new() };
-    r.avoided(&ids, &avoid, &liked)
+    r.avoided(&ids, &avoid, &never, &liked, &keep)
 }

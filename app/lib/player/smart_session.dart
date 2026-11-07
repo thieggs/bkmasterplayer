@@ -74,9 +74,21 @@ abstract final class SmartWeights {
 
   /// A música escolhida para começar: o primeiro ímã.
   static const seed = 2.0;
+
+  /// Botão "+": mais que favoritar, e não esquece com o tempo.
+  static const more = 4.0;
 }
 
-enum SmartKind { listen, seed, picked, replay, star }
+enum SmartKind {
+  listen,
+  seed,
+  picked,
+  replay,
+  star,
+
+  /// Veio de um aleatório smart salvo (ver [SmartSession.restore]).
+  saved,
+}
 
 /// Uma coisa que a pessoa fez com uma música.
 @immutable
@@ -131,6 +143,14 @@ class SmartEvent {
 /// - Tudo **esquece aos poucos**: cada sinal perde metade do peso em
 ///   [SmartMemory.halfLife] músicas (o humor muda durante a sessão), e um pulo
 ///   deixa de afastar depois de duas meias-vidas.
+/// - **Os botões "+" e "−"** (pedido do usuário, 07/11/2026) são a pessoa
+///   dizendo com todas as letras. A marcada com "+" ([more]) vira ímã fixo:
+///   pesa [SmartWeights.more], não esquece com o tempo, nunca perde mais que
+///   metade da força pelo que traz, e sorteia entre as [drawMore] vizinhas
+///   mais perto em vez de [draw]. A marcada com "−" ([never]) deixa de ser
+///   ímã e fecha sozinha a região em volta dela (o motor, `Avoid`), a não ser
+///   que ali perto haja uma marcada com "+". As marcas valem para sempre e
+///   quem as guarda é o app (`data/smart_marks.dart`), não a sessão.
 /// - **Exploração**: uma vaga a cada [SmartExplore.every] músicas vai para um
 ///   canto ainda não ouvido, senão em vinte músicas o modo se fechava num
 ///   estilo só. Três pulos rápidos seguidos do que veio dos ímãs ([searching])
@@ -181,6 +201,26 @@ class SmartSession {
 
   final Random _random;
 
+  /// O aleatório smart salvo de onde esta sessão veio, ou o último em que ela
+  /// foi salva (o id; ver `data/smart_saved.dart`): o painel oferece
+  /// atualizar esse em vez de criar outro.
+  String? savedFrom;
+
+  /// Marcadas com o botão "+" e com o "−" (ver acima). Quem guarda é o app;
+  /// aqui chegam a cada rodada, como os ajustes.
+  List<Song> more = const [];
+  List<Song> never = const [];
+
+  Set<String> get _moreIds => {for (final s in more) s.id};
+  Set<String> get _neverIds => {for (final s in never) s.id};
+
+  /// As marcadas com "+" que ainda valem (uma marcada com as duas fica com o
+  /// "−"; o app não deixa, mas a sessão não confia).
+  List<Song> get _keep {
+    final nunca = _neverIds;
+    return [for (final s in more) if (!nunca.contains(s.id)) s];
+  }
+
   /// Tudo o que a pessoa fez, do mais antigo para o mais novo.
   final events = <SmartEvent>[];
 
@@ -218,6 +258,9 @@ class SmartSession {
   static const draw = 6;
   static const rankDecay = 0.75;
 
+  /// Ímã do botão "+": o sorteio fica entre as mais perto dele.
+  static const drawMore = 3;
+
   /// Vinheta não serve de amostra: não diz nada do gosto de ninguém.
   static const minLength = Duration(seconds: 60);
 
@@ -230,6 +273,33 @@ class SmartSession {
     }
     if (events.length > maxEvents) events.removeRange(0, events.length - maxEvents);
   }
+
+  /// Volta a um aleatório smart salvo: cada ímã com a força que tinha ao
+  /// salvar, cada pulada afastando de novo — tudo como novidade, então o
+  /// tempo começa a contar daqui. Dali em diante aprende como qualquer sessão.
+  static SmartSession restore({
+    required List<(Song, double)> liked,
+    List<Song> avoid = const [],
+    String? savedFrom,
+    Random? random,
+  }) {
+    final s = SmartSession(random: random)..savedFrom = savedFrom;
+    for (final (song, w) in liked) {
+      if (w > 0) s.note(song, w, kind: SmartKind.saved);
+    }
+    for (final song in avoid) {
+      s.note(song, SmartWeights.disliked);
+    }
+    return s;
+  }
+
+  /// O que salvar desta sessão: os ímãs que ela aprendeu (sem as marcadas
+  /// com "+", que valem em todo aleatório smart) e as puladas que ainda
+  /// afastam.
+  ({List<(Song, double)> liked, List<Song> avoid}) snapshot() => (
+        liked: [for (final a in anchors()) if (!isMore(a.$1.id)) a],
+        avoid: avoided(),
+      );
 
   /// [song] saiu de cena com o [signal] de [listenSignal].
   void left(Song song, int signal) {
@@ -293,7 +363,8 @@ class SmartSession {
   double _decay(SmartEvent e) => pow(0.5, (played - e.at) / memory.halfLife).toDouble();
 
   /// Os ímãs: músicas com saldo positivo, já descontado o tempo, da mais
-  /// forte para a mais fraca.
+  /// forte para a mais fraca. As marcadas com "+" entram todas; das outras,
+  /// as [maxAnchors] mais fortes. Marcada com "−" nunca é ímã.
   List<(Song, double)> anchors() {
     final saldo = <String, double>{};
     final musica = <String, Song>{};
@@ -301,22 +372,40 @@ class SmartSession {
       saldo[e.song.id] = (saldo[e.song.id] ?? 0) + e.weight * _decay(e);
       musica[e.song.id] = e.song;
     }
-    final out = [
-      for (final MapEntry(:key, :value) in saldo.entries)
-        if (value > 0 && value * _trust(key) >= minAnchor) (musica[key]!, value * _trust(key)),
-    ]..sort((a, b) => b.$2.compareTo(a.$2));
-    return out.take(maxAnchors).toList();
+    final fixas = <String>{};
+    for (final s in _keep) {
+      saldo[s.id] = (saldo[s.id] ?? 0) + SmartWeights.more;
+      musica[s.id] = s;
+      fixas.add(s.id);
+    }
+    final nunca = _neverIds;
+    final auto = <(Song, double)>[], fixo = <(Song, double)>[];
+    for (final MapEntry(:key, :value) in saldo.entries) {
+      if (value <= 0 || nunca.contains(key)) continue;
+      if (fixas.contains(key)) {
+        fixo.add((musica[key]!, value * max(_trust(key), 0.5)));
+      } else if (value * _trust(key) >= minAnchor) {
+        auto.add((musica[key]!, value * _trust(key)));
+      }
+    }
+    int forte((Song, double) a, (Song, double) b) => b.$2.compareTo(a.$2);
+    auto.sort(forte);
+    return [...fixo, ...auto.take(maxAnchors)]..sort(forte);
   }
 
+  /// [songId] foi marcada com o botão "+".
+  bool isMore(String songId) => _keep.any((s) => s.id == songId);
+
   /// Puladas que ainda afastam: até duas meias-vidas depois do pulo, e só se
-  /// a música não ficou com saldo positivo (voltou atrás, favoritou).
+  /// a música não ficou com saldo positivo (voltou atrás, favoritou). As
+  /// marcadas com "−" vão à parte ([never]) e não esquecem.
   List<Song> avoided() {
     final out = <String, Song>{};
     for (final e in events) {
       if (e.weight < 0 && played - e.at <= 2 * memory.halfLife) out[e.song.id] = e.song;
     }
-    final ima = {for (final (s, _) in anchors()) s.id};
-    return [for (final s in out.values) if (!ima.contains(s.id)) s];
+    final fora = {for (final (s, _) in anchors()) s.id, ..._neverIds};
+    return [for (final s in out.values) if (!fora.contains(s.id)) s];
   }
 
   /// Três pulos rápidos seguidos: "não é por aqui".
@@ -338,12 +427,12 @@ class SmartSession {
   /// [history] é a fila como está (o que já tocou e o que vem): nada dela
   /// volta, e ela conta para a regra de artista.
   Future<List<Song>> next({required int want, required List<Song> history, required SmartSource source}) async {
-    final seen = <String>{for (final s in history) s.id, ..._banned};
-    final seenKeys = <String>{for (final s in history) RadioSession.songKey(s), ..._bannedKeys};
+    final (seen, seenKeys) = _seen(history);
     final recent = [...history];
     final out = <Song>[];
     final imas = anchors();
     final evitar = avoided();
+    final fixas = _moreIds;
 
     bool fits(Song s) => !seen.contains(s.id) && !seenKeys.contains(RadioSession.songKey(s)) && _goodLength(s);
     bool artistOk(Song s) => RadioSession.artistAllowed(s, recent, artists);
@@ -402,6 +491,8 @@ class SmartSession {
       final hits = await _safe(() => source.smartNeighbors(
             [for (final i in usados) imas[i].$1],
             avoid: evitar,
+            never: never,
+            keep: _keep,
             style: style,
             perAnchor: perAnchor,
             exclude: seen,
@@ -417,9 +508,11 @@ class SmartSession {
     final exploracao = slots.where((s) => s == null).length;
     final amostras = await _safe(() => source.smartExplore(
           exploracao * 2 + 3,
-          known: [for (final (s, _) in imas) s, ...evitar, ...history.reversed.take(40)],
+          known: [for (final (s, _) in imas) s, ...evitar, ...never, ...history.reversed.take(40)],
           avoid: evitar,
+          never: never,
           liked: [for (final (s, _) in imas) s],
+          keep: _keep,
           exclude: seen,
           // Sorteio puro só na primeira rodada sem nada escolhido; daí em
           // diante a exploração procura o que ainda não foi ouvido.
@@ -448,7 +541,8 @@ class SmartSession {
       if (lista == null) return null;
       lista.removeWhere((s) => !fits(s));
       final validas = <int>[];
-      for (var j = 0; j < lista.length && validas.length < draw; j++) {
+      final sorteio = fixas.contains(imas[i].$1.id) ? drawMore : draw;
+      for (var j = 0; j < lista.length && validas.length < sorteio; j++) {
         if (artistOk(lista[j])) validas.add(j);
       }
       if (validas.isEmpty) {
@@ -490,6 +584,53 @@ class SmartSession {
     return out;
   }
 
+  /// Botão "+": [want] vizinhas de [song] para tocar logo em seguida — a
+  /// resposta na hora, antes da próxima rodada. Contadas de novo sobre a
+  /// biblioteca toda e sorteadas entre as [drawMore] mais perto (a regra 2 da
+  /// patente vale aqui também).
+  Future<List<Song>> closeTo(Song song,
+      {required int want, required List<Song> history, required SmartSource source}) async {
+    final (seen, seenKeys) = _seen([song, ...history]);
+    final hits = await _safe(() => source.smartNeighbors(
+          [song],
+          avoid: avoided(),
+          never: never,
+          keep: _keep,
+          style: style,
+          perAnchor: perAnchor,
+          exclude: seen,
+        ));
+    final lista = [
+      for (final (s, _, _) in hits)
+        if (!seen.contains(s.id) && !seenKeys.contains(RadioSession.songKey(s)) && _goodLength(s)) s,
+    ];
+    final recent = [...history];
+    final out = <Song>[];
+    while (out.length < want && lista.isNotEmpty) {
+      final validas = <int>[];
+      for (var j = 0; j < lista.length && validas.length < drawMore; j++) {
+        if (RadioSession.artistAllowed(lista[j], recent, artists)) validas.add(j);
+      }
+      // Artista repetido: melhor que nada, como no fim de [next].
+      final j = validas.isEmpty
+          ? 0
+          : validas[_weighted([for (var r = 0; r < validas.length; r++) pow(rankDecay, r).toDouble()])];
+      final s = lista.removeAt(j);
+      lista.removeWhere((x) => RadioSession.songKey(x) == RadioSession.songKey(s));
+      _origin[s.id] = song.id;
+      out.add(s);
+      recent.add(s);
+    }
+    return out;
+  }
+
+  /// O que não pode vir: a fila, as puladas e as marcadas com "−" (ids, e a
+  /// mesma gravação noutro álbum).
+  (Set<String>, Set<String>) _seen(List<Song> history) => (
+        {for (final s in history) s.id, ..._banned, ..._neverIds},
+        {for (final s in history) RadioSession.songKey(s), ..._bannedKeys, for (final s in never) RadioSession.songKey(s)},
+      );
+
   /// Nada de vinheta nem de mix de uma hora (a régua da rádio), a não ser que
   /// a música escolhida para começar também seja longa.
   bool _goodLength(Song s) {
@@ -521,6 +662,7 @@ class SmartSession {
 
   Map<String, dynamic> toJson() => {
         if (seed != null) 'seed': seed!.toJson(),
+        if (savedFrom != null) 'savedFrom': savedFrom,
         'played': played,
         'recent': _recent,
         'banned': [..._banned],
@@ -539,6 +681,8 @@ class SmartSession {
       ..clear()
       ..addAll([for (final e in (j['events'] as List? ?? const [])) ?SmartEvent.fromJson(e)]);
     s.played = (j['played'] as num?)?.toInt() ?? 0;
+    final de = j['savedFrom'];
+    if (de is String) s.savedFrom = de;
     s._recent.addAll([for (final x in (j['recent'] as List? ?? const [])) if (x is num) x.toInt()]);
     s._banned.addAll([for (final x in (j['banned'] as List? ?? const [])) if (x is String) x]);
     s._bannedKeys.addAll([for (final x in (j['bannedKeys'] as List? ?? const [])) if (x is String) x]);

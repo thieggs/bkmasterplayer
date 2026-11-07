@@ -252,27 +252,41 @@ fn style_distance(a: &Track, b: &Track) -> f32 {
 /// quem gosta de samba pula as vizinhas não-samba dos ímãs de samba, duas
 /// dessas puladas fechavam uma zona em volta do próprio ímã, e ele parava de
 /// trazer as vizinhas boas — metade da sessão virava amostra sorteada.
+///
+/// A música marcada com o botão "−" (`never`, pedido do usuário em
+/// 07/11/2026: "nunca mais esse tipo") fecha a zona sozinha, passe o que
+/// passar perto das aprovadas pelo modo. Só uma marcada com "+" (`keep`) ali
+/// perto segura a zona — a pessoa disse as duas coisas, e o "−" fica só com as
+/// gêmeas.
 struct Avoid<'a> {
     skipped: Vec<&'a Track>,
     zone: Vec<bool>,
 }
 
 impl<'a> Avoid<'a> {
-    fn new(r: &'a Recommender, ids: &[String], liked: &[String]) -> Self {
+    fn new(r: &'a Recommender, ids: &[String], liked: &[String], never: &[String], keep: &[String]) -> Self {
         let mut seen = HashSet::new();
-        let skipped: Vec<&Track> = ids
-            .iter()
-            .filter_map(|id| r.by_id.get(id))
-            .filter(|&&i| seen.insert(i))
-            .map(|&i| &r.tracks[i as usize])
-            .collect();
-        let liked: Vec<&Track> = liked.iter().filter_map(|id| r.by_id.get(id)).map(|&i| &r.tracks[i as usize]).collect();
-        let zone = (0..skipped.len())
-            .map(|i| {
-                (0..skipped.len()).any(|j| j != i && style_distance(skipped[i], skipped[j]) < ZONE_LINK)
-                    && !liked.iter().any(|l| style_distance(skipped[i], l) < ZONE)
-            })
-            .collect();
+        let mut unique = |list: &[String]| -> Vec<&'a Track> {
+            list.iter()
+                .filter_map(|id| r.by_id.get(id))
+                .filter(|&&i| seen.insert(i))
+                .map(|&i| &r.tracks[i as usize])
+                .collect()
+        };
+        // Primeiro as marcadas: a que também foi pulada conta como marcada.
+        let hard = unique(never);
+        let soft = unique(ids);
+        let tracks = |list: &[String]| -> Vec<&Track> {
+            list.iter().filter_map(|id| r.by_id.get(id)).map(|&i| &r.tracks[i as usize]).collect()
+        };
+        let (liked, keep) = (tracks(liked), tracks(keep));
+        let near = |list: &[&Track], t: &Track| list.iter().any(|l| style_distance(t, l) < ZONE);
+        let mut zone: Vec<bool> = hard.iter().map(|&s| !near(&keep, s)).collect();
+        zone.extend((0..soft.len()).map(|i| {
+            (0..soft.len()).any(|j| j != i && style_distance(soft[i], soft[j]) < ZONE_LINK) && !near(&liked, soft[i])
+        }));
+        let mut skipped = hard;
+        skipped.extend(soft);
         Self { skipped, zone }
     }
 
@@ -508,10 +522,16 @@ impl Recommender {
     /// A conta é por ímã, sem misturar: quem aprovou rock e samba quer rock e
     /// samba, e a média dos dois não é nenhum. Quantas vêm de cada um quem
     /// decide é o app, pelo peso de cada ímã.
+    ///
+    /// `never` são as marcadas com "−" e `keep`, as marcadas com "+" (ver
+    /// [`Avoid`]).
+    #[allow(clippy::too_many_arguments)]
     pub fn smart(
         &self,
         anchors: &[String],
         avoid: &[String],
+        never: &[String],
+        keep: &[String],
         style: Style,
         per_anchor: usize,
         exclude: &[String],
@@ -524,7 +544,7 @@ impl Recommender {
                 out[i as usize] = true;
             }
         }
-        let avoid = Avoid::new(self, avoid, anchors);
+        let avoid = Avoid::new(self, avoid, anchors, never, keep);
         // A mesma candidata aparece na lista de vários ímãs: a conta de evitar
         // é feita uma vez só.
         let mut blocked: Vec<Option<bool>> = vec![None; self.tracks.len()];
@@ -567,7 +587,9 @@ impl Recommender {
         count: usize,
         known: &[String],
         avoid: &[String],
+        never: &[String],
         liked: &[String],
+        keep: &[String],
         exclude: &[String],
         allowed: Option<&[String]>,
         spread: bool,
@@ -576,7 +598,7 @@ impl Recommender {
         let pick = self.pickable(allowed);
         let out = self.marked(exclude);
         let mut pool: Vec<usize> = (0..self.tracks.len()).filter(|&i| !out[i] && pick[i].is_some()).collect();
-        let avoid = Avoid::new(self, avoid, liked);
+        let avoid = Avoid::new(self, avoid, liked, never, keep);
         let mut near: Vec<usize> = known.iter().filter_map(|id| self.by_id.get(id)).map(|&i| i as usize).collect();
         let mut rng = Rng(seed);
         let mut chosen = Vec::new();
@@ -616,8 +638,8 @@ impl Recommender {
 
     /// Destas, quais caíram no que é para evitar? O app troca na hora as que
     /// ainda não tocaram.
-    pub fn avoided(&self, ids: &[String], avoid: &[String], liked: &[String]) -> Vec<String> {
-        let avoid = Avoid::new(self, avoid, liked);
+    pub fn avoided(&self, ids: &[String], avoid: &[String], never: &[String], liked: &[String], keep: &[String]) -> Vec<String> {
+        let avoid = Avoid::new(self, avoid, liked, never, keep);
         ids.iter()
             .filter(|id| self.by_id.get(*id).is_some_and(|&i| avoid.blocks(&self.tracks[i as usize])))
             .cloned()
@@ -690,7 +712,7 @@ mod tests {
             at(2, 0.0),
             at(2, 10.0),
         ]);
-        let hits = r.smart(&ids(["s0", "s4"]), &[], Style::Genre, 2, &[], None);
+        let hits = r.smart(&ids(["s0", "s4"]), &[], &[], &[], Style::Genre, 2, &[], None);
         let by: Vec<(&str, u32)> = hits.iter().map(|h| (h.id.as_str(), h.anchor)).collect();
         assert_eq!(by, [("s1", 0), ("s2", 0), ("s5", 1), ("s6", 1)], "cada ímã traz as dele, sem misturar");
     }
@@ -700,7 +722,7 @@ mod tests {
         // Ímã s0; pulada s1 (15°); s2 é gêmea dela (5° de distância); s3 é do
         // mesmo estilo, mas a 30° da pulada; s4 é de outro estilo.
         let r = rec(vec![at(0, 0.0), at(0, 15.0), at(0, 20.0), at(0, 45.0), at(1, 0.0)]);
-        let hits = r.smart(&ids(["s0"]), &ids(["s1"]), Style::Genre, 10, &[], None);
+        let hits = r.smart(&ids(["s0"]), &ids(["s1"]), &[], &[], Style::Genre, 10, &[], None);
         assert_eq!(hit_ids(&hits), ["s3", "s4"], "um pulo só pode ser enjoo da música, não do estilo");
     }
 
@@ -710,10 +732,10 @@ mod tests {
         // outra, mesmo estilo, longe do ímã. s3, a 30° da s2, já não é gêmea,
         // mas está na zona; s4 é do estilo do ímã.
         let r = rec(vec![at(1, 0.0), at(0, 15.0), at(0, 35.0), at(0, 65.0), at(1, 30.0)]);
-        let hits = r.smart(&ids(["s0"]), &ids(["s1", "s2"]), Style::Genre, 10, &[], None);
+        let hits = r.smart(&ids(["s0"]), &ids(["s1", "s2"]), &[], &[], Style::Genre, 10, &[], None);
         assert_eq!(hit_ids(&hits), ["s4"]);
-        assert_eq!(r.avoided(&ids(["s3", "s4", "nao-existe"]), &ids(["s1", "s2"]), &[]), ["s3"]);
-        assert!(r.avoided(&ids(["s3"]), &ids(["s2"]), &[]).is_empty(), "com uma pulada só, s3 ficava");
+        assert_eq!(r.avoided(&ids(["s3", "s4", "nao-existe"]), &ids(["s1", "s2"]), &[], &[], &[]), ["s3"]);
+        assert!(r.avoided(&ids(["s3"]), &ids(["s2"]), &[], &[], &[]).is_empty(), "com uma pulada só, s3 ficava");
     }
 
     #[test]
@@ -722,18 +744,35 @@ mod tests {
         // menos de 0,10 do ímã: o estilo tem coisa que a pessoa gosta. s3
         // (65°, a 30° da s2) fica; a gêmea da s1 (s4, a 23°) sai.
         let r = rec(vec![at(0, 0.0), at(0, 20.0), at(0, 35.0), at(0, 65.0), at(0, 23.0)]);
-        let hits = r.smart(&ids(["s0"]), &ids(["s1", "s2"]), Style::Genre, 10, &[], None);
+        let hits = r.smart(&ids(["s0"]), &ids(["s1", "s2"]), &[], &[], Style::Genre, 10, &[], None);
         assert_eq!(hit_ids(&hits), ["s3"]);
-        assert_eq!(r.avoided(&ids(["s3", "s4"]), &ids(["s1", "s2"]), &ids(["s0"])), ["s4"]);
-        assert_eq!(r.avoided(&ids(["s3", "s4"]), &ids(["s1", "s2"]), &[]), ["s3", "s4"], "sem a aprovada, vira zona");
+        assert_eq!(r.avoided(&ids(["s3", "s4"]), &ids(["s1", "s2"]), &[], &ids(["s0"]), &[]), ["s4"]);
+        assert_eq!(r.avoided(&ids(["s3", "s4"]), &ids(["s1", "s2"]), &[], &[], &[]), ["s3", "s4"], "sem a aprovada, vira zona");
+    }
+
+    #[test]
+    fn the_minus_button_closes_the_region_alone() {
+        // Ímã s0 (aprovado pelo modo, a 20° da marcada); s1 marcada com "−";
+        // s2 (50°, a 30° dela: não é gêmea) só sai pela zona; s3 é de outro
+        // estilo.
+        let r = rec(vec![at(0, 0.0), at(0, 20.0), at(0, 50.0), at(1, 0.0)]);
+        let hits = r.smart(&ids(["s0"]), &[], &ids(["s1"]), &[], Style::Genre, 10, &[], None);
+        assert_eq!(hit_ids(&hits), ["s3"], "uma marcada só fecha a zona, mesmo perto de uma aprovada");
+        assert_eq!(r.avoided(&ids(["s2", "s3"]), &[], &ids(["s1"]), &ids(["s0"]), &[]), ["s2"]);
+        // A mesma música pulada e marcada conta como marcada.
+        assert_eq!(r.avoided(&ids(["s2"]), &ids(["s1"]), &ids(["s1"]), &ids(["s0"]), &[]), ["s2"]);
+        // Uma marcada com "+" ali perto segura a zona: o "−" leva só as gêmeas.
+        assert!(r.avoided(&ids(["s2"]), &[], &ids(["s1"]), &ids(["s0"]), &ids(["s0"])).is_empty());
+        let longe = r.explore(10, &[], &[], &ids(["s1"]), &[], &[], &[], None, false, 7);
+        assert!(!longe.iter().any(|id| id == "s1" || id == "s2"), "a exploração também respeita: {longe:?}");
     }
 
     #[test]
     fn what_already_played_does_not_come_back() {
         let r = rec(vec![at(0, 0.0), at(0, 10.0), at(0, 15.0), at(0, 20.0)]);
-        let hits = r.smart(&ids(["s0"]), &[], Style::Genre, 10, &ids(["s1"]), None);
+        let hits = r.smart(&ids(["s0"]), &[], &[], &[], Style::Genre, 10, &ids(["s1"]), None);
         assert_eq!(hit_ids(&hits), ["s2", "s3"]);
-        let offline = r.smart(&ids(["s0"]), &[], Style::Genre, 10, &[], Some(&ids(["s3"])));
+        let offline = r.smart(&ids(["s0"]), &[], &[], &[], Style::Genre, 10, &[], Some(&ids(["s3"])));
         assert_eq!(hit_ids(&offline), ["s3"], "offline, só o que está baixado");
     }
 
@@ -756,13 +795,13 @@ mod tests {
     fn exploring_takes_each_sample_from_a_different_style() {
         let r = three_styles();
         for seed in 0..20 {
-            let got = r.explore(3, &[], &[], &[], &[], None, true, seed);
+            let got = r.explore(3, &[], &[], &[], &[], &[], &[], None, true, seed);
             let styles: HashSet<usize> = got.iter().map(|id| style_of(id)).collect();
             assert_eq!(styles.len(), 3, "semente {seed}: {got:?}");
         }
         // Já ouviu os estilos A e B: a amostra vem do C.
         for seed in 0..10 {
-            let got = r.explore(1, &ids(["s0", "s10"]), &[], &[], &[], None, true, seed);
+            let got = r.explore(1, &ids(["s0", "s10"]), &[], &[], &[], &[], &[], None, true, seed);
             assert_eq!(style_of(&got[0]), 2, "semente {seed}: {got:?}");
         }
     }
@@ -773,13 +812,13 @@ mod tests {
         let avoid = ids(["s0", "s1"]); // duas puladas juntas: o estilo A inteiro sai
         let exclude = ids(["s10", "s11"]);
         for spread in [false, true] {
-            let got = r.explore(12, &[], &avoid, &[], &exclude, None, spread, 3);
+            let got = r.explore(12, &[], &avoid, &[], &[], &[], &exclude, None, spread, 3);
             assert_eq!(got.len(), 12);
             let unique: HashSet<&String> = got.iter().collect();
             assert_eq!(unique.len(), 12, "nada repetido");
             assert!(got.iter().all(|id| style_of(id) > 0 && id != "s10" && id != "s11"), "{got:?}");
         }
-        let few = r.explore(50, &[], &avoid, &[], &exclude, None, true, 1);
+        let few = r.explore(50, &[], &avoid, &[], &[], &[], &exclude, None, true, 1);
         assert_eq!(few.len(), 18, "pede mais do que há: vem o que há");
     }
     #[test]

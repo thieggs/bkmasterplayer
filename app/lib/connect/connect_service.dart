@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/providers.dart';
 import '../data/settings.dart';
+import '../data/smart_saved.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
 import 'connect_auth.dart';
@@ -912,6 +913,14 @@ class ConnectNotifier extends Notifier<List<ConnectDevice>> {
       case 'smartStart':
         final seed = m['seed'];
         p.startSmart(seed: seed is Map ? Song.fromJson(Map<String, dynamic>.from(seed)) : null);
+      case 'smartStartSaved':
+        final saved = SavedSmart.fromJson(m['saved']);
+        if (saved != null) p.startSmartSaved(saved);
+      case 'smartMark':
+        final song = m['song'];
+        if (song is Map) {
+          p.setSmartMark(Song.fromJson(Map<String, dynamic>.from(song)), more: m['more'] == true, on: m['on'] == true);
+        }
       case 'playSongs':
         p.playSongs(songs(), start: n('start'), shuffle: m['shuffle'] == true);
       case 'enqueue':

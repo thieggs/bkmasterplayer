@@ -2684,4 +2684,101 @@ class AppLocalizationsEn extends AppLocalizations {
   String smartMemoryHint(int n) {
     return 'Everything you do loses half its weight in $n songs';
   }
+
+  @override
+  String get smartMoreButton => 'More like this, always';
+
+  @override
+  String get smartNeverButton => 'Never this kind again';
+
+  @override
+  String smartMarkedMore(String title) {
+    return '➕ More like this, always: $title';
+  }
+
+  @override
+  String smartMarkedNever(String title) {
+    return '⛔ Never this kind again: $title';
+  }
+
+  @override
+  String smartUnmarked(String title) {
+    return 'Mark removed: $title';
+  }
+
+  @override
+  String get smartMoreSection => 'Always (+)';
+
+  @override
+  String get smartNeverSection => 'Never (−)';
+
+  @override
+  String get smartUnmark => 'Remove the mark';
+
+  @override
+  String get smartMarksTitle => 'Your marks (+ and −)';
+
+  @override
+  String get smartMarksHint =>
+      'They apply to every smart shuffle until you remove them';
+
+  @override
+  String get smartNoMarks =>
+      'No marks yet. With smart shuffle on, − (next to shuffle) and + (next to repeat) mark the song that is playing.';
+
+  @override
+  String get smartSavedTab => 'Smart shuffles';
+
+  @override
+  String get smartSave => 'Save this style';
+
+  @override
+  String get smartSaveTitle => 'Save the smart shuffle';
+
+  @override
+  String get smartSaveName => 'Name';
+
+  @override
+  String get smartSaveHint =>
+      'Keeps what it has learned so far: what it is pulling toward and what it is avoiding. To come back, open the Smart shuffles tab.';
+
+  @override
+  String get smartSaveNew => 'Save as new';
+
+  @override
+  String smartSaveUpdate(String name) {
+    return 'Update \"$name\"';
+  }
+
+  @override
+  String smartSavedDone(String name) {
+    return 'Saved to Smart shuffles: $name';
+  }
+
+  @override
+  String get smartSaveNothing =>
+      'Nothing learned to save yet: let the songs you like play to the end.';
+
+  @override
+  String get smartSavedEmpty =>
+      'No saved smart shuffles yet. While one is playing, tap \"Save this style\" up here or in the \"What it learned\" panel (🧠) on the player screen.';
+
+  @override
+  String smartSavedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs pulling',
+      one: '1 song pulling',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String smartSavedDeleted(String name) {
+    return 'Deleted: $name';
+  }
+
+  @override
+  String get smartSavedPlaying => 'Playing now';
 }

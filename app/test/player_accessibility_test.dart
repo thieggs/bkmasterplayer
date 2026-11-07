@@ -24,12 +24,18 @@ class _FakePlayer extends PlayerController {
       );
 }
 
+/// O mesmo, com o aleatório smart ligado: os botões "−" e "+" aparecem.
+class _FakeSmartPlayer extends _FakePlayer {
+  @override
+  PlayerState build() => super.build().copyWith(smart: true);
+}
+
 class _NoConnect extends ConnectNotifier {
   @override
   List<ConnectDevice> build() => const [];
 }
 
-Future<void> _pump(WidgetTester tester, Widget child, Size size, {bool dark = false}) async {
+Future<void> _pump(WidgetTester tester, Widget child, Size size, {bool dark = false, bool smart = false}) async {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
@@ -38,7 +44,7 @@ Future<void> _pump(WidgetTester tester, Widget child, Size size, {bool dark = fa
   await tester.pumpWidget(ProviderScope(
     overrides: [
       prefsProvider.overrideWithValue(prefs),
-      playerProvider.overrideWith(_FakePlayer.new),
+      playerProvider.overrideWith(smart ? _FakeSmartPlayer.new : _FakePlayer.new),
       connectProvider.overrideWith(_NoConnect.new),
     ],
     child: MaterialApp(
@@ -80,6 +86,27 @@ void main() {
     testWidgets('acessível: tocando agora no celular ($tema)', (tester) async {
       final h = tester.ensureSemantics();
       await _pump(tester, const NowPlayingPage(), const Size(400, 860), dark: dark);
+      await _guidelines(tester);
+      h.dispose();
+    });
+
+    // Com os botões do aleatório smart a fileira tem sete botões: no celular
+    // estreito (360 dp) ela encolhe para caber, e os botões continuam com
+    // área de toque de 48 dp.
+    testWidgets('acessível: botões "−" e "+" do aleatório smart no celular estreito ($tema)', (tester) async {
+      final h = tester.ensureSemantics();
+      await _pump(tester, const NowPlayingPage(), const Size(360, 780), dark: dark, smart: true);
+      expect(find.byIcon(Icons.remove_circle_outline), findsOneWidget);
+      expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
+      await _guidelines(tester);
+      h.dispose();
+    });
+
+    testWidgets('acessível: botões "−" e "+" na barra do computador ($tema)', (tester) async {
+      final h = tester.ensureSemantics();
+      await _pump(tester, Align(alignment: Alignment.bottomCenter, child: PlayerBar(onToggleQueue: () {}, queueOpen: false)),
+          const Size(1024, 700), dark: dark, smart: true);
+      expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
       await _guidelines(tester);
       h.dispose();
     });

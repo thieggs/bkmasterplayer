@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../core/providers.dart';
+import '../data/smart_marks.dart';
+import '../data/smart_saved.dart';
 import '../domain/models.dart';
 import '../player/player_controller.dart';
 import 'auto_browser.dart';
@@ -51,6 +53,9 @@ class _BkAudioHandler extends BaseAudioHandler {
           pt: Platform.localeName.startsWith('pt'),
           // As abas escolhidas no app valem no carro também.
           tabs: () => _container.read(uiPrefsProvider).sidebarTabs,
+          smartSaved: () => [
+            for (final s in _container.read(savedSmartProvider)) (s.id, s.name, s.artists(3).join(', ')),
+          ],
         ) {
     _session.interruptionEventStream.listen(_onInterruption);
     // Fone desconectado / Bluetooth caiu: pausa em vez de sair no alto-falante.
@@ -58,6 +63,8 @@ class _BkAudioHandler extends BaseAudioHandler {
       if (!_remote && _container.read(settingsProvider).pauseOnUnplug) _player.pause();
     });
     _container.listen<PlayerState>(playerProvider, (_, s) => _update(s), fireImmediately: true);
+    // Marcou "+" ou "−": o botão da notificação acende.
+    _container.listen(smartMarksProvider, (_, _) => _update(_container.read(playerProvider)));
     // O carro abriu o app antes do login voltar (ou trocou a conta): recarrega as pastas.
     _container.listen(sessionProvider, (prev, next) {
       if (prev?.value?.provider.accountId != next.value?.provider.accountId) {
@@ -90,7 +97,9 @@ class _BkAudioHandler extends BaseAudioHandler {
   bool _wasPlaying = false;
   bool _resumeAfterInterruption = false;
   String? _itemUid;
-  (bool, bool, Duration, int)? _published;
+  (bool, bool, Duration, int, int)? _published;
+
+  static final _pt = Platform.localeName.startsWith('pt');
   Duration _publishedPos = Duration.zero;
   DateTime _publishedAt = DateTime.now();
 
@@ -143,17 +152,38 @@ class _BkAudioHandler extends BaseAudioHandler {
     final now = DateTime.now();
     final predicted = _publishedPos + (playbackState.value.playing ? now.difference(_publishedAt) : Duration.zero);
     final jumped = (s.position - predicted).abs() > const Duration(milliseconds: 1500);
-    final sig = (s.playing, s.buffering, duration, s.index - _queueStart);
+    // Botões "−" e "+" do aleatório smart (ver `ui/player/smart_mark_button.dart`):
+    // 0 = modo desligado; 1 = sem marca; 2 = "+"; 3 = "−".
+    final marks = _container.read(smartMarksProvider);
+    final smart = !s.smart || s.jamHost != null
+        ? 0
+        : (marks.isMore(song.id) ? 2 : (marks.isNever(song.id) ? 3 : 1));
+    final sig = (s.playing, s.buffering, duration, s.index - _queueStart, smart);
     if (sig == _published && !jumped) return;
     _published = sig;
     _publishedPos = s.position;
     _publishedAt = now;
     playbackState.add(
       PlaybackState(
+        // No Android 13+ e no Android Auto os botões próprios entram nas
+        // vagas livres, na ordem: o "−" e o "+" antes do "parar", senão o
+        // "parar" ocupava uma das duas vagas.
         controls: [
           MediaControl.skipToPrevious,
           s.playing ? MediaControl.pause : MediaControl.play,
           MediaControl.skipToNext,
+          if (smart > 0) ...[
+            MediaControl.custom(
+              androidIcon: smart == 3 ? 'drawable/ic_smart_never_on' : 'drawable/ic_smart_never',
+              label: _pt ? 'Nunca mais esse tipo' : 'Never this kind again',
+              name: 'smartNever',
+            ),
+            MediaControl.custom(
+              androidIcon: smart == 2 ? 'drawable/ic_smart_more_on' : 'drawable/ic_smart_more',
+              label: _pt ? 'Mais disso, sempre' : 'More like this, always',
+              name: 'smartMore',
+            ),
+          ],
           MediaControl.stop,
         ],
         systemActions: const {MediaAction.seek, MediaAction.seekForward, MediaAction.seekBackward},
@@ -305,6 +335,9 @@ class _BkAudioHandler extends BaseAudioHandler {
       case 'do:shuffle':
         final p = _auto.provider();
         if (p != null) _player.playSongs(await p.randomSongs(size: 100));
+      case final id when id.startsWith('do:smartSaved:'):
+        final saved = _container.read(savedSmartProvider.notifier).byId(id.substring('do:smartSaved:'.length));
+        if (saved != null) await _player.startSmartSaved(saved);
       default:
         final r = await _auto.resolve(mediaId);
         if (r != null) _player.playSongs(r.$1, start: r.$2);
@@ -324,6 +357,17 @@ class _BkAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> seek(Duration position) async => _player.seek(position);
+
+  /// Os botões "−" e "+" do aleatório smart na notificação e no carro.
+  @override
+  Future<dynamic> customAction(String name, [Map<String, dynamic>? extras]) async {
+    switch (name) {
+      case 'smartMore':
+        _player.smartMark(more: true);
+      case 'smartNever':
+        _player.smartMark(more: false);
+    }
+  }
 
   @override
   Future<void> fastForward() async => _player.seekBy(const Duration(seconds: 10));

@@ -126,8 +126,11 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
       const SizedBox(width: 520, child: SeekBar()),
       const TransportControls(big: true),
       const SizedBox(height: 8),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      // Em celular estreito (360 dp) os botões não cabem numa linha: a
+      // fileira quebra em vez de passar da tela.
+      Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (jam)
             IconButton(
@@ -281,7 +284,11 @@ class _NowPlayingPageState extends ConsumerState<NowPlayingPage> {
                             children: [
                               Center(
                                 child: SingleChildScrollView(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                                  // Celular estreito: margem menor, para os sete
+                                  // botões do aleatório smart caberem com 48 dp
+                                  // cada (ver [TransportControls]).
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: MediaQuery.sizeOf(context).width < TransportControls.narrow ? 12 : 24),
                                   child: info,
                                 ),
                               ),

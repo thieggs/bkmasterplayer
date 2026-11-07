@@ -4758,6 +4758,150 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Cada coisa que você faz perde metade do peso em {n} músicas'**
   String smartMemoryHint(int n);
+
+  /// No description provided for @smartMoreButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais disso, sempre'**
+  String get smartMoreButton;
+
+  /// No description provided for @smartNeverButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nunca mais esse tipo'**
+  String get smartNeverButton;
+
+  /// No description provided for @smartMarkedMore.
+  ///
+  /// In pt, this message translates to:
+  /// **'➕ Mais disso, sempre: {title}'**
+  String smartMarkedMore(String title);
+
+  /// No description provided for @smartMarkedNever.
+  ///
+  /// In pt, this message translates to:
+  /// **'⛔ Nunca mais esse tipo: {title}'**
+  String smartMarkedNever(String title);
+
+  /// No description provided for @smartUnmarked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marca tirada: {title}'**
+  String smartUnmarked(String title);
+
+  /// No description provided for @smartMoreSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre (+)'**
+  String get smartMoreSection;
+
+  /// No description provided for @smartNeverSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nunca (−)'**
+  String get smartNeverSection;
+
+  /// No description provided for @smartUnmark.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tirar a marca'**
+  String get smartUnmark;
+
+  /// No description provided for @smartMarksTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suas marcas (+ e −)'**
+  String get smartMarksTitle;
+
+  /// No description provided for @smartMarksHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valem em todo aleatório smart, até você tirar'**
+  String get smartMarksHint;
+
+  /// No description provided for @smartNoMarks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma marca ainda. Com o aleatório smart ligado, o − (ao lado do aleatório) e o + (ao lado do repetir) marcam a música que está tocando.'**
+  String get smartNoMarks;
+
+  /// No description provided for @smartSavedTab.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aleatórios smart'**
+  String get smartSavedTab;
+
+  /// No description provided for @smartSave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar este estilo'**
+  String get smartSave;
+
+  /// No description provided for @smartSaveTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar o aleatório smart'**
+  String get smartSaveTitle;
+
+  /// No description provided for @smartSaveName.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome'**
+  String get smartSaveName;
+
+  /// No description provided for @smartSaveHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guarda o que ele aprendeu até aqui: o que está puxando e o que está evitando. Para voltar, abra a aba Aleatórios smart.'**
+  String get smartSaveHint;
+
+  /// No description provided for @smartSaveNew.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar como novo'**
+  String get smartSaveNew;
+
+  /// No description provided for @smartSaveUpdate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar \"{name}\"'**
+  String smartSaveUpdate(String name);
+
+  /// No description provided for @smartSavedDone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo em Aleatórios smart: {name}'**
+  String smartSavedDone(String name);
+
+  /// No description provided for @smartSaveNothing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não aprendeu nada para salvar: deixe tocar até o fim o que você gostar.'**
+  String get smartSaveNothing;
+
+  /// No description provided for @smartSavedEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum aleatório smart salvo ainda. Com ele tocando, toque em \"Salvar este estilo\" aqui em cima ou no painel \"O que ele aprendeu\" (🧠) da tela do player.'**
+  String get smartSavedEmpty;
+
+  /// No description provided for @smartSavedCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 música puxando} other{{count} músicas puxando}}'**
+  String smartSavedCount(int count);
+
+  /// No description provided for @smartSavedDeleted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluído: {name}'**
+  String smartSavedDeleted(String name);
+
+  /// No description provided for @smartSavedPlaying.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocando agora'**
+  String get smartSavedPlaying;
 }
 
 class _AppLocalizationsDelegate

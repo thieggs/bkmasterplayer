@@ -42,10 +42,13 @@ Future<List<SimilarSong>> recommendSimilar({
 
 /// Aleatório smart: as parecidas com cada ímã ([anchors], músicas que a
 /// pessoa aprovou), [per_anchor] por ímã, longe do que ela pulou ([avoid]) e
-/// fora do que já tocou ([exclude]). Ver `Recommender::smart`.
+/// fora do que já tocou ([exclude]). [never] são as marcadas com o botão
+/// "−" e [keep], as marcadas com "+". Ver `Recommender::smart`.
 Future<List<SmartSong>> recommendSmart({
   required List<String> anchors,
   required List<String> avoid,
+  required List<String> never,
+  required List<String> keep,
   required String style,
   required int perAnchor,
   required List<String> exclude,
@@ -53,6 +56,8 @@ Future<List<SmartSong>> recommendSmart({
 }) => RustLib.instance.api.crateApiRecommendRecommendSmart(
   anchors: anchors,
   avoid: avoid,
+  never: never,
+  keep: keep,
   style: style,
   perAnchor: perAnchor,
   exclude: exclude,
@@ -66,7 +71,9 @@ Future<List<String>> recommendExplore({
   required int count,
   required List<String> known,
   required List<String> avoid,
+  required List<String> never,
   required List<String> liked,
+  required List<String> keep,
   required List<String> exclude,
   required List<String> allowed,
   required bool spread,
@@ -75,7 +82,9 @@ Future<List<String>> recommendExplore({
   count: count,
   known: known,
   avoid: avoid,
+  never: never,
   liked: liked,
+  keep: keep,
   exclude: exclude,
   allowed: allowed,
   spread: spread,
@@ -83,15 +92,20 @@ Future<List<String>> recommendExplore({
 );
 
 /// Destas músicas, quais caíram no que a pessoa pulou (a própria, as gêmeas,
-/// ou a zona de duas puladas perto uma da outra, longe de [liked])?
+/// ou a zona de duas puladas perto uma da outra, longe de [liked]) ou na zona
+/// de uma marcada com "−" ([never], longe de [keep])?
 Future<List<String>> recommendAvoided({
   required List<String> ids,
   required List<String> avoid,
+  required List<String> never,
   required List<String> liked,
+  required List<String> keep,
 }) => RustLib.instance.api.crateApiRecommendRecommendAvoided(
   ids: ids,
   avoid: avoid,
+  never: never,
   liked: liked,
+  keep: keep,
 );
 
 class SimilarSong {

@@ -57,14 +57,25 @@ void main() {
     double base(Set<String> gosto) => comVetor.where((id) => gosta(songs[id]!, gosto)).length / comVetor.length;
 
     var rodadasTarde = 0, semIma = 0, procurando = 0;
+    // Botões "+" e "−": quantas vezes cada um foi apertado e quantas músicas
+    // tocaram dentro da região de uma marcada com "−" (tem de ser zero).
+    var maisN = 0, menosN = 0, vazou = 0;
 
     /// Uma sessão de [n] músicas, como o player faz: rodada nova quando sobra
     /// menos da metade, e depois de um "não gostei" saem da fila as que caíram
     /// no que é para evitar. [gostaAgora] diz se a pessoa gosta da música que
     /// toca na posição t. Devolve, para cada posição, se ela gostou e se a
     /// música veio de um ímã (o resto é amostra).
-    Future<List<(bool, bool)>> sessao(int seed, bool Function(Song, int) gostaAgora, {int n = 60}) async {
+    ///
+    /// Com [botoes], a pessoa também aperta "+" em 15% das que ouve inteira e
+    /// gosta, e "−" em vez de pular em 25% das que pula logo (como no app: o
+    /// "+" põe duas vizinhas logo em seguida; o "−" julga a música no lugar
+    /// do pulo e tira da fila o que caiu na região).
+    Future<List<(bool, bool)>> sessao(int seed, bool Function(Song, int) gostaAgora,
+        {int n = 60, bool botoes = false}) async {
       final r = Random(seed);
+      // Sorteio à parte: com e sem botões, o ouvinte decide igual.
+      final rb = Random(seed + 104729);
       final session = SmartSession(random: Random(seed + 7919));
       final played = <Song>[];
       final upcoming = await session.next(want: 4, history: const [], source: source);
@@ -89,10 +100,27 @@ void main() {
         // Do que gosta: ouve inteira 85%, enjoa no meio 15%. Do que não gosta:
         // pula logo 80%, enjoa no meio 15%, deixa tocar distraído 5%.
         final sinal = ok ? (x < 0.85 ? 1 : 0) : (x < 0.8 ? -1 : (x < 0.95 ? 0 : 1));
+        if (botoes && session.never.isNotEmpty) {
+          final dentro = await source.smartAvoided([song], const [], const [], never: session.never, keep: session.more);
+          if (dentro.isNotEmpty) vazou++;
+        }
         acertos.add((ok, session.originOf(song.id) != null));
-        session.left(song, sinal);
+        final b = botoes ? rb.nextDouble() : 1.0;
+        final mais = ok && sinal > 0 && b < 0.15;
+        final menos = !ok && sinal < 0 && b < 0.25;
+        if (mais) {
+          maisN++;
+          session.more = [song, ...session.more];
+          upcoming.insertAll(0, await session.closeTo(song, want: 2, history: [...played, ...upcoming], source: source));
+        }
+        if (menos) {
+          menosN++;
+          session.never = [song, ...session.never];
+        }
+        session.left(song, menos ? 0 : sinal);
         if (sinal < 0) {
-          final ruins = await source.smartAvoided(upcoming, session.avoided(), [for (final (s, _) in session.anchors()) s]);
+          final ruins = await source.smartAvoided(upcoming, session.avoided(), [for (final (s, _) in session.anchors()) s],
+              never: session.never, keep: session.more);
           upcoming.removeWhere((s) => ruins.contains(s.id));
           await completa();
         }
@@ -168,6 +196,21 @@ void main() {
     debugPrint('dois gostos (samba/pagode + metal/rock), músicas 21–60: $deA de samba/pagode, $deB de metal/rock, '
         '${tocadas.length - deA - deB} de outros');
     expect(min(deA, deB), greaterThan(0), reason: 'os dois estilos continuam vindo');
+
+    // Os botões "+" e "−" (07/11/2026): o mesmo ouvinte, as mesmas sessões,
+    // agora apertando de vez em quando.
+    debugPrint('com os botões "+" e "−"  1–10  11–20  21–40  41–60 | sem botões 21–60');
+    for (final nome in ['samba/pagode', 'metal/rock', 'jazz/soul/r&b']) {
+      final gosto = gostos[nome]!;
+      final sem = [for (var s = 0; s < rodadas; s++) await sessao(s, (song, _) => gosta(song, gosto))];
+      maisN = menosN = vazou = 0;
+      final com = [for (var s = 0; s < rodadas; s++) await sessao(s, (song, _) => gosta(song, gosto), botoes: true)];
+      debugPrint('${nome.padRight(24)} ${pct(media(com, 0, 10))}  ${pct(media(com, 10, 20))}  '
+          '${pct(media(com, 20, 40))}  ${pct(media(com, 40, 60))} | ${pct(media(sem, 20, 60))}  '
+          '(+ $maisN vezes, − $menosN vezes, tocou dentro da região de um "−": $vazou)');
+      expect(vazou, 0, reason: '$nome: nada da região de um "−" pode tocar');
+    }
+    rodadasTarde = semIma = procurando = 0;
   }, skip: skip, timeout: const Timeout(Duration(minutes: 30)));
 }
 
@@ -180,6 +223,8 @@ class _Sim implements SmartSource {
   Future<List<(Song, int, double)>> smartNeighbors(
     List<Song> anchors, {
     required List<Song> avoid,
+    List<Song> never = const [],
+    List<Song> keep = const [],
     required RecommendStyle style,
     required int perAnchor,
     required Set<String> exclude,
@@ -187,6 +232,8 @@ class _Sim implements SmartSource {
     final r = await rust.recommendSmart(
       anchors: [for (final a in anchors) a.id],
       avoid: [for (final a in avoid) a.id],
+      never: [for (final a in never) a.id],
+      keep: [for (final a in keep) a.id],
       style: style.id,
       perAnchor: perAnchor,
       exclude: exclude.toList(),
@@ -200,7 +247,9 @@ class _Sim implements SmartSource {
     int count, {
     required List<Song> known,
     required List<Song> avoid,
+    List<Song> never = const [],
     required List<Song> liked,
+    List<Song> keep = const [],
     required Set<String> exclude,
     required bool spread,
     required int seed,
@@ -209,7 +258,9 @@ class _Sim implements SmartSource {
       count: count,
       known: [for (final s in known) s.id],
       avoid: [for (final s in avoid) s.id],
+      never: [for (final s in never) s.id],
       liked: [for (final s in liked) s.id],
+      keep: [for (final s in keep) s.id],
       exclude: exclude.toList(),
       allowed: const [],
       spread: spread,
@@ -219,11 +270,14 @@ class _Sim implements SmartSource {
   }
 
   @override
-  Future<Set<String>> smartAvoided(List<Song> list, List<Song> avoid, List<Song> liked) async =>
+  Future<Set<String>> smartAvoided(List<Song> list, List<Song> avoid, List<Song> liked,
+          {List<Song> never = const [], List<Song> keep = const []}) async =>
       (await rust.recommendAvoided(
         ids: [for (final s in list) s.id],
         avoid: [for (final s in avoid) s.id],
+        never: [for (final s in never) s.id],
         liked: [for (final s in liked) s.id],
+        keep: [for (final s in keep) s.id],
       ))
           .toSet();
 }

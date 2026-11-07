@@ -1607,12 +1607,14 @@ fn wire__crate__api__recommend__recommend_avoided_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_ids = <Vec<String>>::sse_decode(&mut deserializer);
             let api_avoid = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_never = <Vec<String>>::sse_decode(&mut deserializer);
             let api_liked = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_keep = <Vec<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
                     let output_ok = Ok::<_, ()>(crate::api::recommend::recommend_avoided(
-                        api_ids, api_avoid, api_liked,
+                        api_ids, api_avoid, api_never, api_liked, api_keep,
                     ))?;
                     std::result::Result::Ok(output_ok)
                 })())
@@ -1677,7 +1679,9 @@ fn wire__crate__api__recommend__recommend_explore_impl(
             let api_count = <u32>::sse_decode(&mut deserializer);
             let api_known = <Vec<String>>::sse_decode(&mut deserializer);
             let api_avoid = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_never = <Vec<String>>::sse_decode(&mut deserializer);
             let api_liked = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_keep = <Vec<String>>::sse_decode(&mut deserializer);
             let api_exclude = <Vec<String>>::sse_decode(&mut deserializer);
             let api_allowed = <Vec<String>>::sse_decode(&mut deserializer);
             let api_spread = <bool>::sse_decode(&mut deserializer);
@@ -1689,7 +1693,9 @@ fn wire__crate__api__recommend__recommend_explore_impl(
                         api_count,
                         api_known,
                         api_avoid,
+                        api_never,
                         api_liked,
+                        api_keep,
                         api_exclude,
                         api_allowed,
                         api_spread,
@@ -1832,6 +1838,8 @@ fn wire__crate__api__recommend__recommend_smart_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_anchors = <Vec<String>>::sse_decode(&mut deserializer);
             let api_avoid = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_never = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_keep = <Vec<String>>::sse_decode(&mut deserializer);
             let api_style = <String>::sse_decode(&mut deserializer);
             let api_per_anchor = <u32>::sse_decode(&mut deserializer);
             let api_exclude = <Vec<String>>::sse_decode(&mut deserializer);
@@ -1842,6 +1850,8 @@ fn wire__crate__api__recommend__recommend_smart_impl(
                     let output_ok = Ok::<_, ()>(crate::api::recommend::recommend_smart(
                         api_anchors,
                         api_avoid,
+                        api_never,
+                        api_keep,
                         api_style,
                         api_per_anchor,
                         api_exclude,

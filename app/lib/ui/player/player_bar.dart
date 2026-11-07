@@ -12,6 +12,7 @@ import '../../desktop/desktop_integration.dart';
 import '../actions.dart';
 import 'automix_status.dart';
 import 'sleep_timer_button.dart';
+import 'smart_mark_button.dart';
 import 'vinyl_disc.dart';
 import '../widgets/cover_art.dart';
 
@@ -77,72 +78,88 @@ class TransportControls extends ConsumerWidget {
   const TransportControls({super.key, this.big = false});
   final bool big;
 
+  /// Tela mais estreita que isto (celular de 360 dp): com os botões do
+  /// aleatório smart, o play fica com 48 dp em vez de 64 e a tela do player
+  /// diminui a margem — sete botões de 48 dp cabem em 360 sem encolher.
+  static const narrow = 400.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final s = ref.watch(playerProvider.select((s) => (s.playing, s.buffering, s.shuffle, s.repeat, s.current != null, s.jamHost != null)));
     final (playing, buffering, shuffle, repeat, hasTrack, jam) = s;
+    // Aleatório smart ligado: "−" e "+" nas pontas (ver [SmartMarkButton]).
+    final marks = !jam && ref.watch(playerProvider.select((s) => s.smart));
     final p = ref.read(playerProvider.notifier);
     final scheme = Theme.of(context).colorScheme;
     final iconSize = big ? 32.0 : 22.0;
     final buttons = ref.watch(uiPrefsProvider.select((p) => p.playerButtons));
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Na Festa a ordem é do dono: aleatório e repetir não são do convidado.
-        if (!jam && (big || buttons.contains('shuffle')))
+    final play = big && !(marks && MediaQuery.sizeOf(context).width < narrow) ? 64.0 : 48.0;
+    // Com os botões do aleatório smart a fileira pode não caber no celular
+    // estreito (ou na barra do PC com a janela pequena): encolhe em vez de
+    // estourar.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (marks) SmartMarkButton(more: false, iconSize: iconSize * 0.8),
+          // Na Festa a ordem é do dono: aleatório e repetir não são do convidado.
+          if (!jam && (big || buttons.contains('shuffle')))
+            IconButton(
+              tooltip: l10n.shuffle,
+              iconSize: iconSize * 0.8,
+              color: shuffle ? scheme.primary : null,
+              icon: const Icon(Icons.shuffle),
+              onPressed: hasTrack ? p.toggleShuffle : null,
+            ),
           IconButton(
-            tooltip: l10n.shuffle,
-            iconSize: iconSize * 0.8,
-            color: shuffle ? scheme.primary : null,
-            icon: const Icon(Icons.shuffle),
-            onPressed: hasTrack ? p.toggleShuffle : null,
+            tooltip: l10n.previous,
+            iconSize: iconSize,
+            icon: const Icon(Icons.skip_previous),
+            onPressed: hasTrack ? p.previous : null,
           ),
-        IconButton(
-          tooltip: l10n.previous,
-          iconSize: iconSize,
-          icon: const Icon(Icons.skip_previous),
-          onPressed: hasTrack ? p.previous : null,
-        ),
-        // 48 dp: área de toque mínima (o tablet usa esta barra com o dedo).
-        SizedBox(
-          width: big ? 64 : 48,
-          height: big ? 64 : 48,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton.filled(
-                tooltip: playing ? l10n.pause : l10n.play,
-                iconSize: iconSize,
-                icon: Icon(playing ? Icons.pause : Icons.play_arrow),
-                onPressed: hasTrack ? p.toggle : null,
-              ),
-              if (buffering)
-                IgnorePointer(
-                  child: SizedBox(
-                    width: big ? 60 : 44,
-                    height: big ? 60 : 44,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  ),
+          // 48 dp: área de toque mínima (o tablet usa esta barra com o dedo).
+          SizedBox(
+            width: play,
+            height: play,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton.filled(
+                  tooltip: playing ? l10n.pause : l10n.play,
+                  iconSize: iconSize,
+                  icon: Icon(playing ? Icons.pause : Icons.play_arrow),
+                  onPressed: hasTrack ? p.toggle : null,
                 ),
-            ],
+                if (buffering)
+                  IgnorePointer(
+                    child: SizedBox(
+                      width: play - 4,
+                      height: play - 4,
+                      child: const CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-        IconButton(
-          tooltip: l10n.next,
-          iconSize: iconSize,
-          icon: const Icon(Icons.skip_next),
-          onPressed: hasTrack ? p.next : null,
-        ),
-        if (!jam && (big || buttons.contains('repeat')))
           IconButton(
-            tooltip: l10n.repeat,
-            iconSize: iconSize * 0.8,
-            color: repeat != LoopMode.off ? scheme.primary : null,
-            icon: Icon(repeat == LoopMode.one ? Icons.repeat_one : Icons.repeat),
-            onPressed: p.cycleRepeat,
+            tooltip: l10n.next,
+            iconSize: iconSize,
+            icon: const Icon(Icons.skip_next),
+            onPressed: hasTrack ? p.next : null,
           ),
-      ],
+          if (!jam && (big || buttons.contains('repeat')))
+            IconButton(
+              tooltip: l10n.repeat,
+              iconSize: iconSize * 0.8,
+              color: repeat != LoopMode.off ? scheme.primary : null,
+              icon: Icon(repeat == LoopMode.one ? Icons.repeat_one : Icons.repeat),
+              onPressed: p.cycleRepeat,
+            ),
+          if (marks) SmartMarkButton(more: true, iconSize: iconSize * 0.8),
+        ],
+      ),
     );
   }
 }

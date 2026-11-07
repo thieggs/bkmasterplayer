@@ -987,5 +987,50 @@
  "smartMemoryHint": "Everything you do loses half its weight in {n} songs",
  "@smartMemoryHint": {
   "placeholders": { "n": { "type": "int" } }
- }
+ },
+ "smartMoreButton": "More like this, always",
+ "smartNeverButton": "Never this kind again",
+ "smartMarkedMore": "➕ More like this, always: {title}",
+ "@smartMarkedMore": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartMarkedNever": "⛔ Never this kind again: {title}",
+ "@smartMarkedNever": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartUnmarked": "Mark removed: {title}",
+ "@smartUnmarked": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartMoreSection": "Always (+)",
+ "smartNeverSection": "Never (−)",
+ "smartUnmark": "Remove the mark",
+ "smartMarksTitle": "Your marks (+ and −)",
+ "smartMarksHint": "They apply to every smart shuffle until you remove them",
+ "smartNoMarks": "No marks yet. With smart shuffle on, − (next to shuffle) and + (next to repeat) mark the song that is playing.",
+ "smartSavedTab": "Smart shuffles",
+ "smartSave": "Save this style",
+ "smartSaveTitle": "Save the smart shuffle",
+ "smartSaveName": "Name",
+ "smartSaveHint": "Keeps what it has learned so far: what it is pulling toward and what it is avoiding. To come back, open the Smart shuffles tab.",
+ "smartSaveNew": "Save as new",
+ "smartSaveUpdate": "Update \"{name}\"",
+ "@smartSaveUpdate": {
+  "placeholders": { "name": { "type": "String" } }
+ },
+ "smartSavedDone": "Saved to Smart shuffles: {name}",
+ "@smartSavedDone": {
+  "placeholders": { "name": { "type": "String" } }
+ },
+ "smartSaveNothing": "Nothing learned to save yet: let the songs you like play to the end.",
+ "smartSavedEmpty": "No saved smart shuffles yet. While one is playing, tap \"Save this style\" up here or in the \"What it learned\" panel (🧠) on the player screen.",
+ "smartSavedCount": "{count, plural, =1{1 song pulling} other{{count} songs pulling}}",
+ "@smartSavedCount": {
+  "placeholders": { "count": { "type": "int" } }
+ },
+ "smartSavedDeleted": "Deleted: {name}",
+ "@smartSavedDeleted": {
+  "placeholders": { "name": { "type": "String" } }
+ },
+ "smartSavedPlaying": "Playing now"
 }

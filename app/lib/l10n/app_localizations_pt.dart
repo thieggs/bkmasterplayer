@@ -2684,4 +2684,100 @@ class AppLocalizationsPt extends AppLocalizations {
   String smartMemoryHint(int n) {
     return 'Cada coisa que você faz perde metade do peso em $n músicas';
   }
+
+  @override
+  String get smartMoreButton => 'Mais disso, sempre';
+
+  @override
+  String get smartNeverButton => 'Nunca mais esse tipo';
+
+  @override
+  String smartMarkedMore(String title) {
+    return '➕ Mais disso, sempre: $title';
+  }
+
+  @override
+  String smartMarkedNever(String title) {
+    return '⛔ Nunca mais esse tipo: $title';
+  }
+
+  @override
+  String smartUnmarked(String title) {
+    return 'Marca tirada: $title';
+  }
+
+  @override
+  String get smartMoreSection => 'Sempre (+)';
+
+  @override
+  String get smartNeverSection => 'Nunca (−)';
+
+  @override
+  String get smartUnmark => 'Tirar a marca';
+
+  @override
+  String get smartMarksTitle => 'Suas marcas (+ e −)';
+
+  @override
+  String get smartMarksHint => 'Valem em todo aleatório smart, até você tirar';
+
+  @override
+  String get smartNoMarks =>
+      'Nenhuma marca ainda. Com o aleatório smart ligado, o − (ao lado do aleatório) e o + (ao lado do repetir) marcam a música que está tocando.';
+
+  @override
+  String get smartSavedTab => 'Aleatórios smart';
+
+  @override
+  String get smartSave => 'Salvar este estilo';
+
+  @override
+  String get smartSaveTitle => 'Salvar o aleatório smart';
+
+  @override
+  String get smartSaveName => 'Nome';
+
+  @override
+  String get smartSaveHint =>
+      'Guarda o que ele aprendeu até aqui: o que está puxando e o que está evitando. Para voltar, abra a aba Aleatórios smart.';
+
+  @override
+  String get smartSaveNew => 'Salvar como novo';
+
+  @override
+  String smartSaveUpdate(String name) {
+    return 'Atualizar \"$name\"';
+  }
+
+  @override
+  String smartSavedDone(String name) {
+    return 'Salvo em Aleatórios smart: $name';
+  }
+
+  @override
+  String get smartSaveNothing =>
+      'Ainda não aprendeu nada para salvar: deixe tocar até o fim o que você gostar.';
+
+  @override
+  String get smartSavedEmpty =>
+      'Nenhum aleatório smart salvo ainda. Com ele tocando, toque em \"Salvar este estilo\" aqui em cima ou no painel \"O que ele aprendeu\" (🧠) da tela do player.';
+
+  @override
+  String smartSavedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count músicas puxando',
+      one: '1 música puxando',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String smartSavedDeleted(String name) {
+    return 'Excluído: $name';
+  }
+
+  @override
+  String get smartSavedPlaying => 'Tocando agora';
 }

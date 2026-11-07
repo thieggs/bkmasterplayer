@@ -17,7 +17,7 @@ void main() {
     expect((p.radius, p.buttonStyle, p.cardStyle), (12, 'filled', 'flat'));
     expect((p.background, p.playerStyle, p.navLabels), ('solid', 'docked', 'auto'));
     expect((p.transitions, p.animations), ('default', 'normal'));
-    expect(p.sidebarTabs, ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'generate', 'favorites', 'downloads']);
+    expect(p.sidebarTabs, ['home', 'search', 'albums', 'songs', 'artists', 'playlists', 'genres', 'generate', 'smart', 'favorites', 'downloads']);
     expect(p.mobileTabs, ['home', 'search', 'library']);
     // Só vale no layout vinil, que não é o padrão: nada muda para quem não escolheu.
     expect((p.nowPlayingLayout, p.vinylScratch, p.vinylScratchAudio), ('side', true, true));

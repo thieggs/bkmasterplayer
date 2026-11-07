@@ -130,7 +130,11 @@ O modo não faz estes passos:
 2. **a próxima não é "a mais perto da primeira música" de um conjunto fixo**: cada rodada é contada de novo sobre a biblioteca toda, com vários ímãs e sorteio;
 3. **o peso nunca depende de quantas vezes a pessoa já ouviu a música**: a contagem de execuções fica fora da conta, e não há semente "em alta".
 
-Sem esses passos, nenhuma reivindicação é praticada. As três regras estão escritas no código (`app/lib/player/smart_session.dart`) para ninguém mudar o modo nessa direção. A busca foi rápida, não exaustiva; se o app um dia for vendido, entra na análise por advogado do item 3 das recomendações.
+Sem esses passos, nenhuma reivindicação é praticada. As três regras estão escritas no código (`app/lib/player/smart_session.dart`) para ninguém mudar o modo nessa direção.
+
+**Os botões "+" e "−" (07/11/2026)** não mudam essa conta. Botão de "gostei"/"não gostei" na música que toca é prática antiga (o Pandora tinha em 2005), e aqui ele só muda o peso de um ímã e o que evitar. O "+" marca a música que está tocando, e não uma semente escolhida entre várias mostradas (regra 1). As duas músicas que ele põe logo em seguida são sorteadas entre as três mais perto dela, contadas de novo sobre a biblioteca toda, e não tiradas de um conjunto fixo (regra 2). Nenhum dos dois botões usa contagem de execuções (regra 3).
+
+**A aba "Aleatórios smart" (07/11/2026)** mostra estilos que a própria pessoa salvou, na ordem em que ela usou. Parece com "mostrar várias sementes para a pessoa escolher", mas a reivindicação pede sementes escolhidas pelo sistema a partir do perfil (produto escalar com o perfil dela), e aqui ninguém escolhe nem ordena nada pelo perfil. Para continuar assim, a lista nunca deve ser ordenada, filtrada ou sugerida pela parecença com o gosto da pessoa. A regra está anotada em `app/lib/data/smart_saved.dart`. A busca foi rápida, não exaustiva; se o app um dia for vendido, entra na análise por advogado do item 3 das recomendações.
 
 **Apple AutoMix.** A Apple lançou o AutoMix em 2025 (iOS/macOS 26). Pedidos de patente ainda não concedidos não valem; vale acompanhar se algum for concedido nos EUA.
 

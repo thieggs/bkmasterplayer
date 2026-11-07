@@ -1080,5 +1080,50 @@
  "smartMemoryHint": "Cada coisa que você faz perde metade do peso em {n} músicas",
  "@smartMemoryHint": {
   "placeholders": { "n": { "type": "int" } }
- }
+ },
+ "smartMoreButton": "Mais disso, sempre",
+ "smartNeverButton": "Nunca mais esse tipo",
+ "smartMarkedMore": "➕ Mais disso, sempre: {title}",
+ "@smartMarkedMore": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartMarkedNever": "⛔ Nunca mais esse tipo: {title}",
+ "@smartMarkedNever": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartUnmarked": "Marca tirada: {title}",
+ "@smartUnmarked": {
+  "placeholders": { "title": { "type": "String" } }
+ },
+ "smartMoreSection": "Sempre (+)",
+ "smartNeverSection": "Nunca (−)",
+ "smartUnmark": "Tirar a marca",
+ "smartMarksTitle": "Suas marcas (+ e −)",
+ "smartMarksHint": "Valem em todo aleatório smart, até você tirar",
+ "smartNoMarks": "Nenhuma marca ainda. Com o aleatório smart ligado, o − (ao lado do aleatório) e o + (ao lado do repetir) marcam a música que está tocando.",
+ "smartSavedTab": "Aleatórios smart",
+ "smartSave": "Salvar este estilo",
+ "smartSaveTitle": "Salvar o aleatório smart",
+ "smartSaveName": "Nome",
+ "smartSaveHint": "Guarda o que ele aprendeu até aqui: o que está puxando e o que está evitando. Para voltar, abra a aba Aleatórios smart.",
+ "smartSaveNew": "Salvar como novo",
+ "smartSaveUpdate": "Atualizar \"{name}\"",
+ "@smartSaveUpdate": {
+  "placeholders": { "name": { "type": "String" } }
+ },
+ "smartSavedDone": "Salvo em Aleatórios smart: {name}",
+ "@smartSavedDone": {
+  "placeholders": { "name": { "type": "String" } }
+ },
+ "smartSaveNothing": "Ainda não aprendeu nada para salvar: deixe tocar até o fim o que você gostar.",
+ "smartSavedEmpty": "Nenhum aleatório smart salvo ainda. Com ele tocando, toque em \"Salvar este estilo\" aqui em cima ou no painel \"O que ele aprendeu\" (🧠) da tela do player.",
+ "smartSavedCount": "{count, plural, =1{1 música puxando} other{{count} músicas puxando}}",
+ "@smartSavedCount": {
+  "placeholders": { "count": { "type": "int" } }
+ },
+ "smartSavedDeleted": "Excluído: {name}",
+ "@smartSavedDeleted": {
+  "placeholders": { "name": { "type": "String" } }
+ },
+ "smartSavedPlaying": "Tocando agora"
 }

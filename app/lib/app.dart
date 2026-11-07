@@ -22,6 +22,7 @@ import 'ui/pages/albums_page.dart';
 import 'ui/pages/artists_page.dart';
 import 'ui/pages/equalizer_page.dart';
 import 'ui/pages/generate_page.dart';
+import 'ui/pages/smart_saved_page.dart';
 import 'ui/pages/genres_page.dart';
 import 'ui/pages/home_page.dart';
 import 'ui/pages/library_page.dart';
@@ -95,6 +96,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/songs', builder: (_, _) => const SongsPage()),
           GoRoute(path: '/genres', builder: (_, _) => const GenresPage()),
           GoRoute(path: '/generate', builder: (_, _) => const GeneratePage()),
+          GoRoute(path: '/smart', builder: (_, _) => const SmartSavedPage()),
           GoRoute(
             path: '/genre/:name',
             builder: (_, state) => GenreSongsPage(genre: state.pathParameters['name']!),

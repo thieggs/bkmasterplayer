@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:player_musica/data/recommend.dart';
+import 'package:player_musica/data/smart_marks.dart';
 import 'package:player_musica/domain/models.dart';
 import 'package:player_musica/player/radio.dart';
 import 'package:player_musica/player/smart_session.dart';
@@ -17,28 +18,37 @@ Song _s(String id, {String? artist, Duration? duration}) =>
 List<Song> _many(String prefix, int n) => [for (var i = 0; i < n; i++) _s('$prefix$i')];
 
 /// Fonte de mentira: cada ímã tem uma lista fixa de vizinhas, as amostras
-/// saem de uma lista fixa, e cada pulada leva junto as gêmeas declaradas.
+/// saem de uma lista fixa, cada pulada leva junto as gêmeas declaradas e cada
+/// marcada com "−", a zona declarada.
 class _Fake implements SmartSource {
-  _Fake({this.neighbors = const {}, this.samples = const [], this.twins = const {}});
+  _Fake({this.neighbors = const {}, this.samples = const [], this.twins = const {}, this.zones = const {}});
 
   final Map<String, List<Song>> neighbors;
   final List<Song> samples;
   final Map<String, Set<String>> twins;
+  final Map<String, Set<String>> zones;
   final asked = <List<String>>[];
   final explored = <({int count, bool spread, List<String> known})>[];
+  final nevers = <List<String>>[];
 
-  Set<String> _blocked(List<Song> avoid) => {for (final a in avoid) ...{a.id, ...?twins[a.id]}};
+  Set<String> _blocked(List<Song> avoid, [List<Song> never = const []]) => {
+        for (final a in avoid) ...{a.id, ...?twins[a.id]},
+        for (final n in never) ...{n.id, ...?twins[n.id], ...?zones[n.id]},
+      };
 
   @override
   Future<List<(Song, int, double)>> smartNeighbors(
     List<Song> anchors, {
     required List<Song> avoid,
+    List<Song> never = const [],
+    List<Song> keep = const [],
     required RecommendStyle style,
     required int perAnchor,
     required Set<String> exclude,
   }) async {
     asked.add([for (final a in anchors) a.id]);
-    final fora = _blocked(avoid);
+    nevers.add([for (final n in never) n.id]);
+    final fora = _blocked(avoid, never);
     return [
       for (final (i, a) in anchors.indexed)
         for (final (j, s) in (neighbors[a.id] ?? const <Song>[])
@@ -54,19 +64,22 @@ class _Fake implements SmartSource {
     int count, {
     required List<Song> known,
     required List<Song> avoid,
+    List<Song> never = const [],
     required List<Song> liked,
+    List<Song> keep = const [],
     required Set<String> exclude,
     required bool spread,
     required int seed,
   }) async {
     explored.add((count: count, spread: spread, known: [for (final s in known) s.id]));
-    final fora = _blocked(avoid);
+    final fora = _blocked(avoid, never);
     return samples.where((s) => !exclude.contains(s.id) && !fora.contains(s.id)).take(count).toList();
   }
 
   @override
-  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked) async {
-    final fora = _blocked(avoid);
+  Future<Set<String>> smartAvoided(List<Song> songs, List<Song> avoid, List<Song> liked,
+      {List<Song> never = const [], List<Song> keep = const []}) async {
+    final fora = _blocked(avoid, never);
     return {for (final s in songs) if (fora.contains(s.id)) s.id};
   }
 }
@@ -264,5 +277,128 @@ void main() {
     final fake = _Fake(samples: [_s('pulada'), ..._many('x', 5)]);
     final r = await volta.next(want: 3, history: const [], source: fake);
     expect(r.map((s) => s.id), isNot(contains('pulada')), reason: 'pulada não volta na sessão');
+  });
+
+  // ---- Botões "+" e "−" (07/11/2026) ----
+
+  test('"+": ímã fixo que não esquece e sorteia entre as vizinhas mais perto', () async {
+    final fixa = _s('fixa');
+    final fake = _Fake(neighbors: {'fixa': _many('n', 12)}, samples: _many('x', 10));
+    for (var seed = 0; seed < 8; seed++) {
+      final session = SmartSession(explore: SmartExplore.low, random: Random(seed))..more = [fixa];
+      // Muito tempo depois: um "ouviu inteira" já teria sumido; o "+" não.
+      for (var i = 0; i < 100; i++) {
+        session.left(_s('passou$i'), 0);
+      }
+      expect(session.isMore('fixa'), isTrue);
+      expect(session.anchors().single.$2, greaterThanOrEqualTo(SmartWeights.more * 0.5));
+      final r = await session.next(want: 3, history: const [], source: fake);
+      final ids = r.map((s) => s.id).toList();
+      // Três sorteios, cada um entre as três mais perto que sobraram: no
+      // máximo até a quinta (o sorteio normal ia até a oitava).
+      expect(ids.every((id) => {'n0', 'n1', 'n2', 'n3', 'n4'}.contains(id)), isTrue, reason: 'semente $seed: $ids');
+      expect(ids.every((id) => session.originOf(id) == 'fixa'), isTrue);
+    }
+  });
+
+  test('"+": pulos do que ela traz não tiram mais que metade da força', () async {
+    final fixa = _s('fixa');
+    final fake = _Fake(neighbors: {'fixa': _many('n', 40)});
+    final session = SmartSession(explore: SmartExplore.low, random: Random(5))..more = [fixa];
+    final antes = session.anchors().single.$2;
+    final fila = <Song>[];
+    for (var rodada = 0; rodada < 3; rodada++) {
+      final r = await session.next(want: 4, history: fila, source: fake);
+      fila.addAll(r);
+      for (final s in r) {
+        if (session.originOf(s.id) == 'fixa') session.left(s, -1);
+      }
+    }
+    final depois = session.anchors().firstWhere((a) => a.$1.id == 'fixa').$2;
+    expect(depois, lessThan(antes), reason: 'responde pelo que trouxe, como os outros ímãs');
+    expect(depois, greaterThanOrEqualTo(antes * 0.5));
+  });
+
+  test('"−": deixa de ser ímã, não volta, e a região em volta fica de fora para sempre', () async {
+    final rock = _s('rock');
+    final funk = _s('funk');
+    final fake = _Fake(
+      neighbors: {'rock': [_s('f1'), _s('r1'), _s('r2'), _s('r3'), _s('r4'), _s('r5')]},
+      samples: [_s('funk'), _s('f2'), _s('f3'), ..._many('x', 6)],
+      zones: {'funk': {'f1', 'f2', 'f3'}},
+    );
+    final session = SmartSession(explore: SmartExplore.high, random: Random(4))
+      ..left(rock, 1)
+      ..left(funk, 1);
+    expect(session.anchors().map((a) => a.$1.id), containsAll(['rock', 'funk']));
+    session.never = [funk];
+    expect(session.anchors().map((a) => a.$1.id), ['rock'], reason: 'marcada com "−" nunca é ímã');
+    expect(session.avoided(), isEmpty, reason: 'as marcadas vão à parte');
+    final ids = (await session.next(want: 8, history: [rock, funk], source: fake)).map((s) => s.id).toList();
+    expect(ids, isNot(anyOf(contains('funk'), contains('f1'), contains('f2'), contains('f3'))), reason: '$ids');
+    expect(fake.nevers.last, ['funk'], reason: 'o motor recebe a marcada');
+    // Muito depois, e sem a fila para lembrar: a marcada continua sem voltar.
+    for (var i = 0; i < 100; i++) {
+      session.left(_s('passou$i'), 0);
+    }
+    final denovo = await session.next(want: 4, history: const [], source: _Fake(samples: [funk, ..._many('y', 4)]));
+    expect(denovo.map((s) => s.id), isNot(contains('funk')));
+  });
+
+  test('"+" na que toca: as vizinhas mais perto dela, sem o que já está na fila', () async {
+    final fixa = _s('fixa');
+    final fake = _Fake(neighbors: {'fixa': _many('n', 10)});
+    for (var seed = 0; seed < 5; seed++) {
+      final session = SmartSession(random: Random(seed))..more = [fixa];
+      final r = await session.closeTo(fixa, want: 2, history: [fixa, _s('n0')], source: fake);
+      final ids = r.map((s) => s.id).toList();
+      expect(ids, hasLength(2));
+      expect(ids, isNot(contains('n0')), reason: 'já está na fila');
+      expect(ids.every((id) => {'n1', 'n2', 'n3', 'n4'}.contains(id)), isTrue, reason: 'semente $seed: $ids');
+      expect(ids.every((id) => session.originOf(id) == 'fixa'), isTrue);
+    }
+  });
+
+  test('marcas guardadas: voltam iguais', () {
+    final m = SmartMarks(more: [_s('a'), _s('b')], never: [_s('c')]);
+    final volta = SmartMarks.fromJson(jsonDecode(jsonEncode(m.toJson())));
+    expect(volta.more.map((s) => s.id), ['a', 'b']);
+    expect(volta.never.map((s) => s.id), ['c']);
+    expect(volta.isMore('a') && volta.isNever('c') && !volta.isMore('c'), isTrue);
+    expect(SmartMarks.fromJson('lixo').more, isEmpty);
+  });
+
+  // ---- Aleatórios smart salvos (07/11/2026) ----
+
+  test('salvar e voltar: os mesmos ímãs com a mesma força, e as puladas continuam fora', () async {
+    final fixa = _s('fixa');
+    final session = SmartSession(random: Random(6))
+      ..more = [fixa]
+      ..left(_s('rock'), 1)
+      ..left(_s('samba'), 1)
+      ..starred(_s('samba'), true)
+      ..left(_s('pulada'), -1);
+    final snap = session.snapshot();
+    expect(snap.liked.map((a) => a.$1.id), ['samba', 'rock'], reason: 'sem a marcada com "+": ela vale sempre');
+    expect(snap.avoid.map((s) => s.id), ['pulada']);
+
+    final volta = SmartSession.restore(liked: snap.liked, avoid: snap.avoid, savedFrom: 'smart-1', random: Random(6));
+    expect(volta.anchors().map((a) => (a.$1.id, a.$2.toStringAsFixed(3))),
+        snap.liked.map((a) => (a.$1.id, a.$2.toStringAsFixed(3))));
+    expect(volta.avoided().map((s) => s.id), ['pulada']);
+    expect(volta.savedFrom, 'smart-1');
+    final fake = _Fake(neighbors: {'samba': _many('s', 10), 'rock': _many('r', 10)}, samples: [_s('pulada'), ..._many('x', 6)]);
+    final ids = (await volta.next(want: 6, history: const [], source: fake)).map((s) => s.id).toList();
+    expect(ids, isNot(contains('pulada')));
+    expect(ids.where((id) => id.startsWith('s') || id.startsWith('r')), isNotEmpty, reason: '$ids');
+
+    // Guardada com a fila e aberta de novo: continua sabendo de onde veio.
+    final json = SmartSession.fromJson(jsonDecode(jsonEncode(volta.toJson())) as Map<String, dynamic>);
+    expect(json.savedFrom, 'smart-1');
+    // E dali em diante esquece como qualquer sessão: o tempo conta de quando voltou.
+    for (var i = 0; i < 100; i++) {
+      volta.left(_s('passou$i'), 0);
+    }
+    expect(volta.anchors(), isEmpty);
   });
 }

@@ -19,6 +19,7 @@ class AutoBrowser {
     required this.artDir,
     required this.pt,
     this.tabs,
+    this.smartSaved,
     this.artAuthority = defaultArtAuthority,
   });
 
@@ -65,6 +66,10 @@ class AutoBrowser {
   /// personalização que dá para levar para o carro: o visual ali é do Google,
   /// mas o que aparece e em que ordem continua sendo escolha de quem usa.
   final List<String> Function()? tabs;
+
+  /// Os aleatórios smart salvos (id, nome, artistas), na ordem de uso: viram
+  /// uma pasta no Início do carro, cada um tocável (`do:smartSaved:<id>`).
+  final List<(String, String, String?)> Function()? smartSaved;
   final bool pt;
   final String artAuthority;
 
@@ -112,9 +117,16 @@ class AutoBrowser {
           if (current != null)
             _action('do:mix', _t('Mix da música atual', 'Mix from this song'), subtitle: current.title, group: tocar),
           _folder('list:starred', _t('Favoritas', 'Favorites'), style: styleCategoryList, group: suas),
+          if (smartSaved?.call().isNotEmpty ?? false)
+            _folder('tab:smartSaved', _t('Aleatórios smart', 'Smart shuffles'), style: styleCategoryList, group: suas),
           _folder('tab:recent', _t('Recentes', 'Recent'), style: styleCategoryList, group: suas),
           _folder('tab:frequent', _t('Mais tocados', 'Most played'), style: styleGrid, group: descobrir),
           _folder('tab:random', _t('Álbuns aleatórios', 'Random albums'), style: styleGrid, group: descobrir),
+        ];
+      case 'tab:smartSaved':
+        return [
+          for (final (id, nome, artistas) in smartSaved?.call() ?? const <(String, String, String?)>[])
+            _action('do:smartSaved:$id', nome, subtitle: artistas),
         ];
       case 'tab:recent':
         return _albums(await p.albumList(AlbumListType.recent, size: 40));
