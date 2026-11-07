@@ -28,9 +28,23 @@ jobs:
           rustup update stable
           rustup target add aarch64-apple-ios-sim x86_64-apple-ios
       # O simulador só roda o modo debug do Flutter (o release é só para o
-      # aparelho); o motor em Rust sai igual.
-      - working-directory: app
-        run: flutter build ios --simulator --debug
+      # aparelho); o motor em Rust sai igual. O log inteiro vai no artefato:
+      # o resumo do Flutter esconde a mensagem do erro.
+      - name: Compilar para o simulador
+        working-directory: app
+        env:
+          # O bindgen 0.70 (do signalsmith-stretch) passa ao clang o alvo
+          # "arm64-apple-ios-sim", que o clang não conhece; o certo é
+          # "-simulator". Alvo explícito ganha do traduzido. Só o simulador
+          # sofre disso: o .ipa é aarch64-apple-ios.
+          BINDGEN_EXTRA_CLANG_ARGS_aarch64_apple_ios_sim: --target=arm64-apple-ios-simulator
+        run: |
+          mkdir -p ../simulador
+          if ! flutter build ios --simulator --debug --verbose > ../simulador/build.log 2>&1; then
+            grep -n -i -E 'error[: ]|warning: build failed|panicked' ../simulador/build.log | grep -v -i 'Werror' | tail -60
+            exit 1
+          fi
+          tail -5 ../simulador/build.log
       - name: Abrir no simulador
         run: ./dev/ios_simulador.sh app/build/ios/iphonesimulator/Runner.app simulador
       - uses: actions/upload-artifact@v4
