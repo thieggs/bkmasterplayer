@@ -21,7 +21,7 @@ Ready to run — no toolchain, no compiling. Grab it from
 | **Linux** (Debian/Ubuntu) | `.deb` | `sudo apt install ./bkmasterplayer_*.deb` |
 | **Linux** (any) | `.AppImage` | `chmod +x` and run — installs nothing |
 | **Android** | `.apk` | allow "install from unknown sources" |
-| **iPhone** | `.ipa` | unsigned — [how to install](docs/IPHONE.md) (Sideloadly or SideStore) |
+| **iPhone** | `.ipa` | unsigned — [how to install](docs/IPHONE.md) (iloader on Linux, Windows or Mac; SideStore renews it on the phone) |
 
 Want to build it yourself instead? Every command, in order, is in
 [**docs/COMPILAR.md**](docs/COMPILAR.md). What changed in each version is in
@@ -108,7 +108,7 @@ Three gaps this was built around:
 | **Android** | works; APK, Android Auto |
 | **Windows** | works; `.exe` installer |
 | **macOS** | builds, `.dmg` script |
-| **iOS** | builds unsigned via GitHub Actions; install through SideStore/AltStore |
+| **iOS** | builds unsigned via GitHub Actions (checked to open on a simulated iPhone); install through iloader or SideStore |
 
 ## Build it yourself
 
