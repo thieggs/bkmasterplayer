@@ -3,6 +3,27 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.8.0
+
+### Aleatórios smart salvos em todos os seus aparelhos
+
+O que você salva na aba **Aleatórios smart** agora aparece em todo aparelho
+logado na mesma conta: celular, PC, notebook. Renomear, apagar e o "usado por
+último" também acompanham.
+
+- **Fica no seu servidor.** Cada salvo vira uma playlist privada no Navidrome,
+  chamada "Aleatório smart: <nome>". As músicas dela são as que mais puxam o
+  estilo. Essas playlists não aparecem na aba Playlists do app.
+- **Atualiza sozinho** ao abrir o app e ao abrir a aba. Para forçar, puxe a
+  lista para baixo.
+- **Sem internet também funciona.** O que você salvar ou apagar fica
+  guardado no aparelho e vai para o servidor quando a conexão voltar.
+- **Os salvos que você já tinha** sobem na primeira vez que o app abrir com
+  esta versão.
+
+Com as músicas do próprio aparelho (sem servidor), os salvos continuam só
+nele.
+
 ## v1.7.1
 
 ### Linux: o app voltou a abrir
