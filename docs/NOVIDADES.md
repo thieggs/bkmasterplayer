@@ -3,6 +3,23 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.7.1
+
+### Linux: o app voltou a abrir
+
+O .deb e o AppImage da v1.7.0 não abriam na maioria dos Linux. Davam
+"GLIBC_2.43 not found" ou "CPU ISA level is lower than required", ou não
+aparecia nada ao clicar no ícone. O GitHub tinha trocado sozinho o Ubuntu que
+compila o app por um bem mais novo, e o app saiu exigindo:
+
+- **glibc 2.43**, que o Debian 13, o Ubuntu 24.04 e o Mint 22 não têm;
+- **processador com AVX2**, que Intel de antes de 2013 e vários Celeron e
+  Pentium não têm.
+
+Agora o app é compilado sempre na mesma versão do Ubuntu (24.04). Antes de
+empacotar, o build confere se ele abre num PC antigo. O resto do app é igual
+à v1.7.0. Windows, Android e iPhone não mudam.
+
 ## v1.7.0
 
 ### Aleatório smart: botões "+" e "−"
