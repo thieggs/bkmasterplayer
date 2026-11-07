@@ -3,6 +3,51 @@
 O que mudou em cada versão. O release no GitHub traz esta seção no topo,
 tirada daqui pelo `.github/workflows/release.yml`.
 
+## v1.7.0
+
+### Aleatório smart: botões "+" e "−"
+
+Com o aleatório smart ligado, aparecem dois botões nos controles do player:
+**−** ao lado do aleatório e **+** ao lado do repetir. Os dois valem para a
+música que está tocando.
+
+- **−: nunca mais esse tipo de música.** A música pula na hora e a região de
+  estilo em volta dela sai do modo, sem esquecer com o tempo. O pulo comum só
+  tira a música e as quase iguais a ela, e esquece depois de umas 30 músicas.
+- **+: mais disso, sempre.** A música passa a puxar as mais parecidas com ela
+  em toda sessão, com mais força que favoritar. As duas próximas da fila já
+  vêm parecidas com ela.
+- **As marcas se somam.** Marcar um rock e um samba traz os dois, não uma
+  mistura. E elas convivem com o que o modo aprende sozinho.
+- **Valem para sempre**, até você tirar. Apertar de novo desmarca. Para ver ou
+  tirar marcas, abra o painel **O que ele aprendeu** (seções **Sempre (+)** e
+  **Nunca (−)**, com ✕). Com o modo desligado, o painel abre em **Ajustes →
+  Recomendações → Suas marcas**.
+- No Android, os dois botões aparecem também na **notificação** e no **Android
+  Auto**.
+- Sem a análise guardada no aparelho, o "−" tira a música e o mesmo artista.
+
+### Aleatórios smart salvos
+
+- **Salve o estilo de um aleatório smart** e volte a ele quando quiser. Com o
+  modo tocando, toque em **Salvar este estilo** no painel **O que ele aprendeu**
+  (🧠) e dê um nome. O app sugere os artistas que mais estão puxando. Fica
+  guardado o que ele aprendeu até ali: o que está puxando, com a força de cada
+  um, e o que está evitando.
+- **Aba nova: Aleatórios smart.** Fica na barra lateral do computador e na
+  **Biblioteca** do celular. Tocar um salvo recomeça o modo daquele ponto, e
+  ele continua aprendendo. Pelos três pontinhos dá para renomear e excluir,
+  com desfazer.
+- Se o aleatório veio de um salvo, o botão de salvar oferece **atualizar
+  aquele** ou salvar como novo.
+- No **Android Auto**, os salvos aparecem no Início, em **Aleatórios smart**.
+- As marcas "+" e "−" não entram no salvo: elas já valem em todo aleatório
+  smart.
+
+### Player em celular estreito
+
+- Em telas com menos de 400 dp de largura, a fileira de botões de baixo
+  (favoritar, rádio, timer…) passava da tela. Agora ela quebra a linha.
 ## v1.6.1
 
 Versão de correções. No fim está a lista de tudo o que já foi corrigido nas
